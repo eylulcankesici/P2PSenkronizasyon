@@ -1,0 +1,262 @@
+# ============================================
+# AETHER PROJECT - GitHub Ready .gitignore
+# ============================================
+
+# ==================== BINARIES ====================
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# ==================== OUTPUT & BUILD ====================
+/bin/
+/dist/
+/build/
+*.o
+*.a
+*.lib
+
+# ==================== GO ====================
+# Vendor directory
+vendor/
+
+# Go workspace file
+go.work
+
+# Test binaries
+*.test
+
+# Coverage files
+*.cover
+*.coverprofile
+
+# Go module cache (keep go.sum)
+# go.sum should be committed
+
+# ==================== DATABASES ====================
+# SQLite databases (local only)
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# BoltDB databases
+*.bolt
+
+# Backup databases (created during migration)
+*_backup.db
+
+# ==================== AETHER SPECIFIC ====================
+# User data directories
+.aether/
+.aether_versions/
+
+# Chunk storage (binary data)
+chunks/
+*/chunks/
+
+# Log files
+*.log
+logs/
+
+# Temporary test files
+*test-*.txt
+test_*.txt
+
+# Configuration overrides (keep example configs)
+config.local.yaml
+config.override.yaml
+
+# ==================== FLUTTER / DART ====================
+# Dart tool
+.dart_tool/
+.dart/
+
+# Flutter plugins
+.flutter-plugins
+.flutter-plugins-dependencies
+.flutter-plugins-versions
+
+# Packages
+.packages
+.pub-cache/
+.pub/
+
+# Build outputs
+build/
+flutter_windows/
+.flutter-fvm/
+
+# Flutter logs
+flutter_*.log
+
+# Generated files
+*.g.dart
+*.freezed.dart
+*.gr.dart
+
+# Flutter coverage
+coverage/
+
+# Android (if needed later)
+android/.gradle/
+android/app/debug
+android/app/profile
+android/app/release
+
+# iOS (if needed later)
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# ==================== PROTOBUF ====================
+# Generated protobuf files (optional - can be committed or generated)
+# Uncomment if you want to generate them on each machine
+# *.pb.go
+# *.pb.gw.go
+# *_grpc.pb.go
+
+# Keep proto source files
+!*.proto
+
+# ==================== IDE & EDITORS ====================
+# VSCode
+.vscode/
+*.code-workspace
+
+# IntelliJ / GoLand / Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+.*.swp
+.*.swo
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ==================== OS SPECIFIC ====================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.directory
+.Trash-*
+
+# ==================== NODE / NPM (if using web tools) ====================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# ==================== TESTING ====================
+# Test coverage
+coverage.txt
+coverage.html
+*.coverprofile
+
+# Test outputs
+test_output/
+test_results/
+*.test.json
+
+# Benchmark results
+*.bench
+benchmarks/
+
+# ==================== DOCUMENTATION ====================
+# Generated docs (if using godoc or similar)
+docs/generated/
+
+# Temporary markdown
+*.md.tmp
+*.md.bak
+
+# ==================== SECURITY ====================
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# API keys / secrets
+secrets/
+*.key
+*.pem
+*.p12
+
+# ==================== TEMPORARY FILES ====================
+# Backup files
+*.bak
+*.backup
+*_backup
+*.old
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Swap files
+*.swp
+*.swo
+
+# ==================== MISCELLANEOUS ====================
+# Archive files (if accidentally added)
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Large binary test files
+*.bin
+*.dat
+
+# Python (if using Python tools)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+
+# ==================== KEEP THESE ====================
+# Explicitly keep certain files
+!.gitkeep
+!README.md
+!LICENSE
+!Makefile
+!go.mod
+!go.sum

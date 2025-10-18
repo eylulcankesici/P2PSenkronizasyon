@@ -1,0 +1,109 @@
+syntax = "proto3";
+
+package aether.api;
+
+option go_package = "github.com/aether/sync/api/proto;proto";
+
+import "api/proto/common.proto";
+import "google/protobuf/timestamp.proto";
+
+// Peer servisi
+service PeerService {
+  // Peer'ları keşfet
+  rpc DiscoverPeers(DiscoverPeersRequest) returns (DiscoverPeersResponse);
+  
+  // Peer'a bağlan
+  rpc ConnectToPeer(ConnectToPeerRequest) returns (Status);
+  
+  // Peer bağlantısını kes
+  rpc DisconnectFromPeer(DisconnectFromPeerRequest) returns (Status);
+  
+  // Tüm peer'ları listele
+  rpc ListPeers(ListPeersRequest) returns (ListPeersResponse);
+  
+  // Peer detay bilgisi getir
+  rpc GetPeerInfo(GetPeerInfoRequest) returns (PeerInfoResponse);
+  
+  // Peer'i güvenilir yap
+  rpc TrustPeer(TrustPeerRequest) returns (Status);
+  
+  // Peer'i güvenilmez yap
+  rpc UntrustPeer(UntrustPeerRequest) returns (Status);
+  
+  // Peer'ı kaldır
+  rpc RemovePeer(RemovePeerRequest) returns (Status);
+}
+
+// Mesajlar
+
+message Peer {
+  string device_id = 1;
+  string name = 2;
+  repeated string known_addresses = 3;
+  bool is_trusted = 4;
+  google.protobuf.Timestamp last_seen = 5;
+  PeerStatus status = 6;
+  string public_key = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message DiscoverPeersRequest {
+  bool lan_only = 1;
+}
+
+message DiscoverPeersResponse {
+  Status status = 1;
+  repeated Peer peers = 2;
+}
+
+message ConnectToPeerRequest {
+  string peer_id = 1;
+}
+
+message DisconnectFromPeerRequest {
+  string peer_id = 1;
+}
+
+message ListPeersRequest {
+  bool online_only = 1;
+  bool trusted_only = 2;
+  PaginationRequest pagination = 3;
+}
+
+message ListPeersResponse {
+  repeated Peer peers = 1;
+  PaginationResponse pagination = 2;
+}
+
+message GetPeerInfoRequest {
+  string peer_id = 1;
+}
+
+message PeerInfoResponse {
+  Status status = 1;
+  Peer peer = 2;
+  repeated string shared_folders = 3;
+  int32 shared_files = 4;
+  int32 total_chunks = 5;
+  google.protobuf.Timestamp last_activity = 6;
+  string connection_type = 7;
+  int64 latency_ms = 8;
+}
+
+message TrustPeerRequest {
+  string peer_id = 1;
+}
+
+message UntrustPeerRequest {
+  string peer_id = 1;
+}
+
+message RemovePeerRequest {
+  string peer_id = 1;
+}
+
+
+
+
+

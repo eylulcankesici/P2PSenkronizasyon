@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package aether.api;
+
+option go_package = "github.com/aether/sync/api/proto;proto";
+
+import "api/proto/common.proto";
+import "google/protobuf/timestamp.proto";
+
+// Folder servisi
+service FolderService {
+  // Yeni klasör oluştur
+  rpc CreateFolder(CreateFolderRequest) returns (FolderResponse);
+  
+  // Klasör getir
+  rpc GetFolder(GetFolderRequest) returns (FolderResponse);
+  
+  // Tüm klasörleri listele
+  rpc ListFolders(ListFoldersRequest) returns (ListFoldersResponse);
+  
+  // Klasör güncelle
+  rpc UpdateFolder(UpdateFolderRequest) returns (FolderResponse);
+  
+  // Klasör sil
+  rpc DeleteFolder(DeleteFolderRequest) returns (Status);
+  
+  // Klasörü aktif/pasif yap
+  rpc ToggleFolderActive(ToggleFolderActiveRequest) returns (FolderResponse);
+  
+  // Klasörü tara ve dosyaları kaydet
+  rpc ScanFolder(ScanFolderRequest) returns (ScanFolderResponse);
+}
+
+// Mesajlar
+
+message Folder {
+  string id = 1;
+  string local_path = 2;
+  SyncMode sync_mode = 3;
+  google.protobuf.Timestamp last_scan_time = 4;
+  bool is_active = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message CreateFolderRequest {
+  string local_path = 1;
+  SyncMode sync_mode = 2;
+}
+
+message GetFolderRequest {
+  string id = 1;
+}
+
+message ListFoldersRequest {
+  bool active_only = 1;
+  PaginationRequest pagination = 2;
+}
+
+message ListFoldersResponse {
+  repeated Folder folders = 1;
+  PaginationResponse pagination = 2;
+}
+
+message UpdateFolderRequest {
+  string id = 1;
+  string local_path = 2;
+  SyncMode sync_mode = 3;
+}
+
+message DeleteFolderRequest {
+  string id = 1;
+}
+
+message ToggleFolderActiveRequest {
+  string id = 1;
+  bool is_active = 2;
+}
+
+message FolderResponse {
+  Status status = 1;
+  Folder folder = 2;
+}
+
+message ScanFolderRequest {
+  string folder_id = 1;
+}
+
+message ScanFolderResponse {
+  Status status = 1;
+  int32 files_found = 2;
+  int32 files_saved = 3;
+}
+
+
+

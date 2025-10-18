@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package aether.api;
+
+option go_package = "github.com/aether/sync/api/proto;proto";
+
+import "api/proto/common.proto";
+import "google/protobuf/timestamp.proto";
+
+// Sync servisi
+service SyncService {
+  // Dosya senkronize et
+  rpc SyncFile(SyncFileRequest) returns (SyncFileResponse);
+  
+  // Senkronizasyon durumunu getir
+  rpc GetSyncStatus(GetSyncStatusRequest) returns (SyncStatusResponse);
+  
+  // Senkronizasyonu duraklat/devam ettir
+  rpc PauseSync(PauseSyncRequest) returns (Status);
+  rpc ResumeSync(ResumeSyncRequest) returns (Status);
+  
+  // Real-time senkronizasyon olaylarını dinle (streaming)
+  rpc WatchSyncEvents(WatchSyncEventsRequest) returns (stream SyncEvent);
+}
+
+// Mesajlar
+
+message SyncFileRequest {
+  string file_id = 1;
+  repeated string target_peer_ids = 2;
+}
+
+message SyncFileResponse {
+  Status status = 1;
+  SyncProgress progress = 2;
+}
+
+message GetSyncStatusRequest {
+  string folder_id = 1;
+}
+
+message SyncStatusResponse {
+  Status status = 1;
+  SyncStatus sync_status = 2;
+}
+
+message SyncStatus {
+  string folder_id = 1;
+  int32 total_files = 2;
+  int32 synced_files = 3;
+  int32 pending_files = 4;
+  int64 total_size = 5;
+  int64 synced_size = 6;
+  google.protobuf.Timestamp last_sync_time = 7;
+  bool is_syncing = 8;
+  string current_operation = 9;
+}
+
+message SyncProgress {
+  int64 bytes_transferred = 1;
+  int64 total_bytes = 2;
+  float percentage = 3;
+  int64 speed_bps = 4;
+  int64 eta_seconds = 5;
+}
+
+message PauseSyncRequest {
+  string folder_id = 1;
+}
+
+message ResumeSyncRequest {
+  string folder_id = 1;
+}
+
+message WatchSyncEventsRequest {
+  string folder_id = 1;
+}
+
+message SyncEvent {
+  enum EventType {
+    EVENT_TYPE_UNSPECIFIED = 0;
+    EVENT_TYPE_FILE_ADDED = 1;
+    EVENT_TYPE_FILE_MODIFIED = 2;
+    EVENT_TYPE_FILE_DELETED = 3;
+    EVENT_TYPE_SYNC_STARTED = 4;
+    EVENT_TYPE_SYNC_COMPLETED = 5;
+    EVENT_TYPE_SYNC_FAILED = 6;
+  }
+  
+  EventType event_type = 1;
+  string file_id = 2;
+  string file_path = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  string message = 5;
+}
+
+
+
+
+

@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+package aether.api;
+
+option go_package = "github.com/aether/sync/api/proto;proto";
+
+import "api/proto/common.proto";
+import "google/protobuf/timestamp.proto";
+
+// File servisi
+service FileService {
+  // Dosya bilgisi getir
+  rpc GetFile(GetFileRequest) returns (FileResponse);
+  
+  // Klasördeki dosyaları listele
+  rpc ListFiles(ListFilesRequest) returns (ListFilesResponse);
+  
+  // Dosya detay bilgisi getir
+  rpc GetFileInfo(GetFileInfoRequest) returns (FileInfoResponse);
+  
+  // Dosya sil
+  rpc DeleteFile(DeleteFileRequest) returns (Status);
+  
+  // Dosya versiyonlarını getir
+  rpc GetFileVersions(GetFileVersionsRequest) returns (FileVersionsResponse);
+  
+  // Dosyayı geri yükle
+  rpc RestoreFile(RestoreFileRequest) returns (Status);
+}
+
+// Mesajlar
+
+message File {
+  string id = 1;
+  string folder_id = 2;
+  string relative_path = 3;
+  int64 size = 4;
+  google.protobuf.Timestamp mod_time = 5;
+  string global_hash = 6;
+  int32 chunk_count = 7;
+  bool is_deleted = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message Chunk {
+  string id = 1;
+  string file_id = 2;
+  int64 offset = 3;
+  int64 length = 4;
+  repeated string device_availability = 5;
+}
+
+message FileVersion {
+  string id = 1;
+  string file_id = 2;
+  int32 version_number = 3;
+  string backup_path = 4;
+  string original_path = 5;
+  int64 size = 6;
+  string hash = 7;
+  google.protobuf.Timestamp created_at = 8;
+  string created_by_peer_id = 9;
+}
+
+message GetFileRequest {
+  string id = 1;
+}
+
+message ListFilesRequest {
+  string folder_id = 1;
+  PaginationRequest pagination = 2;
+}
+
+message ListFilesResponse {
+  repeated File files = 1;
+  PaginationResponse pagination = 2;
+}
+
+message GetFileInfoRequest {
+  string file_id = 1;
+}
+
+message FileInfoResponse {
+  Status status = 1;
+  File file = 2;
+  repeated Chunk chunks = 3;
+  repeated string available_peers = 4;
+  int32 version_count = 5;
+  float sync_percentage = 6;
+  google.protobuf.Timestamp last_sync_time = 7;
+}
+
+message DeleteFileRequest {
+  string file_id = 1;
+}
+
+message GetFileVersionsRequest {
+  string file_id = 1;
+}
+
+message FileVersionsResponse {
+  Status status = 1;
+  repeated FileVersion versions = 2;
+}
+
+message RestoreFileRequest {
+  string file_id = 1;
+  string version_id = 2;
+}
+
+message FileResponse {
+  Status status = 1;
+  File file = 2;
+}
+
+
+
+
+

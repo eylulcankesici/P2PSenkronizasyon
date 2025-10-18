@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package aether.api;
+
+option go_package = "github.com/aether/sync/api/proto;proto";
+
+import "google/protobuf/timestamp.proto";
+
+// Ortak mesaj tipleri
+
+message Empty {}
+
+message Status {
+  bool success = 1;
+  string message = 2;
+  int32 code = 3;
+}
+
+message PaginationRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message PaginationResponse {
+  int32 total_count = 1;
+  int32 total_pages = 2;
+  int32 current_page = 3;
+}
+
+// Enum tanımları
+
+enum SyncMode {
+  SYNC_MODE_UNSPECIFIED = 0;
+  SYNC_MODE_BIDIRECTIONAL = 1;
+  SYNC_MODE_SEND_ONLY = 2;
+  SYNC_MODE_RECEIVE_ONLY = 3;
+}
+
+enum PeerStatus {
+  PEER_STATUS_UNKNOWN = 0;
+  PEER_STATUS_ONLINE = 1;
+  PEER_STATUS_OFFLINE = 2;
+}
+
+enum UserRole {
+  USER_ROLE_STANDARD = 0;
+  USER_ROLE_ADMIN = 1;
+}
+
+
+
+
+

@@ -1,0 +1,134 @@
+syntax = "proto3";
+
+package aether.api;
+
+option go_package = "github.com/aether/sync/api/proto;proto";
+
+import "api/proto/common.proto";
+import "google/protobuf/timestamp.proto";
+
+// Chunk servisi - Dosya parçalama ve deduplication
+service ChunkService {
+  // Dosyayı chunk'la ve kaydet
+  rpc ChunkFile(ChunkFileRequest) returns (ChunkFileResponse);
+  
+  // Dosyanın chunk'larını getir
+  rpc GetFileChunks(GetFileChunksRequest) returns (GetFileChunksResponse);
+  
+  // Chunk verisi indir (binary data)
+  rpc DownloadChunk(DownloadChunkRequest) returns (stream ChunkDataResponse);
+  
+  // Chunk yükle (binary data)
+  rpc UploadChunk(stream UploadChunkRequest) returns (UploadChunkResponse);
+  
+  // Dosya bütünlüğünü doğrula
+  rpc VerifyFileIntegrity(VerifyFileIntegrityRequest) returns (VerifyFileIntegrityResponse);
+  
+  // Deduplication istatistikleri
+  rpc GetDeduplicationStats(GetDeduplicationStatsRequest) returns (GetDeduplicationStatsResponse);
+  
+  // Orphan chunk'ları temizle
+  rpc CleanOrphanChunks(CleanOrphanChunksRequest) returns (CleanOrphanChunksResponse);
+}
+
+// Mesajlar
+
+message ChunkInfo {
+  string hash = 1;                      // SHA-256 hash
+  int64 size = 2;                       // Boyut (bytes)
+  google.protobuf.Timestamp creation_time = 3;
+  bool is_local = 4;                    // Bu cihazda var mı?
+  int32 reference_count = 5;            // Kaç dosya kullanıyor?
+}
+
+message FileChunkInfo {
+  string file_id = 1;
+  string chunk_hash = 2;
+  int32 chunk_index = 3;                // Dosya içindeki sıra
+}
+
+// ChunkFile
+message ChunkFileRequest {
+  string file_id = 1;
+  string file_path = 2;                 // Yerel dosya yolu
+  string folder_id = 3;                 // Klasör ID (optional)
+}
+
+message ChunkFileResponse {
+  Status status = 1;
+  string global_hash = 2;               // Dosyanın global hash'i
+  int32 chunk_count = 3;
+  int64 total_size = 4;
+  repeated ChunkInfo chunks = 5;
+}
+
+// GetFileChunks
+message GetFileChunksRequest {
+  string file_id = 1;
+}
+
+message GetFileChunksResponse {
+  Status status = 1;
+  repeated ChunkInfo chunks = 2;
+  repeated FileChunkInfo file_chunks = 3;
+}
+
+// DownloadChunk (streaming)
+message DownloadChunkRequest {
+  string chunk_hash = 1;
+}
+
+message ChunkDataResponse {
+  bytes data = 1;                       // Chunk verisi (binary)
+  int32 offset = 2;                     // Bu paketin offset'i
+  int32 total_size = 3;                 // Toplam chunk boyutu
+}
+
+// UploadChunk (streaming)
+message UploadChunkRequest {
+  string chunk_hash = 1;                // İlk pakette gönderilir
+  bytes data = 2;                       // Chunk verisi
+  int32 offset = 3;                     // Bu paketin offset'i
+  int64 total_size = 4;                 // Toplam boyut (ilk pakette)
+}
+
+message UploadChunkResponse {
+  Status status = 1;
+  string chunk_hash = 2;
+  bool was_duplicate = 3;               // Chunk zaten var mıydı?
+}
+
+// VerifyFileIntegrity
+message VerifyFileIntegrityRequest {
+  string file_id = 1;
+  string expected_global_hash = 2;
+}
+
+message VerifyFileIntegrityResponse {
+  Status status = 1;
+  bool is_valid = 2;
+  string actual_global_hash = 3;
+  repeated string corrupted_chunks = 4; // Bozuk chunk hash'leri
+}
+
+// GetDeduplicationStats
+message GetDeduplicationStatsRequest {}
+
+message GetDeduplicationStatsResponse {
+  Status status = 1;
+  int64 total_chunk_references = 2;    // Toplam referans sayısı
+  int64 unique_chunks = 3;              // Benzersiz chunk sayısı
+  int64 savings_bytes = 4;              // Tasarruf edilen alan
+  float deduplication_ratio = 5;        // Deduplication oranı %
+  int64 disk_usage_bytes = 6;           // Disk kullanımı
+}
+
+// CleanOrphanChunks
+message CleanOrphanChunksRequest {}
+
+message CleanOrphanChunksResponse {
+  Status status = 1;
+  int32 deleted_chunks = 2;             // Silinen chunk sayısı
+  int64 freed_bytes = 3;                // Boşaltılan alan
+}
+
