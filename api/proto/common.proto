@@ -40,6 +40,7 @@ enum PeerStatus {
   PEER_STATUS_UNKNOWN = 0;
   PEER_STATUS_ONLINE = 1;
   PEER_STATUS_OFFLINE = 2;
+  PEER_STATUS_CONNECTING = 3;
 }
 
 enum UserRole {

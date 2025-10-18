@@ -32,11 +32,13 @@ class PeerStatus extends $pb.ProtobufEnum {
   static const PeerStatus PEER_STATUS_UNKNOWN = PeerStatus._(0, const $core.bool.fromEnvironment('protobuf.omit_enum_names') ? '' : 'PEER_STATUS_UNKNOWN');
   static const PeerStatus PEER_STATUS_ONLINE = PeerStatus._(1, const $core.bool.fromEnvironment('protobuf.omit_enum_names') ? '' : 'PEER_STATUS_ONLINE');
   static const PeerStatus PEER_STATUS_OFFLINE = PeerStatus._(2, const $core.bool.fromEnvironment('protobuf.omit_enum_names') ? '' : 'PEER_STATUS_OFFLINE');
+  static const PeerStatus PEER_STATUS_CONNECTING = PeerStatus._(3, const $core.bool.fromEnvironment('protobuf.omit_enum_names') ? '' : 'PEER_STATUS_CONNECTING');
 
   static const $core.List<PeerStatus> values = <PeerStatus> [
     PEER_STATUS_UNKNOWN,
     PEER_STATUS_ONLINE,
     PEER_STATUS_OFFLINE,
+    PEER_STATUS_CONNECTING,
   ];
 
   static final $core.Map<$core.int, PeerStatus> _byValue = $pb.ProtobufEnum.initByValue(values);

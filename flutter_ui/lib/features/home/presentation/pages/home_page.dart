@@ -3,8 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:aether_desktop/data/providers/folder_provider.dart';
+import 'package:aether_desktop/data/providers/peer_provider.dart';
+import 'package:aether_desktop/data/providers/transfer_provider.dart';
 import 'package:aether_desktop/generated/api/proto/common.pb.dart';
 import 'package:aether_desktop/features/home/presentation/pages/folder_detail_page.dart';
+import 'package:aether_desktop/features/peers/presentation/pages/peers_page.dart';
+import 'package:aether_desktop/features/transfers/presentation/pages/transfers_page.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -23,14 +27,14 @@ class _HomePageState extends ConsumerState<HomePage> {
       label: 'Klasörler',
     ),
     NavigationDestination(
-      icon: Icon(LucideIcons.users),
-      selectedIcon: Icon(LucideIcons.users),
-      label: 'Cihazlar',
+      icon: Icon(LucideIcons.monitor),
+      selectedIcon: Icon(LucideIcons.monitor),
+      label: 'Peer\'lar',
     ),
     NavigationDestination(
-      icon: Icon(LucideIcons.activity),
-      selectedIcon: Icon(LucideIcons.activity),
-      label: 'Aktivite',
+      icon: Icon(LucideIcons.download),
+      selectedIcon: Icon(LucideIcons.download),
+      label: 'Transferler',
     ),
     NavigationDestination(
       icon: Icon(LucideIcons.settings),
@@ -61,6 +65,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           ],
         ),
         actions: [
+          _buildSyncStatusWidget(),
           IconButton(
             icon: const Icon(LucideIcons.bell),
             onPressed: () {},
@@ -94,9 +99,9 @@ class _HomePageState extends ConsumerState<HomePage> {
       case 0:
         return _buildFoldersPage();
       case 1:
-        return _buildDevicesPage();
+        return const PeersPage();
       case 2:
-        return _buildActivityPage();
+        return const TransfersPage();
       case 3:
         return _buildSettingsPage();
       default:
@@ -216,56 +221,70 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Widget _buildDevicesPage() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+
+  Widget _buildSyncStatusWidget() {
+    final connectedPeersAsync = ref.watch(connectedPeersProvider);
+    final activeTransfers = ref.watch(activeTransfersProvider);
+    
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            LucideIcons.users,
-            size: 64,
-            color: Colors.grey.shade400,
+          // Connected peers count
+          connectedPeersAsync.when(
+            data: (peers) => _buildStatusBadge(
+              icon: LucideIcons.monitor,
+              count: peers.length,
+              color: peers.isEmpty ? Colors.grey : Colors.green,
+              tooltip: '${peers.length} peer bağlı',
+            ),
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Cihazlar',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Yakında...',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey.shade600,
-                ),
-          ),
+          const SizedBox(width: 8),
+          // Active transfers count
+          if (activeTransfers.isNotEmpty)
+            _buildStatusBadge(
+              icon: LucideIcons.download,
+              count: activeTransfers.length,
+              color: Colors.blue,
+              tooltip: '${activeTransfers.length} aktif transfer',
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildActivityPage() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            LucideIcons.activity,
-            size: 64,
-            color: Colors.grey.shade400,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Aktivite',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Yakında...',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey.shade600,
-                ),
-          ),
-        ],
+  Widget _buildStatusBadge({
+    required IconData icon,
+    required int count,
+    required Color color,
+    required String tooltip,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 4),
+            Text(
+              count.toString(),
+              style: TextStyle(
+                fontSize: 12,
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

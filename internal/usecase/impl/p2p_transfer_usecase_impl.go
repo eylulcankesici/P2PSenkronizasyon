@@ -138,7 +138,7 @@ func (uc *P2PTransferUseCaseImpl) RequestFileFromPeer(ctx context.Context, peerI
 	}
 	
 	// Global hash hesapla (chunk hash'lerinden)
-	chunks, err := uc.chunkRepo.GetChunksByFileID(ctx, fileID)
+	_, err = uc.chunkRepo.GetChunksByFileID(ctx, fileID)
 	if err != nil {
 		return fmt.Errorf("chunk detayları alınamadı: %w", err)
 	}

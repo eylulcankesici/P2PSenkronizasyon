@@ -1,7 +1,6 @@
 package reassembly
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -9,8 +8,6 @@ import (
 	"path/filepath"
 	"sort"
 	"sync"
-
-	"github.com/aether/sync/internal/domain/entity"
 )
 
 // ChunkData chunk verisi ve index bilgisi
