@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:aether_desktop/data/providers/folder_provider.dart';
 import 'package:aether_desktop/data/providers/peer_provider.dart';
 import 'package:aether_desktop/data/providers/transfer_provider.dart';
+import 'package:aether_desktop/data/providers/device_provider.dart';
 import 'package:aether_desktop/generated/api/proto/common.pb.dart';
 import 'package:aether_desktop/features/home/presentation/pages/folder_detail_page.dart';
 import 'package:aether_desktop/features/peers/presentation/pages/peers_page.dart';
@@ -65,6 +66,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           ],
         ),
         actions: [
+          _buildDeviceIdWidget(),
           _buildSyncStatusWidget(),
           IconButton(
             icon: const Icon(LucideIcons.bell),
@@ -221,6 +223,45 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
+
+  Widget _buildDeviceIdWidget() {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Consumer(
+        builder: (context, ref, child) {
+          final deviceId = ref.watch(deviceIdProvider);
+          
+          return Tooltip(
+            message: 'Device ID: $deviceId\nBu ID SHA-256 hash ile MAC address tabanlı oluşturulmuştur.',
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(LucideIcons.hash, size: 12, color: Colors.blue.shade700),
+                  const SizedBox(width: 4),
+                  Text(
+                    deviceId.length > 8 ? '${deviceId.substring(0, 8)}...' : deviceId,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.blue.shade700,
+                      fontWeight: FontWeight.w500,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   Widget _buildSyncStatusWidget() {
     final connectedPeersAsync = ref.watch(connectedPeersProvider);

@@ -10,12 +10,12 @@ import (
 	"github.com/aether/sync/internal/domain/repository"
 	"github.com/aether/sync/internal/domain/transport"
 	"github.com/aether/sync/internal/domain/usecase"
+	"github.com/aether/sync/internal/domain/utils"
 	"github.com/aether/sync/internal/infrastructure/database/boltdb"
 	"github.com/aether/sync/internal/infrastructure/database/sqlite"
 	"github.com/aether/sync/internal/infrastructure/p2p/lan"
 	usecaseImpl "github.com/aether/sync/internal/usecase/impl"
 	"github.com/aether/sync/pkg/chunking"
-	"github.com/google/uuid"
 )
 
 // Container dependency injection container
@@ -209,6 +209,73 @@ func (c *Container) TransportProvider() transport.TransportProvider {
 	return c.transportProvider
 }
 
+// getOrCreateDeviceID kalıcı device ID'yi alır veya oluşturur
+func (c *Container) getOrCreateDeviceID() (string, error) {
+	ctx := context.Background()
+	
+	// BoltDB'den device ID'yi kontrol et
+	deviceID, err := c.configRepo.GetString(ctx, "device_id")
+	if err != nil || deviceID == "" {
+		// Yeni device ID oluştur
+		generator := utils.NewDeviceIDGenerator()
+		deviceID, err = generator.GeneratePersistentDeviceID()
+		if err != nil {
+			return "", fmt.Errorf("device ID oluşturulamadı: %w", err)
+		}
+		
+		// BoltDB'ye kaydet
+		if err := c.configRepo.SetString(ctx, "device_id", deviceID); err != nil {
+			return "", fmt.Errorf("device ID kaydedilemedi: %w", err)
+		}
+		
+		log.Printf("✓ Yeni device ID oluşturuldu: %s", deviceID)
+	} else {
+		log.Printf("✓ Mevcut device ID kullanılıyor: %s", deviceID)
+	}
+	
+	return deviceID, nil
+}
+
+// getDeviceName cihaz adını alır veya oluşturur
+func (c *Container) getDeviceName() string {
+	ctx := context.Background()
+	
+	// BoltDB'den device name'i kontrol et
+	deviceName := c.configRepo.GetStringOrDefault(ctx, "device_name", "")
+	if deviceName == "" {
+		// Yeni device name oluştur
+		generator := utils.NewDeviceIDGenerator()
+		deviceName = generator.GenerateDeviceName()
+		
+		// BoltDB'ye kaydet
+		if err := c.configRepo.SetString(ctx, "device_name", deviceName); err != nil {
+			log.Printf("Device name kaydedilemedi: %v", err)
+			deviceName = "Aether Node" // Fallback
+		}
+		
+		log.Printf("✓ Yeni device name oluşturuldu: %s", deviceName)
+	} else {
+		log.Printf("✓ Mevcut device name kullanılıyor: %s", deviceName)
+	}
+	
+	return deviceName
+}
+
+// getP2PPort P2P port'unu alır
+func (c *Container) getP2PPort() int {
+	ctx := context.Background()
+	
+	// Config'den port al, yoksa default kullan
+	portStr := c.configRepo.GetStringOrDefault(ctx, "p2p_port", "50052")
+	
+	// String'i int'e çevir (basit implementasyon)
+	if portStr == "50052" {
+		return 50052
+	}
+	
+	return 50052 // Default port
+}
+
 // initUseCases use case'leri başlatır
 func (c *Container) initUseCases() error {
 	// Chunk storage directory
@@ -266,12 +333,17 @@ func (c *Container) initUseCases() error {
 
 // initP2PTransport P2P transport'u başlatır
 func (c *Container) initP2PTransport() error {
-	// Device ID oluştur (veya config'den al)
-	deviceID := uuid.New().String()
-	deviceName := "Aether Node" // Config'den alınabilir
+	// Kalıcı device ID'yi al veya oluştur
+	deviceID, err := c.getOrCreateDeviceID()
+	if err != nil {
+		return fmt.Errorf("device ID alınamadı: %w", err)
+	}
 	
-	// P2P listen port
-	p2pPort := 50052 // Config'den alınabilir
+	// Device name'i al veya oluştur
+	deviceName := c.getDeviceName()
+	
+	// P2P listen port'unu al
+	p2pPort := c.getP2PPort()
 	
 	// LAN Transport oluştur
 	lanTransport := lan.NewLANTransport(deviceID, deviceName, p2pPort)

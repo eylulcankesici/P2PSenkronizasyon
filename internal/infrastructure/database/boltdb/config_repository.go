@@ -88,3 +88,26 @@ func (r *ConfigRepository) GetWithPrefix(ctx context.Context, prefix string) (ma
 	
 	return result, err
 }
+
+// GetString string değer getirir
+func (r *ConfigRepository) GetString(ctx context.Context, key string) (string, error) {
+	value, err := r.Get(ctx, key)
+	if err != nil {
+		return "", err
+	}
+	return string(value), nil
+}
+
+// SetString string değer ayarlar
+func (r *ConfigRepository) SetString(ctx context.Context, key, value string) error {
+	return r.Set(ctx, key, []byte(value))
+}
+
+// GetStringOrDefault string değer getirir, yoksa default döner
+func (r *ConfigRepository) GetStringOrDefault(ctx context.Context, key, defaultValue string) string {
+	value, err := r.GetString(ctx, key)
+	if err != nil {
+		return defaultValue
+	}
+	return value
+}

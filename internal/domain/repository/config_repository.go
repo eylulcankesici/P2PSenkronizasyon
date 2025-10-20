@@ -24,6 +24,11 @@ type ConfigRepository interface {
 	
 	// GetWithPrefix belirli prefix ile başlayan tüm değerleri getirir
 	GetWithPrefix(ctx context.Context, prefix string) (map[string][]byte, error)
+	
+	// String helper metodları
+	GetString(ctx context.Context, key string) (string, error)
+	SetString(ctx context.Context, key, value string) error
+	GetStringOrDefault(ctx context.Context, key, defaultValue string) string
 }
 
 // Konfigürasyon anahtarları
