@@ -223,13 +223,33 @@ func (c *Container) getOrCreateDeviceID() (string, error) {
 			return "", fmt.Errorf("device ID oluşturulamadı: %w", err)
 		}
 		
+		// Device ID'yi doğrula
+		if !generator.ValidateDeviceID(deviceID) {
+			return "", fmt.Errorf("geçersiz device ID oluşturuldu: %s", deviceID)
+		}
+		
 		// BoltDB'ye kaydet
 		if err := c.configRepo.SetString(ctx, "device_id", deviceID); err != nil {
 			return "", fmt.Errorf("device ID kaydedilemedi: %w", err)
 		}
 		
-		log.Printf("✓ Yeni device ID oluşturuldu: %s", deviceID)
+		// Kaydetme işlemini doğrula
+		savedID, err := c.configRepo.GetString(ctx, "device_id")
+		if err != nil || savedID != deviceID {
+			return "", fmt.Errorf("device ID kaydedilemedi veya doğrulanamadı")
+		}
+		
+		log.Printf("✓ Yeni device ID oluşturuldu ve kaydedildi: %s", deviceID)
 	} else {
+		// Mevcut device ID'yi doğrula
+		generator := utils.NewDeviceIDGenerator()
+		if !generator.ValidateDeviceID(deviceID) {
+			log.Printf("⚠️ Mevcut device ID geçersiz, yeni ID oluşturuluyor...")
+			// Geçersiz ID'yi sil ve yeni oluştur
+			c.configRepo.Delete(ctx, "device_id")
+			return c.getOrCreateDeviceID() // Recursive call
+		}
+		
 		log.Printf("✓ Mevcut device ID kullanılıyor: %s", deviceID)
 	}
 	

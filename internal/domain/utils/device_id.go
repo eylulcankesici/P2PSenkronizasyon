@@ -1,10 +1,12 @@
 package utils
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"fmt"
 	"net"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,68 +21,111 @@ func NewDeviceIDGenerator() *DeviceIDGenerator {
 }
 
 // GeneratePersistentDeviceID kalıcı device ID oluşturur
-// Öncelik sırası: MAC address -> Hostname -> UUID
+// Her cihazda farklı ve kalıcı ID oluşturur
 func (d *DeviceIDGenerator) GeneratePersistentDeviceID() (string, error) {
-	// 1. MAC address tabanlı ID oluşturmayı dene
-	if deviceID, err := d.generateFromMAC(); err == nil {
+	// 1. MAC address + hostname + sistem bilgileri + random kombinasyonu
+	if deviceID, err := d.generateUniqueDeviceID(); err == nil {
 		return deviceID, nil
 	}
 
-	// 2. Hostname tabanlı ID oluşturmayı dene
-	if deviceID, err := d.generateFromHostname(); err == nil {
-		return deviceID, nil
-	}
-
-	// 3. Son çare olarak UUID kullan
+	// 2. Fallback: UUID kullan
 	return uuid.New().String(), nil
 }
 
-// generateFromMAC MAC address tabanlı device ID oluşturur
-func (d *DeviceIDGenerator) generateFromMAC() (string, error) {
+// generateUniqueDeviceID benzersiz device ID oluşturur
+// MAC address + hostname + sistem bilgileri + random kombinasyonu
+func (d *DeviceIDGenerator) generateUniqueDeviceID() (string, error) {
+	// 1. MAC address'leri topla
+	macAddresses := d.getAllMACAddresses()
+	
+	// 2. Hostname al
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "unknown-host"
+	}
+	
+	// 3. Sistem bilgileri
+	osInfo := runtime.GOOS
+	archInfo := runtime.GOARCH
+	
+	// 4. Random bytes oluştur
+	randomBytes := make([]byte, 16)
+	if _, err := rand.Read(randomBytes); err != nil {
+		return "", fmt.Errorf("random bytes oluşturulamadı: %w", err)
+	}
+	
+	// 5. Tüm bilgileri birleştir
+	data := fmt.Sprintf("%s-%s-%s-%s-%x-%d", 
+		macAddresses, hostname, osInfo, archInfo, randomBytes, time.Now().UnixNano())
+	
+	// 6. SHA-256 hash'le
+	hasher := sha256.New()
+	hasher.Write([]byte(data))
+	hash := hasher.Sum(nil)
+
+	// 7. UUID format'ına çevir
+	deviceID := fmt.Sprintf("%x-%x-%x-%x-%x",
+		hash[0:4], hash[4:6], hash[6:8], hash[8:10], hash[10:16])
+
+	return deviceID, nil
+}
+
+// getAllMACAddresses tüm MAC address'leri toplar
+func (d *DeviceIDGenerator) getAllMACAddresses() string {
 	interfaces, err := net.Interfaces()
 	if err != nil {
-		return "", fmt.Errorf("network interfaces alınamadı: %w", err)
+		return "no-mac"
 	}
 
+	var macs []string
 	for _, iface := range interfaces {
 		// Loopback ve inactive interface'leri atla
 		if iface.Flags&net.FlagLoopback != 0 || iface.Flags&net.FlagUp == 0 {
 			continue
 		}
 
-		// MAC address varsa kullan
+		// MAC address varsa ekle
 		if len(iface.HardwareAddr) >= 6 {
-			// MAC address + hostname + timestamp kombinasyonu
-			hostname, _ := os.Hostname()
-			timestamp := time.Now().Unix()
-			
-			// Kombinasyonu hash'le
-			data := fmt.Sprintf("%s-%s-%d", iface.HardwareAddr.String(), hostname, timestamp)
-			hasher := sha256.New()
-			hasher.Write([]byte(data))
-			hash := hasher.Sum(nil)
-
-			// İlk 16 byte'ı UUID format'ına çevir
-			deviceID := fmt.Sprintf("%x-%x-%x-%x-%x",
-				hash[0:4], hash[4:6], hash[6:8], hash[8:10], hash[10:16])
-
-			return deviceID, nil
+			macs = append(macs, iface.HardwareAddr.String())
 		}
 	}
 
-	return "", fmt.Errorf("uygun MAC address bulunamadı")
+	if len(macs) == 0 {
+		return "no-mac"
+	}
+
+	// Tüm MAC'leri birleştir
+	result := ""
+	for i, mac := range macs {
+		if i > 0 {
+			result += "-"
+		}
+		result += mac
+	}
+
+	return result
 }
 
-// generateFromHostname hostname tabanlı device ID oluşturur
+// generateFromHostname hostname tabanlı device ID oluşturur (fallback)
 func (d *DeviceIDGenerator) generateFromHostname() (string, error) {
 	hostname, err := os.Hostname()
 	if err != nil {
 		return "", fmt.Errorf("hostname alınamadı: %w", err)
 	}
 
-	// Hostname + timestamp kombinasyonu
-	timestamp := time.Now().Unix()
-	data := fmt.Sprintf("%s-%d", hostname, timestamp)
+	// Hostname + sistem bilgileri + random kombinasyonu
+	osInfo := runtime.GOOS
+	archInfo := runtime.GOARCH
+	
+	// Random bytes oluştur
+	randomBytes := make([]byte, 16)
+	if _, err := rand.Read(randomBytes); err != nil {
+		return "", fmt.Errorf("random bytes oluşturulamadı: %w", err)
+	}
+	
+	// Tüm bilgileri birleştir
+	data := fmt.Sprintf("%s-%s-%s-%x-%d", 
+		hostname, osInfo, archInfo, randomBytes, time.Now().UnixNano())
 
 	// Hash'le
 	hasher := sha256.New()
@@ -145,4 +190,43 @@ func (d *DeviceIDGenerator) ValidateDeviceID(deviceID string) bool {
 	}
 
 	return false
+}
+
+// IsDeviceIDUnique device ID'nin benzersiz olup olmadığını kontrol eder
+func (d *DeviceIDGenerator) IsDeviceIDUnique(deviceID string, existingIDs []string) bool {
+	if deviceID == "" {
+		return false
+	}
+	
+	// Mevcut ID'lerle karşılaştır
+	for _, existingID := range existingIDs {
+		if deviceID == existingID {
+			return false
+		}
+	}
+	
+	return true
+}
+
+// GenerateUniqueDeviceID benzersiz device ID oluşturur (çakışma kontrolü ile)
+func (d *DeviceIDGenerator) GenerateUniqueDeviceID(existingIDs []string) (string, error) {
+	maxAttempts := 10
+	
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		deviceID, err := d.generateUniqueDeviceID()
+		if err != nil {
+			continue
+		}
+		
+		// Çakışma kontrolü
+		if d.IsDeviceIDUnique(deviceID, existingIDs) {
+			return deviceID, nil
+		}
+		
+		// Çakışma varsa, random seed'i değiştir
+		time.Sleep(time.Millisecond * 10)
+	}
+	
+	// Son çare: UUID kullan
+	return uuid.New().String(), nil
 }
