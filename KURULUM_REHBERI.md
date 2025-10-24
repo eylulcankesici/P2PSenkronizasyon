@@ -1,85 +1,180 @@
-# Aether - Kurulum Rehberi (Windows)
+# 🚀 Aether - Detaylı Kurulum Rehberi (Windows)
 
-## 🔧 Gerekli Yazılımlar
+## 📋 **KURULUM ÖZETİ**
 
-### 1. Go Kurulumu
+Bu rehber Aether P2P senkronizasyon uygulamasını Windows'ta kurmak için gereken tüm adımları içerir.
 
-#### Adım 1: Go'yu İndirin
-1. [Go İndirme Sayfası](https://go.dev/dl/) adresine gidin
-2. **Windows** için en son sürümü indirin (örn: `go1.21.5.windows-amd64.msi`)
-3. İndirilen `.msi` dosyasını çalıştırın
-4. Kurulum sihirbazını takip edin (varsayılan ayarlar yeterli)
+### **📦 MANUEL İNDİRİLECEK YAZILIMLAR:**
+1. **Go Programming Language** - Ana programlama dili
+2. **Protocol Buffers (protoc)** - Proto dosyalarını compile etmek için
+3. **Flutter SDK** - UI geliştirme için
 
-#### Adım 2: Kurulumu Doğrulayın
-PowerShell veya CMD'de şu komutu çalıştırın:
+### **📦 OTOMATİK İNDİRİLEN PAKETLER:**
+1. **Go Plugins** - `go install` komutu ile
+2. **Proje Bağımlılıkları** - `go mod download` ile
+3. **Flutter Paketleri** - `flutter pub get` ile
+
+---
+
+## 🔧 **ZORUNLU YAZILIMLAR (MANUEL İNDİRME)**
+
+### **1️⃣ Go Programming Language**
+
+#### **📥 İndirme:**
+- **Kaynak:** [Go İndirme Sayfası](https://go.dev/dl/)
+- **Dosya:** `go1.21.5.windows-amd64.msi` (en son sürüm)
+- **Boyut:** ~140 MB
+
+#### **🔧 Kurulum:**
+1. İndirilen `.msi` dosyasını çift tıklayın
+2. Kurulum sihirbazını takip edin
+3. **Varsayılan ayarlar** yeterli (C:\Program Files\Go\)
+4. Kurulum tamamlandığında **"Close"** butonuna tıklayın
+
+#### **✅ Doğrulama:**
 ```powershell
+# PowerShell veya CMD açın ve şu komutu çalıştırın:
 go version
-```
 
-Başarılı ise şöyle bir çıktı göreceksiniz:
-```
+# Başarılı çıktı:
 go version go1.21.5 windows/amd64
 ```
 
-#### Adım 3: GOPATH'i Kontrol Edin
+#### **🔧 PATH Kontrolü:**
 ```powershell
+# Go'nun PATH'te olduğunu kontrol edin:
 go env GOPATH
+
+# Çıktı: C:\Users\[KullanıcıAdı]\go
 ```
 
-### 2. Protocol Buffers (protoc) Kurulumu
+---
 
-#### Adım 1: protoc'u İndirin
-1. [Protobuf Releases](https://github.com/protocolbuffers/protobuf/releases) sayfasına gidin
-2. En son sürümden `protoc-<version>-win64.zip` dosyasını indirin
-3. ZIP'i açın ve `bin/protoc.exe` dosyasını bir yere kopyalayın (örn: `C:\protoc\bin\`)
+### **2️⃣ Protocol Buffers (protoc)**
 
-#### Adım 2: PATH'e Ekleyin
-1. Windows aramasında "Ortam Değişkenleri" yazın
-2. "Sistem ortam değişkenlerini düzenle"yi açın
-3. "Ortam Değişkenleri" butonuna tıklayın
-4. "Path" değişkenini seçip "Düzenle"ye tıklayın
-5. "Yeni" butonuna tıklayıp protoc'un bulunduğu klasörü ekleyin (örn: `C:\protoc\bin`)
+#### **📥 İndirme:**
+- **Kaynak:** [Protobuf Releases](https://github.com/protocolbuffers/protobuf/releases)
+- **Dosya:** `protoc-<version>-win64.zip` (en son sürüm)
+- **Boyut:** ~2 MB
 
-#### Adım 3: Kurulumu Doğrulayın
+#### **🔧 Kurulum:**
+1. ZIP dosyasını indirin
+2. ZIP'i açın
+3. `bin/protoc.exe` dosyasını kopyalayın
+4. `C:\protoc\bin\` klasörü oluşturun ve dosyayı buraya yapıştırın
+
+#### **📁 Klasör Yapısı:**
+```
+C:\protoc\
+└── bin\
+    └── protoc.exe
+```
+
+#### **🔧 PATH'e Ekleme:**
+1. **Windows + R** tuşlarına basın
+2. `sysdm.cpl` yazın ve Enter'a basın
+3. **"Gelişmiş"** sekmesine tıklayın
+4. **"Ortam Değişkenleri"** butonuna tıklayın
+5. **"Path"** değişkenini seçin ve **"Düzenle"**'ye tıklayın
+6. **"Yeni"** butonuna tıklayın
+7. `C:\protoc\bin` yazın ve **"Tamam"**'a tıklayın
+
+#### **✅ Doğrulama:**
 ```powershell
+# PowerShell'i kapatıp yeniden açın, sonra:
 protoc --version
+
+# Başarılı çıktı:
+libprotoc 3.21.12 (veya benzer)
 ```
 
-### 3. Go Plugins Kurulumu
+---
 
-Go kurulduktan sonra bu plugin'leri kurun:
+### **3️⃣ Flutter SDK**
 
+#### **📥 İndirme:**
+- **Kaynak:** [Flutter İndirme](https://docs.flutter.dev/get-started/install/windows)
+- **Dosya:** Flutter SDK ZIP dosyası
+- **Boyut:** ~1.5 GB
+
+#### **🔧 Kurulum:**
+1. ZIP dosyasını indirin
+2. ZIP'i açın
+3. `flutter` klasörünü `C:\flutter` konumuna kopyalayın
+
+#### **📁 Klasör Yapısı:**
+```
+C:\flutter\
+├── bin\
+│   ├── flutter.exe
+│   ├── dart.exe
+│   └── (diğer dosyalar)
+├── packages\
+├── (diğer klasörler)
+```
+
+#### **🔧 PATH'e Ekleme:**
+1. **Windows + R** tuşlarına basın
+2. `sysdm.cpl` yazın ve Enter'a basın
+3. **"Gelişmiş"** sekmesine tıklayın
+4. **"Ortam Değişkenleri"** butonuna tıklayın
+5. **"Path"** değişkenini seçin ve **"Düzenle"**'ye tıklayın
+6. **"Yeni"** butonuna tıklayın
+7. `C:\flutter\bin` yazın ve **"Tamam"**'a tıklayın
+
+#### **✅ Doğrulama:**
 ```powershell
+# PowerShell'i kapatıp yeniden açın, sonra:
+flutter --version
+
+# Başarılı çıktı:
+Flutter 3.16.0 • channel stable • https://github.com/flutter/flutter.git
+```
+
+---
+
+## 📦 **OTOMATİK İNDİRİLEN PAKETLER**
+
+### **🔧 Go Plugins (Otomatik İndirme):**
+```powershell
+# Go kurulduktan sonra bu komutları çalıştırın:
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-```
 
-Kurulumu doğrulayın:
-```powershell
+# Kurulumu doğrulayın:
 protoc-gen-go --version
 protoc-gen-go-grpc --version
 ```
 
-### 4. Air (Hot Reload) Kurulumu (Opsiyonel)
-
+### **🔧 Air (Hot Reload) - Opsiyonel:**
 ```powershell
 go install github.com/cosmtrek/air@latest
 ```
 
-## 🚀 Aether Projesini Çalıştırma
+---
 
-### Adım 1: Bağımlılıkları İndirin
+## 🚀 **AETHER PROJESİNİ ÇALIŞTIRMA**
 
+### **1️⃣ Proje Dizinine Git:**
 ```powershell
-cd C:\Users\eylul\OneDrive\Masaüstü\Aether
-go mod download
+# Proje dizinine git (örnek):
+cd C:\Aether
+
+# Veya masaüstünde ise:
+cd C:\Users\[KullanıcıAdı]\Desktop\Aether
 ```
 
-### Adım 2: Proto Dosyalarını Compile Edin
-
-**Windows için PowerShell:**
+### **2️⃣ Proje Bağımlılıklarını İndir:**
 ```powershell
-# Proto dosyalarını tek tek compile edin
+# Go paketleri otomatik indirilir:
+go mod download
+
+# Başarılı çıktı: (hata yoksa başarılı)
+```
+
+### **3️⃣ Proto Dosyalarını Compile Et:**
+```powershell
+# Tüm proto dosyalarını compile edin:
 protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/common.proto
 protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/folder.proto
 protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/file.proto
@@ -87,87 +182,246 @@ protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=p
 protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/peer.proto
 protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/auth.proto
 protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/p2p.proto
+
+# Başarılı çıktı: (hata yoksa başarılı)
 ```
 
-### Adım 3: Uygulamayı Çalıştırın
-
+### **4️⃣ Veritabanı Dizini Oluştur:**
 ```powershell
+# Data dizinini oluştur:
+New-Item -ItemType Directory -Path "data" -Force
+
+# Dizin oluşturuldu mu kontrol et:
+Test-Path "data"
+```
+
+### **5️⃣ Backend'i Çalıştır:**
+```powershell
+# Backend'i çalıştır (veritabanları otomatik oluşur):
 go run cmd/aether-server/main.go
+
+# Başarılı çıktı:
+# ✓ SQLite bağlantısı açıldı: C:\Aether\data\aether.db
+# ✓ BoltDB bağlantısı açıldı: C:\Aether\data\aether_config.db
+# ✓ Migration'lar başarıyla çalıştırıldı
+# ✓ Container başarıyla oluşturuldu
+# ✓ gRPC sunucusu localhost:50051 üzerinde dinleniyor
 ```
-
-## 📱 Flutter UI Kurulumu
-
-### 1. Flutter SDK Kurulumu
-
-#### Adım 1: Flutter'ı İndirin
-1. [Flutter İndirme](https://docs.flutter.dev/get-started/install/windows) sayfasına gidin
-2. Flutter SDK'yı indirin
-3. Bir klasöre çıkartın (örn: `C:\flutter`)
-4. PATH'e ekleyin: `C:\flutter\bin`
-
-#### Adım 2: Flutter Doctor
-```powershell
-flutter doctor
-```
-
-Bu komut eksik bağımlılıkları gösterecektir.
-
-### 2. Flutter Projesini Çalıştırın
-
-```powershell
-cd flutter_ui
-flutter pub get
-flutter run -d windows
-```
-
-## ⚡ Hızlı Başlangıç (Özet)
-
-Sadece Go backend'i test etmek için:
-
-```powershell
-# 1. Go'yu kur (yukarıdaki adımları takip et)
-
-# 2. Projeye git
-cd C:\Users\eylul\OneDrive\Masaüstü\Aether
-
-# 3. Bağımlılıkları indir
-go mod download
-
-# 4. Çalıştır
-go run cmd/aether-server/main.go
-```
-
-## 🐛 Sorun Giderme
-
-### "go: command not found" veya "'go' is not recognized"
-- Go'nun PATH'e eklendiğinden emin olun
-- Terminali kapatıp yeniden açın
-- Bilgisayarı yeniden başlatın
-
-### "protoc: command not found"
-- protoc'un PATH'e eklendiğinden emin olun
-- Terminali kapatıp yeniden açın
-
-### Import hatalarını görmek
-- `go mod tidy` komutunu çalıştırın
-- Eksik paketleri tekrar indirin: `go mod download`
-
-### Proto compile hatası
-- protoc-gen-go ve protoc-gen-go-grpc'nin kurulu olduğundan emin olun
-- `go env GOPATH` çıktısındaki `bin` klasörünün PATH'te olduğundan emin olun
-
-## 📞 Yardım
-
-Sorun yaşarsanız:
-1. Go versiyonunu kontrol edin: `go version`
-2. Go environment'ı kontrol edin: `go env`
-3. PATH değişkenlerini kontrol edin
 
 ---
 
-**Not**: Tüm kurulumlardan sonra terminal/PowerShell'i kapatıp yeniden açmayı unutmayın!
+## 📱 **FLUTTER UI KURULUMU**
 
+### **1️⃣ Flutter Bağımlılıklarını İndir:**
+```powershell
+# Flutter UI dizinine git:
+cd flutter_ui
 
+# Flutter paketleri otomatik indirilir:
+flutter pub get
 
+# Başarılı çıktı:
+# Running "flutter pub get" in flutter_ui...
+# Resolving dependencies...
+# Got dependencies!
+```
 
+### **2️⃣ Flutter UI'ı Çalıştır:**
+```powershell
+# Flutter UI'ı çalıştır:
+flutter run -d windows
+
+# Başarılı çıktı:
+# ✓ gRPC client bağlandı: localhost:50051
+```
+
+---
+
+## ⚡ **HIZLI BAŞLANGIÇ (ÖZET)**
+
+### **🎯 Sadece Go Backend Test Etmek İçin:**
+```powershell
+# 1. Go'yu kur (yukarıdaki manuel adımları takip et)
+# 2. Projeye git
+cd C:\Aether
+# 3. Bağımlılıkları indir (otomatik)
+go mod download
+# 4. Proto compile et
+protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/common.proto
+# 5. Data dizini oluştur
+New-Item -ItemType Directory -Path "data" -Force
+# 6. Backend'i çalıştır
+go run cmd/aether-server/main.go
+```
+
+---
+
+## 📊 **İNDİRME ÖZETİ**
+
+### **🔧 Manuel İndirme Gerekenler:**
+1. **Go Programming Language** - `go1.21.5.windows-amd64.msi` (~140 MB)
+2. **Protocol Buffers** - `protoc-<version>-win64.zip` (~2 MB)
+3. **Flutter SDK** - Flutter SDK ZIP dosyası (~1.5 GB)
+
+### **📦 Otomatik İndirilen Paketler:**
+1. **Go Plugins** - `protoc-gen-go`, `protoc-gen-go-grpc`
+2. **Air (Opsiyonel)** - `github.com/cosmtrek/air`
+3. **Proje Bağımlılıkları** - `go mod download` ile tüm Go paketleri
+4. **Flutter Paketleri** - `flutter pub get` ile tüm Flutter paketleri
+
+---
+
+## 📁 **OLUŞTURULACAK KLASÖRLER VE KONUMLARI**
+
+### **🔧 Zorunlu Klasörler:**
+```
+C:\protoc\                    ← Protocol Buffers kurulumu için
+└── bin\
+    └── protoc.exe
+
+C:\flutter\                   ← Flutter SDK kurulumu için
+├── bin\
+│   ├── flutter.exe
+│   ├── dart.exe
+│   └── (diğer dosyalar)
+└── (diğer klasörler)
+
+C:\Aether\                    ← Proje dizini
+└── data\                     ← Veritabanları için (otomatik oluşur)
+    ├── aether.db            ← SQLite veritabanı
+    └── aether_config.db     ← BoltDB veritabanı
+```
+
+### **🔧 Otomatik Oluşturulan Klasörler:**
+```
+C:\Aether\data\               ← Backend çalıştırıldığında otomatik oluşur
+├── aether.db                ← SQLite veritabanı
+├── aether_config.db         ← BoltDB veritabanı
+└── chunks\                  ← Chunk dosyaları için
+```
+
+---
+
+## 🐛 **SORUN GİDERME**
+
+### **❌ "go: command not found" veya "'go' is not recognized"**
+```powershell
+# Çözüm:
+# 1. Go'nun PATH'e eklendiğinden emin olun
+# 2. Terminali kapatıp yeniden açın
+# 3. Bilgisayarı yeniden başlatın
+
+# Kontrol:
+go version
+```
+
+### **❌ "protoc: command not found"**
+```powershell
+# Çözüm:
+# 1. protoc'un PATH'e eklendiğinden emin olun
+# 2. Terminali kapatıp yeniden açın
+
+# Kontrol:
+protoc --version
+```
+
+### **❌ "flutter: command not found"**
+```powershell
+# Çözüm:
+# 1. Flutter'ın PATH'e eklendiğinden emin olun
+# 2. Terminali kapatıp yeniden açın
+
+# Kontrol:
+flutter --version
+```
+
+### **❌ Import hatalarını görmek**
+```powershell
+# Çözüm:
+go mod tidy
+go mod download
+```
+
+### **❌ Proto compile hatası**
+```powershell
+# Çözüm:
+# 1. protoc-gen-go ve protoc-gen-go-grpc'nin kurulu olduğundan emin olun
+# 2. GOPATH/bin klasörünün PATH'te olduğundan emin olun
+
+# Kontrol:
+go env GOPATH
+protoc-gen-go --version
+protoc-gen-go-grpc --version
+```
+
+### **❌ Veritabanı bağlantı hatası**
+```powershell
+# Çözüm:
+# 1. Data dizinini oluşturun
+New-Item -ItemType Directory -Path "data" -Force
+
+# 2. Backend'i yeniden çalıştırın
+go run cmd/aether-server/main.go
+```
+
+### **❌ gRPC bağlantı hatası**
+```powershell
+# Çözüm:
+# 1. Backend'in çalıştığını kontrol edin
+# 2. Port 50051'in açık olduğunu kontrol edin
+netstat -an | findstr :50051
+
+# 3. Flutter UI'ı yeniden başlatın
+cd flutter_ui
+flutter run -d windows
+```
+
+---
+
+## 📞 **YARDIM VE DESTEK**
+
+### **🔍 Sorun Yaşarsanız:**
+1. **Go versiyonunu kontrol edin:** `go version`
+2. **protoc versiyonunu kontrol edin:** `protoc --version`
+3. **Flutter versiyonunu kontrol edin:** `flutter --version`
+4. **PATH değişkenlerini kontrol edin**
+5. **Terminali kapatıp yeniden açın**
+
+### **📋 Kontrol Listesi:**
+- [ ] Go kurulu ve PATH'te
+- [ ] protoc kurulu ve PATH'te
+- [ ] Flutter kurulu ve PATH'te
+- [ ] Proje bağımlılıkları indirildi
+- [ ] Proto dosyaları compile edildi
+- [ ] Data dizini oluşturuldu
+- [ ] Backend çalışıyor
+- [ ] Flutter UI çalışıyor
+
+---
+
+## 🎯 **BAŞARILI KURULUM DOĞRULAMA**
+
+### **✅ Backend Başarılı Mesajları:**
+```
+✓ SQLite bağlantısı açıldı: C:\Aether\data\aether.db
+✓ BoltDB bağlantısı açıldı: C:\Aether\data\aether_config.db
+✓ Migration'lar başarıyla çalıştırıldı
+✓ Container başarıyla oluşturuldu
+✓ gRPC sunucusu localhost:50051 üzerinde dinleniyor
+✓ P2P Transport başlatıldı
+```
+
+### **✅ Flutter UI Başarılı Mesajları:**
+```
+✓ gRPC client bağlandı: localhost:50051
+✓ Flutter UI başarıyla başlatıldı
+```
+
+---
+
+**🎉 Kurulum tamamlandı! Artık Aether P2P senkronizasyon uygulamasını kullanabilirsiniz.**
+
+---
+
+**⚠️ ÖNEMLİ NOT:** Tüm kurulumlardan sonra terminal/PowerShell'i kapatıp yeniden açmayı unutmayın!
 
