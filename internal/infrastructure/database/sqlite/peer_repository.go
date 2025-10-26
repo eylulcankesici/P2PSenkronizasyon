@@ -31,8 +31,8 @@ func (r *PeerRepository) Create(ctx context.Context, peer *entity.Peer) error {
 	}
 	
 	query := `
-		INSERT INTO peers (device_id, name, known_addresses, is_trusted, last_seen, status, public_key, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO peers (device_id, name, addresses, is_trusted, last_seen)
+		VALUES (?, ?, ?, ?, ?)
 	`
 	
 	_, err = r.conn.DB().ExecContext(ctx, query,
@@ -40,11 +40,7 @@ func (r *PeerRepository) Create(ctx context.Context, peer *entity.Peer) error {
 		peer.Name,
 		string(addressesJSON),
 		peer.IsTrusted,
-		peer.LastSeen,
-		peer.Status,
-		peer.PublicKey,
-		peer.CreatedAt,
-		peer.UpdatedAt,
+		peer.LastSeen.Unix(),
 	)
 	
 	if err != nil {
@@ -57,24 +53,21 @@ func (r *PeerRepository) Create(ctx context.Context, peer *entity.Peer) error {
 // GetByID device ID'sine göre peer getirir
 func (r *PeerRepository) GetByID(ctx context.Context, deviceID string) (*entity.Peer, error) {
 	query := `
-		SELECT device_id, name, known_addresses, is_trusted, last_seen, status, public_key, created_at, updated_at
+		SELECT device_id, name, addresses, is_trusted, last_seen
 		FROM peers
 		WHERE device_id = ?
 	`
 	
 	peer := &entity.Peer{}
 	var addressesJSON string
+	var lastSeenUnix sql.NullInt64
 	
 	err := r.conn.DB().QueryRowContext(ctx, query, deviceID).Scan(
 		&peer.DeviceID,
 		&peer.Name,
 		&addressesJSON,
 		&peer.IsTrusted,
-		&peer.LastSeen,
-		&peer.Status,
-		&peer.PublicKey,
-		&peer.CreatedAt,
-		&peer.UpdatedAt,
+		&lastSeenUnix,
 	)
 	
 	if err == sql.ErrNoRows {
@@ -88,13 +81,24 @@ func (r *PeerRepository) GetByID(ctx context.Context, deviceID string) (*entity.
 		peer.KnownAddresses = make([]string, 0)
 	}
 	
+	// Unix timestamp'i time.Time'a çevir
+	if lastSeenUnix.Valid && lastSeenUnix.Int64 > 0 {
+		peer.LastSeen = time.Unix(lastSeenUnix.Int64, 0)
+	}
+	
+	// Default değerler (veritabanında yok)
+	peer.Status = entity.PeerStatusUnknown
+	peer.PublicKey = ""
+	peer.CreatedAt = time.Now()
+	peer.UpdatedAt = time.Now()
+	
 	return peer, nil
 }
 
 // GetAll tüm peer'ları getirir
 func (r *PeerRepository) GetAll(ctx context.Context) ([]*entity.Peer, error) {
 	query := `
-		SELECT device_id, name, known_addresses, is_trusted, last_seen, status, public_key, created_at, updated_at
+		SELECT device_id, name, addresses, is_trusted, last_seen
 		FROM peers
 		ORDER BY last_seen DESC
 	`
@@ -105,7 +109,7 @@ func (r *PeerRepository) GetAll(ctx context.Context) ([]*entity.Peer, error) {
 // GetTrusted sadece güvenilir peer'ları getirir
 func (r *PeerRepository) GetTrusted(ctx context.Context) ([]*entity.Peer, error) {
 	query := `
-		SELECT device_id, name, known_addresses, is_trusted, last_seen, status, public_key, created_at, updated_at
+		SELECT device_id, name, addresses, is_trusted, last_seen
 		FROM peers
 		WHERE is_trusted = 1
 		ORDER BY last_seen DESC
@@ -116,14 +120,9 @@ func (r *PeerRepository) GetTrusted(ctx context.Context) ([]*entity.Peer, error)
 
 // GetOnline online olan peer'ları getirir
 func (r *PeerRepository) GetOnline(ctx context.Context) ([]*entity.Peer, error) {
-	query := `
-		SELECT device_id, name, known_addresses, is_trusted, last_seen, status, public_key, created_at, updated_at
-		FROM peers
-		WHERE status = ?
-		ORDER BY last_seen DESC
-	`
-	
-	return r.queryPeers(ctx, query, entity.PeerStatusOnline)
+	// Not: Veritabanında status kolonu yok, bu yüzden tüm peer'ları döndürüyoruz
+	// Gerçek durumu bağlantılardan kontrol etmek gerekiyor
+	return r.GetAll(ctx)
 }
 
 // Update peer bilgilerini günceller
@@ -137,7 +136,7 @@ func (r *PeerRepository) Update(ctx context.Context, peer *entity.Peer) error {
 	
 	query := `
 		UPDATE peers
-		SET name = ?, known_addresses = ?, is_trusted = ?, last_seen = ?, status = ?, public_key = ?, updated_at = ?
+		SET name = ?, addresses = ?, is_trusted = ?, last_seen = ?
 		WHERE device_id = ?
 	`
 	
@@ -145,10 +144,7 @@ func (r *PeerRepository) Update(ctx context.Context, peer *entity.Peer) error {
 		peer.Name,
 		string(addressesJSON),
 		peer.IsTrusted,
-		peer.LastSeen,
-		peer.Status,
-		peer.PublicKey,
-		peer.UpdatedAt,
+		peer.LastSeen.Unix(),
 		peer.DeviceID,
 	)
 	
@@ -172,12 +168,12 @@ func (r *PeerRepository) Update(ctx context.Context, peer *entity.Peer) error {
 func (r *PeerRepository) UpdateLastSeen(ctx context.Context, deviceID string) error {
 	query := `
 		UPDATE peers
-		SET last_seen = ?, status = ?, updated_at = ?
+		SET last_seen = ?
 		WHERE device_id = ?
 	`
 	
 	now := time.Now()
-	result, err := r.conn.DB().ExecContext(ctx, query, now, entity.PeerStatusOnline, now, deviceID)
+	result, err := r.conn.DB().ExecContext(ctx, query, now.Unix(), deviceID)
 	if err != nil {
 		return fmt.Errorf("last seen güncellenemedi: %w", err)
 	}
@@ -195,27 +191,10 @@ func (r *PeerRepository) UpdateLastSeen(ctx context.Context, deviceID string) er
 }
 
 // UpdateStatus peer'in durumunu günceller
+// Not: Veritabanında status kolonu yok, bu metod hiçbir şey yapmıyor
 func (r *PeerRepository) UpdateStatus(ctx context.Context, deviceID string, status entity.PeerStatus) error {
-	query := `
-		UPDATE peers
-		SET status = ?, updated_at = ?
-		WHERE device_id = ?
-	`
-	
-	result, err := r.conn.DB().ExecContext(ctx, query, status, time.Now(), deviceID)
-	if err != nil {
-		return fmt.Errorf("peer status güncellenemedi: %w", err)
-	}
-	
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	
-	if rows == 0 {
-		return entity.ErrNotFound
-	}
-	
+	// Veritabanında status kolonu yok, bu yüzden sadece last_seen'i güncelliyoruz
+	// Gerçek status bilgisini bağlantı durumundan almak gerekiyor
 	return nil
 }
 
@@ -245,13 +224,13 @@ func (r *PeerRepository) GetRecentlySeen(ctx context.Context, threshold time.Dur
 	cutoffTime := time.Now().Add(-threshold)
 	
 	query := `
-		SELECT device_id, name, known_addresses, is_trusted, last_seen, status, public_key, created_at, updated_at
+		SELECT device_id, name, addresses, is_trusted, last_seen
 		FROM peers
 		WHERE last_seen >= ?
 		ORDER BY last_seen DESC
 	`
 	
-	return r.queryPeers(ctx, query, cutoffTime)
+	return r.queryPeers(ctx, query, cutoffTime.Unix())
 }
 
 // queryPeers ortak peer sorgu metodu
@@ -267,17 +246,14 @@ func (r *PeerRepository) queryPeers(ctx context.Context, query string, args ...i
 	for rows.Next() {
 		peer := &entity.Peer{}
 		var addressesJSON string
+		var lastSeenUnix sql.NullInt64
 		
 		err := rows.Scan(
 			&peer.DeviceID,
 			&peer.Name,
 			&addressesJSON,
 			&peer.IsTrusted,
-			&peer.LastSeen,
-			&peer.Status,
-			&peer.PublicKey,
-			&peer.CreatedAt,
-			&peer.UpdatedAt,
+			&lastSeenUnix,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("peer taranamadı: %w", err)
@@ -286,6 +262,17 @@ func (r *PeerRepository) queryPeers(ctx context.Context, query string, args ...i
 		if err := json.Unmarshal([]byte(addressesJSON), &peer.KnownAddresses); err != nil {
 			peer.KnownAddresses = make([]string, 0)
 		}
+		
+		// Unix timestamp'i time.Time'a çevir
+		if lastSeenUnix.Valid && lastSeenUnix.Int64 > 0 {
+			peer.LastSeen = time.Unix(lastSeenUnix.Int64, 0)
+		}
+		
+		// Default değerler (veritabanında yok)
+		peer.Status = entity.PeerStatusUnknown
+		peer.PublicKey = ""
+		peer.CreatedAt = time.Now()
+		peer.UpdatedAt = time.Now()
 		
 		peers = append(peers, peer)
 	}

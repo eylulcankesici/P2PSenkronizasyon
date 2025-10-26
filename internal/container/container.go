@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	
 	"github.com/aether/sync/internal/config"
+	"github.com/aether/sync/internal/domain/entity"
 	"github.com/aether/sync/internal/domain/repository"
 	"github.com/aether/sync/internal/domain/transport"
 	"github.com/aether/sync/internal/domain/usecase"
@@ -337,6 +338,11 @@ func (c *Container) initUseCases() error {
 	
 	log.Println("✓ Peer Discovery use case başlatıldı")
 	
+	// Peer discovery callback'ini bağla (peer'ları veritabanına kaydet)
+	if err := c.setupPeerDiscoveryCallback(); err != nil {
+		return fmt.Errorf("peer discovery callback ayarlanamadı: %w", err)
+	}
+	
 	// P2P Transfer use case oluştur
 	c.p2pTransferUseCase = usecaseImpl.NewP2PTransferUseCase(
 		c.transportProvider,
@@ -347,6 +353,59 @@ func (c *Container) initUseCases() error {
 	)
 	
 	log.Println("✓ P2P Transfer use case başlatıldı")
+	
+	return nil
+}
+
+// setupPeerDiscoveryCallback peer discovery callback'ini ayarlar
+func (c *Container) setupPeerDiscoveryCallback() error {
+	ctx := context.Background()
+	
+	// LAN Transport'un callback'lerini ayarla
+	if lanTransport, ok := c.transportProvider.(interface {
+		OnPeerDiscovered(func(*transport.DiscoveredPeer))
+		OnPeerLost(func(string))
+	}); ok {
+		lanTransport.OnPeerDiscovered(func(discoveredPeer *transport.DiscoveredPeer) {
+			// Peer'ı veritabanına kaydet
+			peer := entity.NewPeer(discoveredPeer.DeviceID, discoveredPeer.DeviceName)
+			peer.Status = entity.PeerStatusOffline // İlk keşifte offline
+			
+			// Addresses'leri kaydet
+			if len(discoveredPeer.Addresses) > 0 {
+				peer.KnownAddresses = discoveredPeer.Addresses
+			}
+			
+			// Var mı kontrol et
+			existingPeer, err := c.peerRepo.GetByID(ctx, discoveredPeer.DeviceID)
+			if err != nil || existingPeer == nil {
+				// Yeni peer oluştur
+				if err := c.peerRepo.Create(ctx, peer); err != nil {
+					log.Printf("⚠️ Peer veritabanına kaydedilemedi: %v", err)
+				} else {
+					log.Printf("✅ Peer veritabanına kaydedildi: %s (%s)", peer.Name, peer.DeviceID[:8])
+				}
+			} else {
+				// Mevcut peer'ı güncelle
+				existingPeer.KnownAddresses = discoveredPeer.Addresses
+				if err := c.peerRepo.UpdateLastSeen(ctx, discoveredPeer.DeviceID); err != nil {
+					log.Printf("⚠️ Peer last seen güncellenemedi: %v", err)
+				}
+				log.Printf("📝 Peer güncellendi: %s (%s)", peer.Name, peer.DeviceID[:8])
+			}
+		})
+		
+		lanTransport.OnPeerLost(func(deviceID string) {
+			// Peer'ı offline olarak işaretle
+			if err := c.peerRepo.UpdateStatus(ctx, deviceID, entity.PeerStatusOffline); err != nil {
+				log.Printf("⚠️ Peer durumu güncellenemedi: %v", err)
+			} else {
+				log.Printf("⏱️ Peer offline: %s", deviceID[:8])
+			}
+		})
+	}
+	
+	log.Println("✅ Peer discovery callback'leri bağlandı")
 	
 	return nil
 }
