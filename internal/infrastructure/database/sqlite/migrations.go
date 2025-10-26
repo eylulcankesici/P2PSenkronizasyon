@@ -114,7 +114,8 @@ func (m *Migration) createFoldersTable(db *sql.DB) error {
 		local_path TEXT NOT NULL UNIQUE,
 		sync_mode TEXT NOT NULL,
 		last_scan_time INTEGER NOT NULL,
-		device_id TEXT NOT NULL
+		device_id TEXT NOT NULL,
+		is_active BOOLEAN NOT NULL DEFAULT 1
 	)`
 	
 	_, err := db.Exec(query)

@@ -61,7 +61,7 @@ func (r *FolderRepository) Create(ctx context.Context, folder *entity.Folder) er
 // GetByID ID'ye göre klasör getirir
 func (r *FolderRepository) GetByID(ctx context.Context, id string) (*entity.Folder, error) {
 	query := `
-		SELECT id, local_path, sync_mode, last_scan_time
+		SELECT id, local_path, sync_mode, last_scan_time, is_active
 		FROM folders
 		WHERE id = ?
 	`
@@ -74,6 +74,7 @@ func (r *FolderRepository) GetByID(ctx context.Context, id string) (*entity.Fold
 		&folder.LocalPath,
 		&folder.SyncMode,
 		&lastScanTime,
+		&folder.IsActive,
 	)
 	
 	if err == sql.ErrNoRows {
@@ -82,8 +83,6 @@ func (r *FolderRepository) GetByID(ctx context.Context, id string) (*entity.Fold
 	if err != nil {
 		return nil, fmt.Errorf("klasör getirilemedi: %w", err)
 	}
-	
-	folder.IsActive = true // Default olarak aktif
 	
 	// Unix timestamp'i time.Time'a çevir
 	if lastScanTime.Valid && lastScanTime.Int64 > 0 {
@@ -99,7 +98,7 @@ func (r *FolderRepository) GetByID(ctx context.Context, id string) (*entity.Fold
 // GetByPath dosya yoluna göre klasör getirir
 func (r *FolderRepository) GetByPath(ctx context.Context, path string) (*entity.Folder, error) {
 	query := `
-		SELECT id, local_path, sync_mode, last_scan_time
+		SELECT id, local_path, sync_mode, last_scan_time, is_active
 		FROM folders
 		WHERE local_path = ?
 	`
@@ -112,6 +111,7 @@ func (r *FolderRepository) GetByPath(ctx context.Context, path string) (*entity.
 		&folder.LocalPath,
 		&folder.SyncMode,
 		&lastScanTime,
+		&folder.IsActive,
 	)
 	
 	if err == sql.ErrNoRows {
@@ -120,8 +120,6 @@ func (r *FolderRepository) GetByPath(ctx context.Context, path string) (*entity.
 	if err != nil {
 		return nil, fmt.Errorf("klasör getirilemedi: %w", err)
 	}
-	
-	folder.IsActive = true // Default olarak aktif
 	
 	// Unix timestamp'i time.Time'a çevir
 	if lastScanTime.Valid && lastScanTime.Int64 > 0 {
@@ -137,7 +135,7 @@ func (r *FolderRepository) GetByPath(ctx context.Context, path string) (*entity.
 // GetAll tüm klasörleri getirir
 func (r *FolderRepository) GetAll(ctx context.Context) ([]*entity.Folder, error) {
 	query := `
-		SELECT id, local_path, sync_mode, last_scan_time
+		SELECT id, local_path, sync_mode, last_scan_time, is_active
 		FROM folders
 	`
 	
@@ -158,12 +156,11 @@ func (r *FolderRepository) GetAll(ctx context.Context) ([]*entity.Folder, error)
 			&folder.LocalPath,
 			&folder.SyncMode,
 			&lastScanTime,
+			&folder.IsActive,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("klasör taranamadı: %w", err)
 		}
-		
-		folder.IsActive = true // Default olarak aktif
 		
 		// Unix timestamp'i time.Time'a çevir
 		if lastScanTime.Valid && lastScanTime.Int64 > 0 {
@@ -189,7 +186,7 @@ func (r *FolderRepository) GetActive(ctx context.Context) ([]*entity.Folder, err
 func (r *FolderRepository) Update(ctx context.Context, folder *entity.Folder) error {
 	query := `
 		UPDATE folders
-		SET local_path = ?, sync_mode = ?, last_scan_time = ?
+		SET local_path = ?, sync_mode = ?, last_scan_time = ?, is_active = ?
 		WHERE id = ?
 	`
 	
@@ -205,6 +202,7 @@ func (r *FolderRepository) Update(ctx context.Context, folder *entity.Folder) er
 		folder.LocalPath,
 		folder.SyncMode,
 		lastScanTime,
+		folder.IsActive,
 		folder.ID,
 	)
 	
