@@ -108,12 +108,11 @@ func (m *Migration) createFoldersTable(db *sql.DB) error {
 	query := `
 	CREATE TABLE IF NOT EXISTS folders (
 		id TEXT PRIMARY KEY,
+		name TEXT NOT NULL,
 		local_path TEXT NOT NULL UNIQUE,
 		sync_mode TEXT NOT NULL,
-		last_scan_time DATETIME,
-		is_active BOOLEAN NOT NULL DEFAULT 1,
-		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-		updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		last_scan_time INTEGER NOT NULL,
+		device_id TEXT NOT NULL
 	)`
 	
 	_, err := db.Exec(query)

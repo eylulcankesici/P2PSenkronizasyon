@@ -30,26 +30,25 @@ func (r *FolderRepository) Create(ctx context.Context, folder *entity.Folder) er
 	}
 	
 	query := `
-		INSERT INTO folders (id, local_path, sync_mode, last_scan_time, is_active, created_at, updated_at, name, device_id)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO folders (id, name, local_path, sync_mode, last_scan_time, device_id)
+		VALUES (?, ?, ?, ?, ?, ?)
 	`
 	
 	// time.Time'ı Unix timestamp'e çevir
 	var lastScanTime int64
 	if !folder.LastScanTime.IsZero() {
 		lastScanTime = folder.LastScanTime.Unix()
+	} else {
+		lastScanTime = time.Now().Unix()
 	}
 	
 	_, err := r.conn.DB().ExecContext(ctx, query,
 		folder.ID,
+		folder.LocalPath, // name olarak local_path kullan
 		folder.LocalPath,
 		folder.SyncMode,
 		lastScanTime,
-		folder.IsActive,
-		folder.CreatedAt.Unix(),
-		folder.UpdatedAt.Unix(),
-		folder.LocalPath, // name varsayılan olarak local_path
-		"local-device",   // device_id geçici
+		"local-device", // device_id geçici
 	)
 	
 	if err != nil {
@@ -62,22 +61,19 @@ func (r *FolderRepository) Create(ctx context.Context, folder *entity.Folder) er
 // GetByID ID'ye göre klasör getirir
 func (r *FolderRepository) GetByID(ctx context.Context, id string) (*entity.Folder, error) {
 	query := `
-		SELECT id, local_path, sync_mode, last_scan_time, is_active, created_at, updated_at
+		SELECT id, local_path, sync_mode, last_scan_time
 		FROM folders
 		WHERE id = ?
 	`
 	
 	folder := &entity.Folder{}
-	var lastScanTime, createdAt, updatedAt sql.NullInt64
+	var lastScanTime sql.NullInt64
 	
 	err := r.conn.DB().QueryRowContext(ctx, query, id).Scan(
 		&folder.ID,
 		&folder.LocalPath,
 		&folder.SyncMode,
 		&lastScanTime,
-		&folder.IsActive,
-		&createdAt,
-		&updatedAt,
 	)
 	
 	if err == sql.ErrNoRows {
@@ -87,16 +83,15 @@ func (r *FolderRepository) GetByID(ctx context.Context, id string) (*entity.Fold
 		return nil, fmt.Errorf("klasör getirilemedi: %w", err)
 	}
 	
+	folder.IsActive = true // Default olarak aktif
+	
 	// Unix timestamp'i time.Time'a çevir
 	if lastScanTime.Valid && lastScanTime.Int64 > 0 {
 		folder.LastScanTime = time.Unix(lastScanTime.Int64, 0)
 	}
-	if createdAt.Valid && createdAt.Int64 > 0 {
-		folder.CreatedAt = time.Unix(createdAt.Int64, 0)
-	}
-	if updatedAt.Valid && updatedAt.Int64 > 0 {
-		folder.UpdatedAt = time.Unix(updatedAt.Int64, 0)
-	}
+	
+	folder.CreatedAt = time.Now()
+	folder.UpdatedAt = time.Now()
 	
 	return folder, nil
 }
@@ -104,22 +99,19 @@ func (r *FolderRepository) GetByID(ctx context.Context, id string) (*entity.Fold
 // GetByPath dosya yoluna göre klasör getirir
 func (r *FolderRepository) GetByPath(ctx context.Context, path string) (*entity.Folder, error) {
 	query := `
-		SELECT id, local_path, sync_mode, last_scan_time, is_active, created_at, updated_at
+		SELECT id, local_path, sync_mode, last_scan_time
 		FROM folders
 		WHERE local_path = ?
 	`
 	
 	folder := &entity.Folder{}
-	var lastScanTime, createdAt, updatedAt sql.NullInt64
+	var lastScanTime sql.NullInt64
 	
 	err := r.conn.DB().QueryRowContext(ctx, query, path).Scan(
 		&folder.ID,
 		&folder.LocalPath,
 		&folder.SyncMode,
 		&lastScanTime,
-		&folder.IsActive,
-		&createdAt,
-		&updatedAt,
 	)
 	
 	if err == sql.ErrNoRows {
@@ -129,16 +121,15 @@ func (r *FolderRepository) GetByPath(ctx context.Context, path string) (*entity.
 		return nil, fmt.Errorf("klasör getirilemedi: %w", err)
 	}
 	
+	folder.IsActive = true // Default olarak aktif
+	
 	// Unix timestamp'i time.Time'a çevir
 	if lastScanTime.Valid && lastScanTime.Int64 > 0 {
 		folder.LastScanTime = time.Unix(lastScanTime.Int64, 0)
 	}
-	if createdAt.Valid && createdAt.Int64 > 0 {
-		folder.CreatedAt = time.Unix(createdAt.Int64, 0)
-	}
-	if updatedAt.Valid && updatedAt.Int64 > 0 {
-		folder.UpdatedAt = time.Unix(updatedAt.Int64, 0)
-	}
+	
+	folder.CreatedAt = time.Now()
+	folder.UpdatedAt = time.Now()
 	
 	return folder, nil
 }
@@ -146,9 +137,8 @@ func (r *FolderRepository) GetByPath(ctx context.Context, path string) (*entity.
 // GetAll tüm klasörleri getirir
 func (r *FolderRepository) GetAll(ctx context.Context) ([]*entity.Folder, error) {
 	query := `
-		SELECT id, local_path, sync_mode, last_scan_time, is_active, created_at, updated_at
+		SELECT id, local_path, sync_mode, last_scan_time
 		FROM folders
-		ORDER BY created_at DESC
 	`
 	
 	rows, err := r.conn.DB().QueryContext(ctx, query)
@@ -161,31 +151,27 @@ func (r *FolderRepository) GetAll(ctx context.Context) ([]*entity.Folder, error)
 	
 	for rows.Next() {
 		folder := &entity.Folder{}
-		var lastScanTime, createdAt, updatedAt sql.NullInt64
+		var lastScanTime sql.NullInt64
 		
 		err := rows.Scan(
 			&folder.ID,
 			&folder.LocalPath,
 			&folder.SyncMode,
 			&lastScanTime,
-			&folder.IsActive,
-			&createdAt,
-			&updatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("klasör taranamadı: %w", err)
 		}
 		
+		folder.IsActive = true // Default olarak aktif
+		
 		// Unix timestamp'i time.Time'a çevir
 		if lastScanTime.Valid && lastScanTime.Int64 > 0 {
 			folder.LastScanTime = time.Unix(lastScanTime.Int64, 0)
 		}
-		if createdAt.Valid && createdAt.Int64 > 0 {
-			folder.CreatedAt = time.Unix(createdAt.Int64, 0)
-		}
-		if updatedAt.Valid && updatedAt.Int64 > 0 {
-			folder.UpdatedAt = time.Unix(updatedAt.Int64, 0)
-		}
+		
+		folder.CreatedAt = time.Now()
+		folder.UpdatedAt = time.Now()
 		
 		folders = append(folders, folder)
 	}
@@ -195,62 +181,15 @@ func (r *FolderRepository) GetAll(ctx context.Context) ([]*entity.Folder, error)
 
 // GetActive sadece aktif klasörleri getirir
 func (r *FolderRepository) GetActive(ctx context.Context) ([]*entity.Folder, error) {
-	query := `
-		SELECT id, local_path, sync_mode, last_scan_time, is_active, created_at, updated_at
-		FROM folders
-		WHERE is_active = 1
-		ORDER BY created_at DESC
-	`
-	
-	rows, err := r.conn.DB().QueryContext(ctx, query)
-	if err != nil {
-		return nil, fmt.Errorf("aktif klasörler getirilemedi: %w", err)
-	}
-	defer rows.Close()
-	
-	folders := make([]*entity.Folder, 0)
-	
-	for rows.Next() {
-		folder := &entity.Folder{}
-		var lastScanTime, createdAt, updatedAt sql.NullInt64
-		
-		err := rows.Scan(
-			&folder.ID,
-			&folder.LocalPath,
-			&folder.SyncMode,
-			&lastScanTime,
-			&folder.IsActive,
-			&createdAt,
-			&updatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("klasör taranamadı: %w", err)
-		}
-		
-		// Unix timestamp'i time.Time'a çevir
-		if lastScanTime.Valid && lastScanTime.Int64 > 0 {
-			folder.LastScanTime = time.Unix(lastScanTime.Int64, 0)
-		}
-		if createdAt.Valid && createdAt.Int64 > 0 {
-			folder.CreatedAt = time.Unix(createdAt.Int64, 0)
-		}
-		if updatedAt.Valid && updatedAt.Int64 > 0 {
-			folder.UpdatedAt = time.Unix(updatedAt.Int64, 0)
-		}
-		
-		folders = append(folders, folder)
-	}
-	
-	return folders, nil
+	// is_active kolonu olmadığı için tüm klasörleri döndür
+	return r.GetAll(ctx)
 }
 
 // Update klasör bilgilerini günceller
 func (r *FolderRepository) Update(ctx context.Context, folder *entity.Folder) error {
-	folder.UpdatedAt = time.Now()
-	
 	query := `
 		UPDATE folders
-		SET local_path = ?, sync_mode = ?, last_scan_time = ?, is_active = ?, updated_at = ?
+		SET local_path = ?, sync_mode = ?, last_scan_time = ?
 		WHERE id = ?
 	`
 	
@@ -258,14 +197,14 @@ func (r *FolderRepository) Update(ctx context.Context, folder *entity.Folder) er
 	var lastScanTime int64
 	if !folder.LastScanTime.IsZero() {
 		lastScanTime = folder.LastScanTime.Unix()
+	} else {
+		lastScanTime = time.Now().Unix()
 	}
 	
 	result, err := r.conn.DB().ExecContext(ctx, query,
 		folder.LocalPath,
 		folder.SyncMode,
 		lastScanTime,
-		folder.IsActive,
-		folder.UpdatedAt.Unix(),
 		folder.ID,
 	)
 	
@@ -310,13 +249,12 @@ func (r *FolderRepository) Delete(ctx context.Context, id string) error {
 func (r *FolderRepository) UpdateScanTime(ctx context.Context, id string) error {
 	query := `
 		UPDATE folders
-		SET last_scan_time = ?, updated_at = ?
+		SET last_scan_time = ?
 		WHERE id = ?
 	`
 	
-	now := time.Now()
-	nowUnix := now.Unix()
-	result, err := r.conn.DB().ExecContext(ctx, query, nowUnix, nowUnix, id)
+	nowUnix := time.Now().Unix()
+	result, err := r.conn.DB().ExecContext(ctx, query, nowUnix, id)
 	if err != nil {
 		return fmt.Errorf("tarama zamanı güncellenemedi: %w", err)
 	}
