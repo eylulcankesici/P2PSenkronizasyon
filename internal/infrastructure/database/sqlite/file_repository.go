@@ -30,8 +30,8 @@ func (r *FileRepository) Create(ctx context.Context, file *entity.File) error {
 	}
 	
 	query := `
-		INSERT INTO files (id, folder_id, relative_path, size, mod_time, global_hash, chunk_count, is_deleted, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO files (id, folder_id, relative_path, size, mod_time, global_hash, is_deleted)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
 	`
 	
 	_, err := r.conn.DB().ExecContext(ctx, query,
@@ -41,10 +41,7 @@ func (r *FileRepository) Create(ctx context.Context, file *entity.File) error {
 		file.Size,
 		file.ModTime.Unix(),
 		file.GlobalHash,
-		file.ChunkCount,
 		file.IsDeleted,
-		file.CreatedAt.Unix(),
-		file.UpdatedAt.Unix(),
 	)
 	
 	if err != nil {
@@ -57,13 +54,13 @@ func (r *FileRepository) Create(ctx context.Context, file *entity.File) error {
 // GetByID ID'ye göre dosya getirir
 func (r *FileRepository) GetByID(ctx context.Context, id string) (*entity.File, error) {
 	query := `
-		SELECT id, folder_id, relative_path, size, mod_time, global_hash, chunk_count, is_deleted, created_at, updated_at
+		SELECT id, folder_id, relative_path, size, mod_time, global_hash, is_deleted
 		FROM files
 		WHERE id = ?
 	`
 	
 	file := &entity.File{}
-	var modTime, createdAt, updatedAt sql.NullInt64
+	var modTime sql.NullInt64
 	
 	err := r.conn.DB().QueryRowContext(ctx, query, id).Scan(
 		&file.ID,
@@ -72,10 +69,7 @@ func (r *FileRepository) GetByID(ctx context.Context, id string) (*entity.File, 
 		&file.Size,
 		&modTime,
 		&file.GlobalHash,
-		&file.ChunkCount,
 		&file.IsDeleted,
-		&createdAt,
-		&updatedAt,
 	)
 	
 	if err == sql.ErrNoRows {
@@ -89,12 +83,10 @@ func (r *FileRepository) GetByID(ctx context.Context, id string) (*entity.File, 
 	if modTime.Valid && modTime.Int64 > 0 {
 		file.ModTime = time.Unix(modTime.Int64, 0)
 	}
-	if createdAt.Valid && createdAt.Int64 > 0 {
-		file.CreatedAt = time.Unix(createdAt.Int64, 0)
-	}
-	if updatedAt.Valid && updatedAt.Int64 > 0 {
-		file.UpdatedAt = time.Unix(updatedAt.Int64, 0)
-	}
+	
+	// Default değerler
+	file.CreatedAt = time.Now()
+	file.UpdatedAt = time.Now()
 	
 	return file, nil
 }
@@ -102,13 +94,13 @@ func (r *FileRepository) GetByID(ctx context.Context, id string) (*entity.File, 
 // GetByPath klasör ID ve relative path'e göre dosya getirir
 func (r *FileRepository) GetByPath(ctx context.Context, folderID, relativePath string) (*entity.File, error) {
 	query := `
-		SELECT id, folder_id, relative_path, size, mod_time, global_hash, chunk_count, is_deleted, created_at, updated_at
+		SELECT id, folder_id, relative_path, size, mod_time, global_hash, is_deleted
 		FROM files
 		WHERE folder_id = ? AND relative_path = ?
 	`
 	
 	file := &entity.File{}
-	var modTime, createdAt, updatedAt sql.NullInt64
+	var modTime sql.NullInt64
 	
 	err := r.conn.DB().QueryRowContext(ctx, query, folderID, relativePath).Scan(
 		&file.ID,
@@ -117,10 +109,7 @@ func (r *FileRepository) GetByPath(ctx context.Context, folderID, relativePath s
 		&file.Size,
 		&modTime,
 		&file.GlobalHash,
-		&file.ChunkCount,
 		&file.IsDeleted,
-		&createdAt,
-		&updatedAt,
 	)
 	
 	if err == sql.ErrNoRows {
@@ -134,12 +123,10 @@ func (r *FileRepository) GetByPath(ctx context.Context, folderID, relativePath s
 	if modTime.Valid && modTime.Int64 > 0 {
 		file.ModTime = time.Unix(modTime.Int64, 0)
 	}
-	if createdAt.Valid && createdAt.Int64 > 0 {
-		file.CreatedAt = time.Unix(createdAt.Int64, 0)
-	}
-	if updatedAt.Valid && updatedAt.Int64 > 0 {
-		file.UpdatedAt = time.Unix(updatedAt.Int64, 0)
-	}
+	
+	// Default değerler
+	file.CreatedAt = time.Now()
+	file.UpdatedAt = time.Now()
 	
 	return file, nil
 }
@@ -147,7 +134,7 @@ func (r *FileRepository) GetByPath(ctx context.Context, folderID, relativePath s
 // GetByFolderID bir klasördeki tüm dosyaları getirir
 func (r *FileRepository) GetByFolderID(ctx context.Context, folderID string) ([]*entity.File, error) {
 	query := `
-		SELECT id, folder_id, relative_path, size, mod_time, global_hash, chunk_count, is_deleted, created_at, updated_at
+		SELECT id, folder_id, relative_path, size, mod_time, global_hash, is_deleted
 		FROM files
 		WHERE folder_id = ? AND is_deleted = 0
 		ORDER BY relative_path
@@ -163,7 +150,7 @@ func (r *FileRepository) GetByFolderID(ctx context.Context, folderID string) ([]
 	
 	for rows.Next() {
 		file := &entity.File{}
-		var modTime, createdAt, updatedAt sql.NullInt64
+		var modTime sql.NullInt64
 		
 		err := rows.Scan(
 			&file.ID,
@@ -172,10 +159,7 @@ func (r *FileRepository) GetByFolderID(ctx context.Context, folderID string) ([]
 			&file.Size,
 			&modTime,
 			&file.GlobalHash,
-			&file.ChunkCount,
 			&file.IsDeleted,
-			&createdAt,
-			&updatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("dosya taranamadı: %w", err)
@@ -185,12 +169,10 @@ func (r *FileRepository) GetByFolderID(ctx context.Context, folderID string) ([]
 		if modTime.Valid && modTime.Int64 > 0 {
 			file.ModTime = time.Unix(modTime.Int64, 0)
 		}
-		if createdAt.Valid && createdAt.Int64 > 0 {
-			file.CreatedAt = time.Unix(createdAt.Int64, 0)
-		}
-		if updatedAt.Valid && updatedAt.Int64 > 0 {
-			file.UpdatedAt = time.Unix(updatedAt.Int64, 0)
-		}
+		
+		// Default değerler
+		file.CreatedAt = time.Now()
+		file.UpdatedAt = time.Now()
 		
 		files = append(files, file)
 	}
@@ -201,7 +183,7 @@ func (r *FileRepository) GetByFolderID(ctx context.Context, folderID string) ([]
 // GetByHash hash değerine göre dosyaları getirir
 func (r *FileRepository) GetByHash(ctx context.Context, hash string) ([]*entity.File, error) {
 	query := `
-		SELECT id, folder_id, relative_path, size, mod_time, global_hash, chunk_count, is_deleted, created_at, updated_at
+		SELECT id, folder_id, relative_path, size, mod_time, global_hash, is_deleted
 		FROM files
 		WHERE global_hash = ? AND is_deleted = 0
 	`
@@ -216,7 +198,7 @@ func (r *FileRepository) GetByHash(ctx context.Context, hash string) ([]*entity.
 	
 	for rows.Next() {
 		file := &entity.File{}
-		var modTime, createdAt, updatedAt sql.NullInt64
+		var modTime sql.NullInt64
 		
 		err := rows.Scan(
 			&file.ID,
@@ -225,10 +207,7 @@ func (r *FileRepository) GetByHash(ctx context.Context, hash string) ([]*entity.
 			&file.Size,
 			&modTime,
 			&file.GlobalHash,
-			&file.ChunkCount,
 			&file.IsDeleted,
-			&createdAt,
-			&updatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("dosya taranamadı: %w", err)
@@ -238,12 +217,10 @@ func (r *FileRepository) GetByHash(ctx context.Context, hash string) ([]*entity.
 		if modTime.Valid && modTime.Int64 > 0 {
 			file.ModTime = time.Unix(modTime.Int64, 0)
 		}
-		if createdAt.Valid && createdAt.Int64 > 0 {
-			file.CreatedAt = time.Unix(createdAt.Int64, 0)
-		}
-		if updatedAt.Valid && updatedAt.Int64 > 0 {
-			file.UpdatedAt = time.Unix(updatedAt.Int64, 0)
-		}
+		
+		// Default değerler
+		file.CreatedAt = time.Now()
+		file.UpdatedAt = time.Now()
 		
 		files = append(files, file)
 	}
@@ -257,8 +234,7 @@ func (r *FileRepository) Update(ctx context.Context, file *entity.File) error {
 	
 	query := `
 		UPDATE files
-		SET folder_id = ?, relative_path = ?, size = ?, mod_time = ?, global_hash = ?, 
-		    chunk_count = ?, is_deleted = ?, updated_at = ?
+		SET folder_id = ?, relative_path = ?, size = ?, mod_time = ?, global_hash = ?, is_deleted = ?
 		WHERE id = ?
 	`
 	
@@ -268,9 +244,7 @@ func (r *FileRepository) Update(ctx context.Context, file *entity.File) error {
 		file.Size,
 		file.ModTime.Unix(),
 		file.GlobalHash,
-		file.ChunkCount,
 		file.IsDeleted,
-		file.UpdatedAt.Unix(),
 		file.ID,
 	)
 	
@@ -294,11 +268,11 @@ func (r *FileRepository) Update(ctx context.Context, file *entity.File) error {
 func (r *FileRepository) Delete(ctx context.Context, id string) error {
 	query := `
 		UPDATE files
-		SET is_deleted = 1, updated_at = ?
+		SET is_deleted = 1
 		WHERE id = ?
 	`
 	
-	result, err := r.conn.DB().ExecContext(ctx, query, time.Now().Unix(), id)
+	result, err := r.conn.DB().ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("dosya silinemedi: %w", err)
 	}
@@ -339,10 +313,10 @@ func (r *FileRepository) HardDelete(ctx context.Context, id string) error {
 // GetModifiedSince belirli bir tarihten sonra değişen dosyaları getirir
 func (r *FileRepository) GetModifiedSince(ctx context.Context, folderID string, since int64) ([]*entity.File, error) {
 	query := `
-		SELECT id, folder_id, relative_path, size, mod_time, global_hash, chunk_count, is_deleted, created_at, updated_at
+		SELECT id, folder_id, relative_path, size, mod_time, global_hash, is_deleted
 		FROM files
-		WHERE folder_id = ? AND updated_at > ?
-		ORDER BY updated_at DESC
+		WHERE folder_id = ? AND mod_time > ?
+		ORDER BY mod_time DESC
 	`
 	
 	rows, err := r.conn.DB().QueryContext(ctx, query, folderID, since)
@@ -355,7 +329,7 @@ func (r *FileRepository) GetModifiedSince(ctx context.Context, folderID string, 
 	
 	for rows.Next() {
 		file := &entity.File{}
-		var modTime, createdAt, updatedAt sql.NullInt64
+		var modTime sql.NullInt64
 		
 		err := rows.Scan(
 			&file.ID,
@@ -364,10 +338,7 @@ func (r *FileRepository) GetModifiedSince(ctx context.Context, folderID string, 
 			&file.Size,
 			&modTime,
 			&file.GlobalHash,
-			&file.ChunkCount,
 			&file.IsDeleted,
-			&createdAt,
-			&updatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("dosya taranamadı: %w", err)
@@ -377,12 +348,10 @@ func (r *FileRepository) GetModifiedSince(ctx context.Context, folderID string, 
 		if modTime.Valid && modTime.Int64 > 0 {
 			file.ModTime = time.Unix(modTime.Int64, 0)
 		}
-		if createdAt.Valid && createdAt.Int64 > 0 {
-			file.CreatedAt = time.Unix(createdAt.Int64, 0)
-		}
-		if updatedAt.Valid && updatedAt.Int64 > 0 {
-			file.UpdatedAt = time.Unix(updatedAt.Int64, 0)
-		}
+		
+		// Default değerler
+		file.CreatedAt = time.Now()
+		file.UpdatedAt = time.Now()
 		
 		files = append(files, file)
 	}

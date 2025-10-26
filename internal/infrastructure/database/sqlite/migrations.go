@@ -41,10 +41,12 @@ func (m *Migration) RunMigrations() error {
 		{1, "create_folders_table", m.createFoldersTable},
 		{2, "create_files_table", m.createFilesTable},
 		{3, "create_chunks_table", m.createChunksTable},
-		{4, "create_peers_table", m.createPeersTable},
-		{5, "create_users_table", m.createUsersTable},
-		{6, "create_versions_table", m.createVersionsTable},
-		{7, "create_indexes", m.createIndexes},
+		{4, "create_file_chunks_table", m.createFileChunksTable},
+		{5, "create_peers_table", m.createPeersTable},
+		{6, "create_peer_folder_status_table", m.createPeerFolderStatusTable},
+		{7, "create_users_table", m.createUsersTable},
+		{8, "create_versions_table", m.createVersionsTable},
+		{9, "create_indexes", m.createIndexes},
 	}
 	
 	for _, migration := range migrations {
@@ -127,14 +129,10 @@ func (m *Migration) createFilesTable(db *sql.DB) error {
 		folder_id TEXT NOT NULL,
 		relative_path TEXT NOT NULL,
 		size INTEGER NOT NULL,
-		mod_time DATETIME NOT NULL,
-		global_hash TEXT,
-		chunk_count INTEGER NOT NULL DEFAULT 0,
-		is_deleted BOOLEAN NOT NULL DEFAULT 0,
-		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-		updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-		FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE,
-		UNIQUE(folder_id, relative_path)
+		mod_time INTEGER NOT NULL,
+		global_hash TEXT NOT NULL,
+		is_deleted BOOLEAN NOT NULL,
+		FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE
 	)`
 	
 	_, err := db.Exec(query)
@@ -145,13 +143,26 @@ func (m *Migration) createFilesTable(db *sql.DB) error {
 func (m *Migration) createChunksTable(db *sql.DB) error {
 	query := `
 	CREATE TABLE IF NOT EXISTS chunks (
-		id TEXT PRIMARY KEY,
+		hash TEXT PRIMARY KEY,
+		size INTEGER NOT NULL,
+		creation_time INTEGER NOT NULL,
+		is_local BOOLEAN NOT NULL
+	)`
+	
+	_, err := db.Exec(query)
+	return err
+}
+
+// createFileChunksTable file_chunks tablosunu oluşturur
+func (m *Migration) createFileChunksTable(db *sql.DB) error {
+	query := `
+	CREATE TABLE IF NOT EXISTS file_chunks (
 		file_id TEXT NOT NULL,
-		offset INTEGER NOT NULL,
-		length INTEGER NOT NULL,
-		device_availability TEXT,
-		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-		FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
+		chunk_hash TEXT NOT NULL,
+		chunk_index INTEGER NOT NULL,
+		PRIMARY KEY(file_id, chunk_index),
+		FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
+		FOREIGN KEY (chunk_hash) REFERENCES chunks(hash)
 	)`
 	
 	_, err := db.Exec(query)
@@ -164,13 +175,26 @@ func (m *Migration) createPeersTable(db *sql.DB) error {
 	CREATE TABLE IF NOT EXISTS peers (
 		device_id TEXT PRIMARY KEY,
 		name TEXT NOT NULL,
-		known_addresses TEXT,
-		is_trusted BOOLEAN NOT NULL DEFAULT 0,
-		last_seen DATETIME NOT NULL,
-		status TEXT NOT NULL DEFAULT 'unknown',
-		public_key TEXT,
-		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-		updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		addresses TEXT,
+		is_trusted BOOLEAN NOT NULL,
+		last_seen INTEGER
+	)`
+	
+	_, err := db.Exec(query)
+	return err
+}
+
+// createPeerFolderStatusTable peer_folder_status tablosunu oluşturur
+func (m *Migration) createPeerFolderStatusTable(db *sql.DB) error {
+	query := `
+	CREATE TABLE IF NOT EXISTS peer_folder_status (
+		folder_id TEXT NOT NULL,
+		peer_id TEXT NOT NULL,
+		global_version INTEGER NOT NULL,
+		sync_state TEXT,
+		PRIMARY KEY(folder_id, peer_id),
+		FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE,
+		FOREIGN KEY (peer_id) REFERENCES peers(device_id) ON DELETE CASCADE
 	)`
 	
 	_, err := db.Exec(query)
@@ -221,8 +245,11 @@ func (m *Migration) createIndexes(db *sql.DB) error {
 		"CREATE INDEX IF NOT EXISTS idx_files_folder_id ON files(folder_id)",
 		"CREATE INDEX IF NOT EXISTS idx_files_global_hash ON files(global_hash)",
 		"CREATE INDEX IF NOT EXISTS idx_files_is_deleted ON files(is_deleted)",
-		"CREATE INDEX IF NOT EXISTS idx_chunks_file_id ON chunks(file_id)",
-		"CREATE INDEX IF NOT EXISTS idx_peers_status ON peers(status)",
+		"CREATE INDEX IF NOT EXISTS idx_file_chunks_file_id ON file_chunks(file_id)",
+		"CREATE INDEX IF NOT EXISTS idx_file_chunks_chunk_hash ON file_chunks(chunk_hash)",
+		"CREATE INDEX IF NOT EXISTS idx_chunks_is_local ON chunks(is_local)",
+		"CREATE INDEX IF NOT EXISTS idx_peer_folder_status_folder_id ON peer_folder_status(folder_id)",
+		"CREATE INDEX IF NOT EXISTS idx_peer_folder_status_peer_id ON peer_folder_status(peer_id)",
 		"CREATE INDEX IF NOT EXISTS idx_peers_is_trusted ON peers(is_trusted)",
 		"CREATE INDEX IF NOT EXISTS idx_file_versions_file_id ON file_versions(file_id)",
 	}
@@ -235,8 +262,3 @@ func (m *Migration) createIndexes(db *sql.DB) error {
 	
 	return nil
 }
-
-
-
-
-
