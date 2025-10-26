@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-// Device ID provider - şimdilik hardcoded
+// Device ID provider - Backend'den gerçek ID almak için placeholder
 final deviceIdProvider = Provider<String>((ref) {
-  // TODO: Backend'den gerçek device ID'yi al
-  // Şimdilik test için sabit bir ID
-  return 'fc7e42e4-a23f-7427-9cce-ffaa3c10b426';
+  // TODO: Backend'den gerçek device ID'yi al (ConfigService gerekiyor)
+  // Şimdilik boş döndür - UI'da gösterilmeyecek
+  return '';
 });
 
 // Device name provider

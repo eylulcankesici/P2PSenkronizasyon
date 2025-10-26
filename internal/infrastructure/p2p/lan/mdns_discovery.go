@@ -19,10 +19,10 @@ const (
 	AetherServiceName = "_aether._tcp"
 	
 	// DiscoveryInterval peer keşif aralığı
-	DiscoveryInterval = 30 * time.Second // 5 saniyeden 30 saniyeye çıkarıldı
+	DiscoveryInterval = 5 * time.Second // Her 5 saniyede bir peer aranır
 	
 	// PeerTimeout peer timeout süresi
-	PeerTimeout = 90 * time.Second // 15 saniyeden 90 saniyeye çıkarıldı
+	PeerTimeout = 30 * time.Second // 30 saniye sonra timeout
 )
 
 // MDNSDiscoveryService mDNS tabanlı peer keşif servisi
