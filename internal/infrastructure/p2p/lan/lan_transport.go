@@ -177,3 +177,9 @@ func (t *LANTransport) OnConnectionLost(callback func(string)) {
 	t.onConnectionLost = callback
 }
 
+// SetChunkHandler chunk handler'ı set eder
+func (t *LANTransport) SetChunkHandler(handler func(chunkHash string) ([]byte, error)) {
+	// Connection manager'a handler'ı bağla
+	t.connMgr.SetChunkHandler(handler)
+}
+

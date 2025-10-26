@@ -49,21 +49,39 @@ func (h *PeerHandler) DiscoverPeers(ctx context.Context, req *pb.DiscoverPeersRe
 	}, nil
 }
 
-// ConnectToPeer peer'a bağlanır (placeholder)
+// ConnectToPeer peer'a bağlanır
 func (h *PeerHandler) ConnectToPeer(ctx context.Context, req *pb.ConnectToPeerRequest) (*pb.Status, error) {
+	err := h.container.PeerDiscoveryUseCase().ConnectToPeer(ctx, req.PeerId)
+	if err != nil {
+		return &pb.Status{
+			Success: false,
+			Message: fmt.Sprintf("Bağlantı kurulamadı: %v", err),
+			Code:    500,
+		}, nil
+	}
+	
 	return &pb.Status{
 		Success: true,
-		Message: "PeerHandler - yakında implement edilecek",
-		Code:    501,
+		Message: "Bağlantı başarıyla kuruldu",
+		Code:    200,
 	}, nil
 }
 
-// DisconnectFromPeer peer bağlantısını keser (placeholder)
+// DisconnectFromPeer peer bağlantısını keser
 func (h *PeerHandler) DisconnectFromPeer(ctx context.Context, req *pb.DisconnectFromPeerRequest) (*pb.Status, error) {
+	err := h.container.PeerDiscoveryUseCase().DisconnectFromPeer(ctx, req.PeerId)
+	if err != nil {
+		return &pb.Status{
+			Success: false,
+			Message: fmt.Sprintf("Bağlantı kesilemedi: %v", err),
+			Code:    500,
+		}, nil
+	}
+	
 	return &pb.Status{
 		Success: true,
-		Message: "PeerHandler - yakında implement edilecek",
-		Code:    501,
+		Message: "Bağlantı başarıyla kesildi",
+		Code:    200,
 	}, nil
 }
 
@@ -123,21 +141,57 @@ func (h *PeerHandler) GetPeerInfo(ctx context.Context, req *pb.GetPeerInfoReques
 	}, nil
 }
 
-// TrustPeer peer'i güvenilir yapar (placeholder)
+// TrustPeer peer'i güvenilir yapar
 func (h *PeerHandler) TrustPeer(ctx context.Context, req *pb.TrustPeerRequest) (*pb.Status, error) {
+	peer, err := h.container.PeerRepository().GetByID(ctx, req.PeerId)
+	if err != nil {
+		return &pb.Status{
+			Success: false,
+			Message: fmt.Sprintf("Peer bulunamadı: %v", err),
+			Code:    404,
+		}, nil
+	}
+	
+	peer.IsTrusted = true
+	if err := h.container.PeerRepository().Update(ctx, peer); err != nil {
+		return &pb.Status{
+			Success: false,
+			Message: fmt.Sprintf("Peer güncellenemedi: %v", err),
+			Code:    500,
+		}, nil
+	}
+	
 	return &pb.Status{
 		Success: true,
-		Message: "PeerHandler - yakında implement edilecek",
-		Code:    501,
+		Message: "Peer güvenilir olarak işaretlendi",
+		Code:    200,
 	}, nil
 }
 
-// UntrustPeer peer'i güvenilmez yapar (placeholder)
+// UntrustPeer peer'i güvenilmez yapar
 func (h *PeerHandler) UntrustPeer(ctx context.Context, req *pb.UntrustPeerRequest) (*pb.Status, error) {
+	peer, err := h.container.PeerRepository().GetByID(ctx, req.PeerId)
+	if err != nil {
+		return &pb.Status{
+			Success: false,
+			Message: fmt.Sprintf("Peer bulunamadı: %v", err),
+			Code:    404,
+		}, nil
+	}
+	
+	peer.IsTrusted = false
+	if err := h.container.PeerRepository().Update(ctx, peer); err != nil {
+		return &pb.Status{
+			Success: false,
+			Message: fmt.Sprintf("Peer güncellenemedi: %v", err),
+			Code:    500,
+		}, nil
+	}
+	
 	return &pb.Status{
 		Success: true,
-		Message: "PeerHandler - yakında implement edilecek",
-		Code:    501,
+		Message: "Peer güvenilmez olarak işaretlendi",
+		Code:    200,
 	}, nil
 }
 

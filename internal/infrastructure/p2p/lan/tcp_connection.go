@@ -29,13 +29,16 @@ type TCPConnection struct {
 	
 	ctx    context.Context
 	cancel context.CancelFunc
+	
+	// Chunk handler
+	chunkHandler func(chunkHash string) ([]byte, error)
 }
 
 // NewTCPConnection yeni TCP connection oluşturur
 func NewTCPConnection(peerID, address string, conn net.Conn) *TCPConnection {
 	ctx, cancel := context.WithCancel(context.Background())
 	
-	return &TCPConnection{
+	tcpConn := &TCPConnection{
 		peerID:        peerID,
 		address:       address,
 		conn:          conn,
@@ -45,6 +48,16 @@ func NewTCPConnection(peerID, address string, conn net.Conn) *TCPConnection {
 		ctx:           ctx,
 		cancel:        cancel,
 	}
+	
+	// Start message loop
+	go tcpConn.messageLoop()
+	
+	return tcpConn
+}
+
+// SetChunkHandler chunk handler'ı set eder
+func (c *TCPConnection) SetChunkHandler(handler func(chunkHash string) ([]byte, error)) {
+	c.chunkHandler = handler
 }
 
 // SendChunk chunk gönderir
@@ -204,6 +217,136 @@ func (c *TCPConnection) Ping(ctx context.Context) (time.Duration, error) {
 	return latency, nil
 }
 
+// messageLoop gelen mesajları işler
+func (c *TCPConnection) messageLoop() {
+	for {
+		select {
+		case <-c.ctx.Done():
+			return
+		default:
+			// Frame boyutunu oku
+			frameLen, err := c.readUint32()
+			if err != nil {
+				if c.ctx.Err() == nil {
+					log.Printf("⚠️ Frame length okuma hatası: %v", err)
+				}
+				return
+			}
+			
+			// Frame'i oku
+			frame := make([]byte, frameLen)
+			if _, err := io.ReadFull(c.conn, frame); err != nil {
+				if c.ctx.Err() == nil {
+					log.Printf("⚠️ Frame okuma hatası: %v", err)
+				}
+				return
+			}
+			
+			// Decode et
+			messageType, payload, err := c.protocol.DecodeFrame(frame)
+			if err != nil {
+				log.Printf("⚠️ Frame decode hatası: %v", err)
+				continue
+			}
+			
+			// Mesaj tipine göre işle
+			if err := c.handleMessage(messageType, payload); err != nil {
+				log.Printf("⚠️ Mesaj işleme hatası: %v", err)
+			}
+		}
+	}
+}
+
+// handleMessage gelen mesajı işler
+func (c *TCPConnection) handleMessage(messageType uint16, payload []byte) error {
+	switch messageType {
+	case MessageTypeChunkRequest:
+		return c.handleChunkRequest(payload)
+	case MessageTypePing:
+		return c.handlePing(payload)
+	default:
+		return fmt.Errorf("bilinmeyen mesaj tipi: 0x%04x", messageType)
+	}
+}
+
+// handleChunkRequest chunk request'i işler
+func (c *TCPConnection) handleChunkRequest(payload []byte) error {
+	chunkHash, err := c.protocol.DecodeChunkRequest(payload)
+	if err != nil {
+		return fmt.Errorf("chunk request decode hatası: %w", err)
+	}
+	
+	log.Printf("📥 Chunk request alındı: %s", chunkHash[:8])
+	
+	// Chunk handler yoksa hata döndür
+	if c.chunkHandler == nil {
+		log.Printf("⚠️ Chunk handler tanımlı değil")
+		return fmt.Errorf("chunk handler tanımlı değil")
+	}
+	
+	// Chunk'ı al
+	chunkData, err := c.chunkHandler(chunkHash)
+	if err != nil {
+		log.Printf("⚠️ Chunk alınamadı: %v", err)
+		// Hata durumunda boş chunk gönder
+		chunkData = []byte{}
+	}
+	
+	// Response gönder
+	c.sendMu.Lock()
+	defer c.sendMu.Unlock()
+	
+	response, err := c.protocol.EncodeChunkResponse(chunkHash, chunkData)
+	if err != nil {
+		return fmt.Errorf("chunk response encode hatası: %w", err)
+	}
+	
+	// Frame boyutunu gönder
+	if err := c.writeUint32(uint32(len(response))); err != nil {
+		return fmt.Errorf("frame length yazılamadı: %w", err)
+	}
+	
+	// Frame'i gönder
+	if _, err := c.conn.Write(response); err != nil {
+		return fmt.Errorf("frame yazılamadı: %w", err)
+	}
+	
+	log.Printf("✅ Chunk response gönderildi: %s (%d bytes)", chunkHash[:8], len(chunkData))
+	
+	return nil
+}
+
+// handlePing ping request'i işler
+func (c *TCPConnection) handlePing(payload []byte) error {
+	_, err := c.protocol.DecodePing(payload)
+	if err != nil {
+		return fmt.Errorf("ping decode hatası: %w", err)
+	}
+	
+	log.Printf("🏓 Ping alındı, pong gönderiliyor...")
+	
+	// Pong gönder
+	c.sendMu.Lock()
+	defer c.sendMu.Unlock()
+	
+	response, err := c.protocol.EncodePong(c.peerID, 0)
+	if err != nil {
+		return fmt.Errorf("pong encode hatası: %w", err)
+	}
+	
+	// Frame boyutunu gönder
+	if err := c.writeUint32(uint32(len(response))); err != nil {
+		return fmt.Errorf("frame length yazılamadı: %w", err)
+	}
+	
+	// Frame'i gönder
+	if _, err := c.conn.Write(response); err != nil {
+		return fmt.Errorf("frame yazılamadı: %w", err)
+	}
+	
+	return nil
+}
+
 // Close bağlantıyı kapatır
 func (c *TCPConnection) Close() error {
 	c.cancel()
@@ -283,7 +426,8 @@ type TCPConnectionManager struct {
 	cancel context.CancelFunc
 	
 	// Callbacks
-	onConnectionEstablished func(*TCPConnection)
+	onConnectionEstablished func(transport.Connection)
+	chunkHandlerCallback    func(chunkHash string) ([]byte, error)
 }
 
 // NewTCPConnectionManager yeni TCP connection manager oluşturur
@@ -407,6 +551,11 @@ func (m *TCPConnectionManager) handleIncomingConnection(conn net.Conn) {
 	m.connections[peerHandshake.DeviceID] = tcpConn
 	m.mu.Unlock()
 	
+	// Chunk handler'ı bağla (varsa)
+	if m.chunkHandlerCallback != nil {
+		tcpConn.SetChunkHandler(m.chunkHandlerCallback)
+	}
+	
 	// Callback çağır
 	if m.onConnectionEstablished != nil {
 		m.onConnectionEstablished(tcpConn)
@@ -460,5 +609,22 @@ func (m *TCPConnectionManager) GetAllConnections() []transport.Connection {
 	}
 	
 	return connections
+}
+
+// setOnConnectionEstablished connection established callback'ini set eder
+func (m *TCPConnectionManager) setOnConnectionEstablished(callback func(transport.Connection)) {
+	m.onConnectionEstablished = callback
+}
+
+// SetChunkHandler chunk handler callback'ini set eder
+func (m *TCPConnectionManager) SetChunkHandler(handler func(chunkHash string) ([]byte, error)) {
+	m.chunkHandlerCallback = handler
+	
+	// Mevcut connection'lara handler'ı bağla
+	m.mu.RLock()
+	for _, conn := range m.connections {
+		conn.SetChunkHandler(handler)
+	}
+	m.mu.RUnlock()
 }
 

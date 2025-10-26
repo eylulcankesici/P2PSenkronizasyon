@@ -354,6 +354,20 @@ func (c *Container) initUseCases() error {
 	
 	log.Println("✓ P2P Transfer use case başlatıldı")
 	
+	// Chunk handler'ı bağla
+	if lanTransport, ok := c.transportProvider.(*lan.LANTransport); ok {
+		chunkHandler := func(chunkHash string) ([]byte, error) {
+			chunkData, err := c.chunkingUseCase.GetChunkData(context.Background(), chunkHash)
+			if err != nil {
+				return nil, fmt.Errorf("chunk alınamadı: %w", err)
+			}
+			return chunkData, nil
+		}
+		
+		lanTransport.SetChunkHandler(chunkHandler)
+		log.Println("✓ Chunk handler bağlandı")
+	}
+	
 	return nil
 }
 
@@ -432,6 +446,8 @@ func (c *Container) initP2PTransport() error {
 	if err := lanTransport.Start(ctx); err != nil {
 		return fmt.Errorf("LAN transport başlatılamadı: %w", err)
 	}
+	
+	// Chunk handler'ı daha sonra bağlanacak (chunking use case hazır olduktan sonra)
 	
 	c.transportProvider = lanTransport
 	
