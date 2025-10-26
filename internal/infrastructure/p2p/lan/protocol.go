@@ -29,6 +29,9 @@ const (
 	MessageTypeMetadata       = 0x0004
 	MessageTypePing           = 0x0005
 	MessageTypePong           = 0x0006
+	MessageTypeConnectionRequest = 0x0007
+	MessageTypeConnectionAccept = 0x0008
+	MessageTypeConnectionReject = 0x0009
 	
 	// Frame sizes
 	HeaderSize = 16 // Magic(4) + Version(2) + Type(2) + Length(4) + CRC(4)
@@ -321,4 +324,6 @@ func (p *Protocol) DecodePong(data []byte) (int64, error) {
 	
 	return resp.LatencyMs, nil
 }
+
+
 
