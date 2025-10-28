@@ -1,19 +1,23 @@
-///
+//
 //  Generated code. Do not modify.
 //  source: api/proto/common.proto
 //
 // @dart = 2.12
-// ignore_for_file: annotate_overrides,camel_case_types,constant_identifier_names,directives_ordering,library_prefixes,non_constant_identifier_names,prefer_final_fields,return_of_invalid_type,unnecessary_const,unnecessary_import,unnecessary_this,unused_import,unused_shown_name
 
-// ignore_for_file: UNDEFINED_SHOWN_NAME
+// ignore_for_file: annotate_overrides, camel_case_types
+// ignore_for_file: constant_identifier_names, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_final_fields
+// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+
 import 'dart:core' as $core;
+
 import 'package:protobuf/protobuf.dart' as $pb;
 
 class SyncMode extends $pb.ProtobufEnum {
-  static const SyncMode SYNC_MODE_UNSPECIFIED = SyncMode._(0, const $core.bool.fromEnvironment('protobuf.omit_enum_names') ? '' : 'SYNC_MODE_UNSPECIFIED');
-  static const SyncMode SYNC_MODE_BIDIRECTIONAL = SyncMode._(1, const $core.bool.fromEnvironment('protobuf.omit_enum_names') ? '' : 'SYNC_MODE_BIDIRECTIONAL');
-  static const SyncMode SYNC_MODE_SEND_ONLY = SyncMode._(2, const $core.bool.fromEnvironment('protobuf.omit_enum_names') ? '' : 'SYNC_MODE_SEND_ONLY');
-  static const SyncMode SYNC_MODE_RECEIVE_ONLY = SyncMode._(3, const $core.bool.fromEnvironment('protobuf.omit_enum_names') ? '' : 'SYNC_MODE_RECEIVE_ONLY');
+  static const SyncMode SYNC_MODE_UNSPECIFIED = SyncMode._(0, _omitEnumNames ? '' : 'SYNC_MODE_UNSPECIFIED');
+  static const SyncMode SYNC_MODE_BIDIRECTIONAL = SyncMode._(1, _omitEnumNames ? '' : 'SYNC_MODE_BIDIRECTIONAL');
+  static const SyncMode SYNC_MODE_SEND_ONLY = SyncMode._(2, _omitEnumNames ? '' : 'SYNC_MODE_SEND_ONLY');
+  static const SyncMode SYNC_MODE_RECEIVE_ONLY = SyncMode._(3, _omitEnumNames ? '' : 'SYNC_MODE_RECEIVE_ONLY');
 
   static const $core.List<SyncMode> values = <SyncMode> [
     SYNC_MODE_UNSPECIFIED,
@@ -29,10 +33,10 @@ class SyncMode extends $pb.ProtobufEnum {
 }
 
 class PeerStatus extends $pb.ProtobufEnum {
-  static const PeerStatus PEER_STATUS_UNKNOWN = PeerStatus._(0, const $core.bool.fromEnvironment('protobuf.omit_enum_names') ? '' : 'PEER_STATUS_UNKNOWN');
-  static const PeerStatus PEER_STATUS_ONLINE = PeerStatus._(1, const $core.bool.fromEnvironment('protobuf.omit_enum_names') ? '' : 'PEER_STATUS_ONLINE');
-  static const PeerStatus PEER_STATUS_OFFLINE = PeerStatus._(2, const $core.bool.fromEnvironment('protobuf.omit_enum_names') ? '' : 'PEER_STATUS_OFFLINE');
-  static const PeerStatus PEER_STATUS_CONNECTING = PeerStatus._(3, const $core.bool.fromEnvironment('protobuf.omit_enum_names') ? '' : 'PEER_STATUS_CONNECTING');
+  static const PeerStatus PEER_STATUS_UNKNOWN = PeerStatus._(0, _omitEnumNames ? '' : 'PEER_STATUS_UNKNOWN');
+  static const PeerStatus PEER_STATUS_ONLINE = PeerStatus._(1, _omitEnumNames ? '' : 'PEER_STATUS_ONLINE');
+  static const PeerStatus PEER_STATUS_OFFLINE = PeerStatus._(2, _omitEnumNames ? '' : 'PEER_STATUS_OFFLINE');
+  static const PeerStatus PEER_STATUS_CONNECTING = PeerStatus._(3, _omitEnumNames ? '' : 'PEER_STATUS_CONNECTING');
 
   static const $core.List<PeerStatus> values = <PeerStatus> [
     PEER_STATUS_UNKNOWN,
@@ -48,8 +52,8 @@ class PeerStatus extends $pb.ProtobufEnum {
 }
 
 class UserRole extends $pb.ProtobufEnum {
-  static const UserRole USER_ROLE_STANDARD = UserRole._(0, const $core.bool.fromEnvironment('protobuf.omit_enum_names') ? '' : 'USER_ROLE_STANDARD');
-  static const UserRole USER_ROLE_ADMIN = UserRole._(1, const $core.bool.fromEnvironment('protobuf.omit_enum_names') ? '' : 'USER_ROLE_ADMIN');
+  static const UserRole USER_ROLE_STANDARD = UserRole._(0, _omitEnumNames ? '' : 'USER_ROLE_STANDARD');
+  static const UserRole USER_ROLE_ADMIN = UserRole._(1, _omitEnumNames ? '' : 'USER_ROLE_ADMIN');
 
   static const $core.List<UserRole> values = <UserRole> [
     USER_ROLE_STANDARD,
@@ -62,3 +66,5 @@ class UserRole extends $pb.ProtobufEnum {
   const UserRole._($core.int v, $core.String n) : super(v, n);
 }
 
+
+const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

@@ -7,9 +7,8 @@ final filesProvider = FutureProvider.family<List<File>, String>((ref, folderId) 
   final client = ref.watch(grpcClientProvider);
   
   try {
-    final response = await client.fileService.listFiles(
-      ListFilesRequest(folderId: folderId),
-    );
+    final request = ListFilesRequest()..folderId = folderId;
+    final response = await client.fileService.listFiles(request);
     
     return response.files;
   } catch (e) {

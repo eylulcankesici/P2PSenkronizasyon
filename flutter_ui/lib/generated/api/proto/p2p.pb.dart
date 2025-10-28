@@ -1,9 +1,13 @@
-///
+//
 //  Generated code. Do not modify.
 //  source: api/proto/p2p.proto
 //
 // @dart = 2.12
-// ignore_for_file: annotate_overrides,camel_case_types,constant_identifier_names,directives_ordering,library_prefixes,non_constant_identifier_names,prefer_final_fields,return_of_invalid_type,unnecessary_const,unnecessary_import,unnecessary_this,unused_import,unused_shown_name
+
+// ignore_for_file: annotate_overrides, camel_case_types
+// ignore_for_file: constant_identifier_names, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_final_fields
+// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
 
 import 'dart:core' as $core;
 
@@ -13,33 +17,18 @@ import 'package:protobuf/protobuf.dart' as $pb;
 import 'common.pb.dart' as $1;
 
 class ChunkRequest extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'ChunkRequest', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOS(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'chunkHash')
-    ..aOS(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'fileId')
-    ..aOS(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'requesterDeviceId')
+  factory ChunkRequest() => create();
+  ChunkRequest._() : super();
+  factory ChunkRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ChunkRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ChunkRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'chunkHash')
+    ..aOS(2, _omitFieldNames ? '' : 'fileId')
+    ..aOS(3, _omitFieldNames ? '' : 'requesterDeviceId')
     ..hasRequiredFields = false
   ;
 
-  ChunkRequest._() : super();
-  factory ChunkRequest({
-    $core.String? chunkHash,
-    $core.String? fileId,
-    $core.String? requesterDeviceId,
-  }) {
-    final _result = create();
-    if (chunkHash != null) {
-      _result.chunkHash = chunkHash;
-    }
-    if (fileId != null) {
-      _result.fileId = fileId;
-    }
-    if (requesterDeviceId != null) {
-      _result.requesterDeviceId = requesterDeviceId;
-    }
-    return _result;
-  }
-  factory ChunkRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ChunkRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -49,8 +38,10 @@ class ChunkRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  ChunkRequest copyWith(void Function(ChunkRequest) updates) => super.copyWith((message) => updates(message as ChunkRequest)) as ChunkRequest; // ignore: deprecated_member_use
+  ChunkRequest copyWith(void Function(ChunkRequest) updates) => super.copyWith((message) => updates(message as ChunkRequest)) as ChunkRequest;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static ChunkRequest create() => ChunkRequest._();
   ChunkRequest createEmptyInstance() => create();
@@ -88,38 +79,19 @@ class ChunkRequest extends $pb.GeneratedMessage {
 }
 
 class ChunkResponse extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'ChunkResponse', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOM<$1.Status>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'status', subBuilder: $1.Status.create)
-    ..a<$core.List<$core.int>>(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'chunkData', $pb.PbFieldType.OY)
-    ..aOS(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'chunkHash')
-    ..aInt64(4, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'chunkSize')
+  factory ChunkResponse() => create();
+  ChunkResponse._() : super();
+  factory ChunkResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ChunkResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ChunkResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOM<$1.Status>(1, _omitFieldNames ? '' : 'status', subBuilder: $1.Status.create)
+    ..a<$core.List<$core.int>>(2, _omitFieldNames ? '' : 'chunkData', $pb.PbFieldType.OY)
+    ..aOS(3, _omitFieldNames ? '' : 'chunkHash')
+    ..aInt64(4, _omitFieldNames ? '' : 'chunkSize')
     ..hasRequiredFields = false
   ;
 
-  ChunkResponse._() : super();
-  factory ChunkResponse({
-    $1.Status? status,
-    $core.List<$core.int>? chunkData,
-    $core.String? chunkHash,
-    $fixnum.Int64? chunkSize,
-  }) {
-    final _result = create();
-    if (status != null) {
-      _result.status = status;
-    }
-    if (chunkData != null) {
-      _result.chunkData = chunkData;
-    }
-    if (chunkHash != null) {
-      _result.chunkHash = chunkHash;
-    }
-    if (chunkSize != null) {
-      _result.chunkSize = chunkSize;
-    }
-    return _result;
-  }
-  factory ChunkResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ChunkResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -129,8 +101,10 @@ class ChunkResponse extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  ChunkResponse copyWith(void Function(ChunkResponse) updates) => super.copyWith((message) => updates(message as ChunkResponse)) as ChunkResponse; // ignore: deprecated_member_use
+  ChunkResponse copyWith(void Function(ChunkResponse) updates) => super.copyWith((message) => updates(message as ChunkResponse)) as ChunkResponse;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static ChunkResponse create() => ChunkResponse._();
   ChunkResponse createEmptyInstance() => create();
@@ -179,43 +153,20 @@ class ChunkResponse extends $pb.GeneratedMessage {
 }
 
 class ChunkData extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'ChunkData', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOS(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'chunkHash')
-    ..a<$core.List<$core.int>>(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'data', $pb.PbFieldType.OY)
-    ..aInt64(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'offset')
-    ..aInt64(4, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'totalSize')
-    ..aOB(5, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'isFinal')
+  factory ChunkData() => create();
+  ChunkData._() : super();
+  factory ChunkData.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ChunkData.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ChunkData', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'chunkHash')
+    ..a<$core.List<$core.int>>(2, _omitFieldNames ? '' : 'data', $pb.PbFieldType.OY)
+    ..aInt64(3, _omitFieldNames ? '' : 'offset')
+    ..aInt64(4, _omitFieldNames ? '' : 'totalSize')
+    ..aOB(5, _omitFieldNames ? '' : 'isFinal')
     ..hasRequiredFields = false
   ;
 
-  ChunkData._() : super();
-  factory ChunkData({
-    $core.String? chunkHash,
-    $core.List<$core.int>? data,
-    $fixnum.Int64? offset,
-    $fixnum.Int64? totalSize,
-    $core.bool? isFinal,
-  }) {
-    final _result = create();
-    if (chunkHash != null) {
-      _result.chunkHash = chunkHash;
-    }
-    if (data != null) {
-      _result.data = data;
-    }
-    if (offset != null) {
-      _result.offset = offset;
-    }
-    if (totalSize != null) {
-      _result.totalSize = totalSize;
-    }
-    if (isFinal != null) {
-      _result.isFinal = isFinal;
-    }
-    return _result;
-  }
-  factory ChunkData.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ChunkData.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -225,8 +176,10 @@ class ChunkData extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  ChunkData copyWith(void Function(ChunkData) updates) => super.copyWith((message) => updates(message as ChunkData)) as ChunkData; // ignore: deprecated_member_use
+  ChunkData copyWith(void Function(ChunkData) updates) => super.copyWith((message) => updates(message as ChunkData)) as ChunkData;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static ChunkData create() => ChunkData._();
   ChunkData createEmptyInstance() => create();
@@ -282,33 +235,18 @@ class ChunkData extends $pb.GeneratedMessage {
 }
 
 class TransferStatus extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'TransferStatus', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOM<$1.Status>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'status', subBuilder: $1.Status.create)
-    ..aInt64(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'bytesReceived')
-    ..aOS(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'receivedHash')
+  factory TransferStatus() => create();
+  TransferStatus._() : super();
+  factory TransferStatus.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory TransferStatus.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'TransferStatus', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOM<$1.Status>(1, _omitFieldNames ? '' : 'status', subBuilder: $1.Status.create)
+    ..aInt64(2, _omitFieldNames ? '' : 'bytesReceived')
+    ..aOS(3, _omitFieldNames ? '' : 'receivedHash')
     ..hasRequiredFields = false
   ;
 
-  TransferStatus._() : super();
-  factory TransferStatus({
-    $1.Status? status,
-    $fixnum.Int64? bytesReceived,
-    $core.String? receivedHash,
-  }) {
-    final _result = create();
-    if (status != null) {
-      _result.status = status;
-    }
-    if (bytesReceived != null) {
-      _result.bytesReceived = bytesReceived;
-    }
-    if (receivedHash != null) {
-      _result.receivedHash = receivedHash;
-    }
-    return _result;
-  }
-  factory TransferStatus.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory TransferStatus.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -318,8 +256,10 @@ class TransferStatus extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  TransferStatus copyWith(void Function(TransferStatus) updates) => super.copyWith((message) => updates(message as TransferStatus)) as TransferStatus; // ignore: deprecated_member_use
+  TransferStatus copyWith(void Function(TransferStatus) updates) => super.copyWith((message) => updates(message as TransferStatus)) as TransferStatus;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static TransferStatus create() => TransferStatus._();
   TransferStatus createEmptyInstance() => create();
@@ -359,28 +299,17 @@ class TransferStatus extends $pb.GeneratedMessage {
 }
 
 class FileMetadataRequest extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'FileMetadataRequest', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOS(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'fileId')
-    ..aOS(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'senderDeviceId')
+  factory FileMetadataRequest() => create();
+  FileMetadataRequest._() : super();
+  factory FileMetadataRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory FileMetadataRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'FileMetadataRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'fileId')
+    ..aOS(2, _omitFieldNames ? '' : 'senderDeviceId')
     ..hasRequiredFields = false
   ;
 
-  FileMetadataRequest._() : super();
-  factory FileMetadataRequest({
-    $core.String? fileId,
-    $core.String? senderDeviceId,
-  }) {
-    final _result = create();
-    if (fileId != null) {
-      _result.fileId = fileId;
-    }
-    if (senderDeviceId != null) {
-      _result.senderDeviceId = senderDeviceId;
-    }
-    return _result;
-  }
-  factory FileMetadataRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory FileMetadataRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -390,8 +319,10 @@ class FileMetadataRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  FileMetadataRequest copyWith(void Function(FileMetadataRequest) updates) => super.copyWith((message) => updates(message as FileMetadataRequest)) as FileMetadataRequest; // ignore: deprecated_member_use
+  FileMetadataRequest copyWith(void Function(FileMetadataRequest) updates) => super.copyWith((message) => updates(message as FileMetadataRequest)) as FileMetadataRequest;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static FileMetadataRequest create() => FileMetadataRequest._();
   FileMetadataRequest createEmptyInstance() => create();
@@ -420,48 +351,21 @@ class FileMetadataRequest extends $pb.GeneratedMessage {
 }
 
 class FileMetadataResponse extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'FileMetadataResponse', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOM<$1.Status>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'status', subBuilder: $1.Status.create)
-    ..aOS(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'fileId')
-    ..aOS(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'relativePath')
-    ..aInt64(4, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'size')
-    ..aOS(5, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'globalHash')
-    ..pPS(6, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'chunkHashes')
+  factory FileMetadataResponse() => create();
+  FileMetadataResponse._() : super();
+  factory FileMetadataResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory FileMetadataResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'FileMetadataResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOM<$1.Status>(1, _omitFieldNames ? '' : 'status', subBuilder: $1.Status.create)
+    ..aOS(2, _omitFieldNames ? '' : 'fileId')
+    ..aOS(3, _omitFieldNames ? '' : 'relativePath')
+    ..aInt64(4, _omitFieldNames ? '' : 'size')
+    ..aOS(5, _omitFieldNames ? '' : 'globalHash')
+    ..pPS(6, _omitFieldNames ? '' : 'chunkHashes')
     ..hasRequiredFields = false
   ;
 
-  FileMetadataResponse._() : super();
-  factory FileMetadataResponse({
-    $1.Status? status,
-    $core.String? fileId,
-    $core.String? relativePath,
-    $fixnum.Int64? size,
-    $core.String? globalHash,
-    $core.Iterable<$core.String>? chunkHashes,
-  }) {
-    final _result = create();
-    if (status != null) {
-      _result.status = status;
-    }
-    if (fileId != null) {
-      _result.fileId = fileId;
-    }
-    if (relativePath != null) {
-      _result.relativePath = relativePath;
-    }
-    if (size != null) {
-      _result.size = size;
-    }
-    if (globalHash != null) {
-      _result.globalHash = globalHash;
-    }
-    if (chunkHashes != null) {
-      _result.chunkHashes.addAll(chunkHashes);
-    }
-    return _result;
-  }
-  factory FileMetadataResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory FileMetadataResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -471,8 +375,10 @@ class FileMetadataResponse extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  FileMetadataResponse copyWith(void Function(FileMetadataResponse) updates) => super.copyWith((message) => updates(message as FileMetadataResponse)) as FileMetadataResponse; // ignore: deprecated_member_use
+  FileMetadataResponse copyWith(void Function(FileMetadataResponse) updates) => super.copyWith((message) => updates(message as FileMetadataResponse)) as FileMetadataResponse;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static FileMetadataResponse create() => FileMetadataResponse._();
   FileMetadataResponse createEmptyInstance() => create();
@@ -533,28 +439,17 @@ class FileMetadataResponse extends $pb.GeneratedMessage {
 }
 
 class PingRequest extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'PingRequest', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOS(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'deviceId')
-    ..aInt64(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'timestamp')
+  factory PingRequest() => create();
+  PingRequest._() : super();
+  factory PingRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PingRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PingRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'deviceId')
+    ..aInt64(2, _omitFieldNames ? '' : 'timestamp')
     ..hasRequiredFields = false
   ;
 
-  PingRequest._() : super();
-  factory PingRequest({
-    $core.String? deviceId,
-    $fixnum.Int64? timestamp,
-  }) {
-    final _result = create();
-    if (deviceId != null) {
-      _result.deviceId = deviceId;
-    }
-    if (timestamp != null) {
-      _result.timestamp = timestamp;
-    }
-    return _result;
-  }
-  factory PingRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory PingRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -564,8 +459,10 @@ class PingRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  PingRequest copyWith(void Function(PingRequest) updates) => super.copyWith((message) => updates(message as PingRequest)) as PingRequest; // ignore: deprecated_member_use
+  PingRequest copyWith(void Function(PingRequest) updates) => super.copyWith((message) => updates(message as PingRequest)) as PingRequest;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static PingRequest create() => PingRequest._();
   PingRequest createEmptyInstance() => create();
@@ -594,33 +491,18 @@ class PingRequest extends $pb.GeneratedMessage {
 }
 
 class PingResponse extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'PingResponse', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOM<$1.Status>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'status', subBuilder: $1.Status.create)
-    ..aInt64(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'timestamp')
-    ..aInt64(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'latencyMs')
+  factory PingResponse() => create();
+  PingResponse._() : super();
+  factory PingResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PingResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PingResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOM<$1.Status>(1, _omitFieldNames ? '' : 'status', subBuilder: $1.Status.create)
+    ..aInt64(2, _omitFieldNames ? '' : 'timestamp')
+    ..aInt64(3, _omitFieldNames ? '' : 'latencyMs')
     ..hasRequiredFields = false
   ;
 
-  PingResponse._() : super();
-  factory PingResponse({
-    $1.Status? status,
-    $fixnum.Int64? timestamp,
-    $fixnum.Int64? latencyMs,
-  }) {
-    final _result = create();
-    if (status != null) {
-      _result.status = status;
-    }
-    if (timestamp != null) {
-      _result.timestamp = timestamp;
-    }
-    if (latencyMs != null) {
-      _result.latencyMs = latencyMs;
-    }
-    return _result;
-  }
-  factory PingResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory PingResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -630,8 +512,10 @@ class PingResponse extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  PingResponse copyWith(void Function(PingResponse) updates) => super.copyWith((message) => updates(message as PingResponse)) as PingResponse; // ignore: deprecated_member_use
+  PingResponse copyWith(void Function(PingResponse) updates) => super.copyWith((message) => updates(message as PingResponse)) as PingResponse;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static PingResponse create() => PingResponse._();
   PingResponse createEmptyInstance() => create();
@@ -670,3 +554,6 @@ class PingResponse extends $pb.GeneratedMessage {
   void clearLatencyMs() => clearField(3);
 }
 
+
+const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
+const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');

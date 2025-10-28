@@ -1,169 +1,37 @@
-///
+//
 //  Generated code. Do not modify.
 //  source: api/proto/sync.proto
 //
 // @dart = 2.12
-// ignore_for_file: annotate_overrides,camel_case_types,constant_identifier_names,directives_ordering,library_prefixes,non_constant_identifier_names,prefer_final_fields,return_of_invalid_type,unnecessary_const,unnecessary_import,unnecessary_this,unused_import,unused_shown_name
+
+// ignore_for_file: annotate_overrides, camel_case_types
+// ignore_for_file: constant_identifier_names, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_final_fields
+// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
 
 import 'dart:core' as $core;
 
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'common.pb.dart' as $1;
 import '../../google/protobuf/timestamp.pb.dart' as $7;
-
+import 'common.pb.dart' as $1;
 import 'sync.pbenum.dart';
 
 export 'sync.pbenum.dart';
 
-class ScanFolderRequest extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'ScanFolderRequest', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOS(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'folderId')
-    ..hasRequiredFields = false
-  ;
-
-  ScanFolderRequest._() : super();
-  factory ScanFolderRequest({
-    $core.String? folderId,
-  }) {
-    final _result = create();
-    if (folderId != null) {
-      _result.folderId = folderId;
-    }
-    return _result;
-  }
-  factory ScanFolderRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ScanFolderRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ScanFolderRequest clone() => ScanFolderRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ScanFolderRequest copyWith(void Function(ScanFolderRequest) updates) => super.copyWith((message) => updates(message as ScanFolderRequest)) as ScanFolderRequest; // ignore: deprecated_member_use
-  $pb.BuilderInfo get info_ => _i;
-  @$core.pragma('dart2js:noInline')
-  static ScanFolderRequest create() => ScanFolderRequest._();
-  ScanFolderRequest createEmptyInstance() => create();
-  static $pb.PbList<ScanFolderRequest> createRepeated() => $pb.PbList<ScanFolderRequest>();
-  @$core.pragma('dart2js:noInline')
-  static ScanFolderRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ScanFolderRequest>(create);
-  static ScanFolderRequest? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.String get folderId => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set folderId($core.String v) { $_setString(0, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasFolderId() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearFolderId() => clearField(1);
-}
-
-class ScanFolderResponse extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'ScanFolderResponse', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOM<$1.Status>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'status', subBuilder: $1.Status.create)
-    ..a<$core.int>(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'filesFound', $pb.PbFieldType.O3)
-    ..a<$core.int>(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'changesDetected', $pb.PbFieldType.O3)
-    ..hasRequiredFields = false
-  ;
-
-  ScanFolderResponse._() : super();
-  factory ScanFolderResponse({
-    $1.Status? status,
-    $core.int? filesFound,
-    $core.int? changesDetected,
-  }) {
-    final _result = create();
-    if (status != null) {
-      _result.status = status;
-    }
-    if (filesFound != null) {
-      _result.filesFound = filesFound;
-    }
-    if (changesDetected != null) {
-      _result.changesDetected = changesDetected;
-    }
-    return _result;
-  }
-  factory ScanFolderResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ScanFolderResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ScanFolderResponse clone() => ScanFolderResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ScanFolderResponse copyWith(void Function(ScanFolderResponse) updates) => super.copyWith((message) => updates(message as ScanFolderResponse)) as ScanFolderResponse; // ignore: deprecated_member_use
-  $pb.BuilderInfo get info_ => _i;
-  @$core.pragma('dart2js:noInline')
-  static ScanFolderResponse create() => ScanFolderResponse._();
-  ScanFolderResponse createEmptyInstance() => create();
-  static $pb.PbList<ScanFolderResponse> createRepeated() => $pb.PbList<ScanFolderResponse>();
-  @$core.pragma('dart2js:noInline')
-  static ScanFolderResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ScanFolderResponse>(create);
-  static ScanFolderResponse? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $1.Status get status => $_getN(0);
-  @$pb.TagNumber(1)
-  set status($1.Status v) { setField(1, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasStatus() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearStatus() => clearField(1);
-  @$pb.TagNumber(1)
-  $1.Status ensureStatus() => $_ensure(0);
-
-  @$pb.TagNumber(2)
-  $core.int get filesFound => $_getIZ(1);
-  @$pb.TagNumber(2)
-  set filesFound($core.int v) { $_setSignedInt32(1, v); }
-  @$pb.TagNumber(2)
-  $core.bool hasFilesFound() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearFilesFound() => clearField(2);
-
-  @$pb.TagNumber(3)
-  $core.int get changesDetected => $_getIZ(2);
-  @$pb.TagNumber(3)
-  set changesDetected($core.int v) { $_setSignedInt32(2, v); }
-  @$pb.TagNumber(3)
-  $core.bool hasChangesDetected() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearChangesDetected() => clearField(3);
-}
-
 class SyncFileRequest extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'SyncFileRequest', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOS(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'fileId')
-    ..pPS(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'targetPeerIds')
-    ..hasRequiredFields = false
-  ;
-
+  factory SyncFileRequest() => create();
   SyncFileRequest._() : super();
-  factory SyncFileRequest({
-    $core.String? fileId,
-    $core.Iterable<$core.String>? targetPeerIds,
-  }) {
-    final _result = create();
-    if (fileId != null) {
-      _result.fileId = fileId;
-    }
-    if (targetPeerIds != null) {
-      _result.targetPeerIds.addAll(targetPeerIds);
-    }
-    return _result;
-  }
   factory SyncFileRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory SyncFileRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SyncFileRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'fileId')
+    ..pPS(2, _omitFieldNames ? '' : 'targetPeerIds')
+    ..hasRequiredFields = false
+  ;
+
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -173,8 +41,10 @@ class SyncFileRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  SyncFileRequest copyWith(void Function(SyncFileRequest) updates) => super.copyWith((message) => updates(message as SyncFileRequest)) as SyncFileRequest; // ignore: deprecated_member_use
+  SyncFileRequest copyWith(void Function(SyncFileRequest) updates) => super.copyWith((message) => updates(message as SyncFileRequest)) as SyncFileRequest;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static SyncFileRequest create() => SyncFileRequest._();
   SyncFileRequest createEmptyInstance() => create();
@@ -197,28 +67,17 @@ class SyncFileRequest extends $pb.GeneratedMessage {
 }
 
 class SyncFileResponse extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'SyncFileResponse', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOM<$1.Status>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'status', subBuilder: $1.Status.create)
-    ..aOM<SyncProgress>(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'progress', subBuilder: SyncProgress.create)
+  factory SyncFileResponse() => create();
+  SyncFileResponse._() : super();
+  factory SyncFileResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SyncFileResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SyncFileResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOM<$1.Status>(1, _omitFieldNames ? '' : 'status', subBuilder: $1.Status.create)
+    ..aOM<SyncProgress>(2, _omitFieldNames ? '' : 'progress', subBuilder: SyncProgress.create)
     ..hasRequiredFields = false
   ;
 
-  SyncFileResponse._() : super();
-  factory SyncFileResponse({
-    $1.Status? status,
-    SyncProgress? progress,
-  }) {
-    final _result = create();
-    if (status != null) {
-      _result.status = status;
-    }
-    if (progress != null) {
-      _result.progress = progress;
-    }
-    return _result;
-  }
-  factory SyncFileResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory SyncFileResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -228,8 +87,10 @@ class SyncFileResponse extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  SyncFileResponse copyWith(void Function(SyncFileResponse) updates) => super.copyWith((message) => updates(message as SyncFileResponse)) as SyncFileResponse; // ignore: deprecated_member_use
+  SyncFileResponse copyWith(void Function(SyncFileResponse) updates) => super.copyWith((message) => updates(message as SyncFileResponse)) as SyncFileResponse;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static SyncFileResponse create() => SyncFileResponse._();
   SyncFileResponse createEmptyInstance() => create();
@@ -262,23 +123,16 @@ class SyncFileResponse extends $pb.GeneratedMessage {
 }
 
 class GetSyncStatusRequest extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'GetSyncStatusRequest', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOS(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'folderId')
+  factory GetSyncStatusRequest() => create();
+  GetSyncStatusRequest._() : super();
+  factory GetSyncStatusRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetSyncStatusRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetSyncStatusRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'folderId')
     ..hasRequiredFields = false
   ;
 
-  GetSyncStatusRequest._() : super();
-  factory GetSyncStatusRequest({
-    $core.String? folderId,
-  }) {
-    final _result = create();
-    if (folderId != null) {
-      _result.folderId = folderId;
-    }
-    return _result;
-  }
-  factory GetSyncStatusRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetSyncStatusRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -288,8 +142,10 @@ class GetSyncStatusRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  GetSyncStatusRequest copyWith(void Function(GetSyncStatusRequest) updates) => super.copyWith((message) => updates(message as GetSyncStatusRequest)) as GetSyncStatusRequest; // ignore: deprecated_member_use
+  GetSyncStatusRequest copyWith(void Function(GetSyncStatusRequest) updates) => super.copyWith((message) => updates(message as GetSyncStatusRequest)) as GetSyncStatusRequest;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static GetSyncStatusRequest create() => GetSyncStatusRequest._();
   GetSyncStatusRequest createEmptyInstance() => create();
@@ -309,28 +165,17 @@ class GetSyncStatusRequest extends $pb.GeneratedMessage {
 }
 
 class SyncStatusResponse extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'SyncStatusResponse', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOM<$1.Status>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'status', subBuilder: $1.Status.create)
-    ..aOM<SyncStatus>(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'syncStatus', subBuilder: SyncStatus.create)
+  factory SyncStatusResponse() => create();
+  SyncStatusResponse._() : super();
+  factory SyncStatusResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SyncStatusResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SyncStatusResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOM<$1.Status>(1, _omitFieldNames ? '' : 'status', subBuilder: $1.Status.create)
+    ..aOM<SyncStatus>(2, _omitFieldNames ? '' : 'syncStatus', subBuilder: SyncStatus.create)
     ..hasRequiredFields = false
   ;
 
-  SyncStatusResponse._() : super();
-  factory SyncStatusResponse({
-    $1.Status? status,
-    SyncStatus? syncStatus,
-  }) {
-    final _result = create();
-    if (status != null) {
-      _result.status = status;
-    }
-    if (syncStatus != null) {
-      _result.syncStatus = syncStatus;
-    }
-    return _result;
-  }
-  factory SyncStatusResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory SyncStatusResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -340,8 +185,10 @@ class SyncStatusResponse extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  SyncStatusResponse copyWith(void Function(SyncStatusResponse) updates) => super.copyWith((message) => updates(message as SyncStatusResponse)) as SyncStatusResponse; // ignore: deprecated_member_use
+  SyncStatusResponse copyWith(void Function(SyncStatusResponse) updates) => super.copyWith((message) => updates(message as SyncStatusResponse)) as SyncStatusResponse;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static SyncStatusResponse create() => SyncStatusResponse._();
   SyncStatusResponse createEmptyInstance() => create();
@@ -374,63 +221,24 @@ class SyncStatusResponse extends $pb.GeneratedMessage {
 }
 
 class SyncStatus extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'SyncStatus', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOS(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'folderId')
-    ..a<$core.int>(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'totalFiles', $pb.PbFieldType.O3)
-    ..a<$core.int>(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'syncedFiles', $pb.PbFieldType.O3)
-    ..a<$core.int>(4, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'pendingFiles', $pb.PbFieldType.O3)
-    ..aInt64(5, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'totalSize')
-    ..aInt64(6, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'syncedSize')
-    ..aOM<$7.Timestamp>(7, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'lastSyncTime', subBuilder: $7.Timestamp.create)
-    ..aOB(8, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'isSyncing')
-    ..aOS(9, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'currentOperation')
+  factory SyncStatus() => create();
+  SyncStatus._() : super();
+  factory SyncStatus.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SyncStatus.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SyncStatus', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'folderId')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'totalFiles', $pb.PbFieldType.O3)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'syncedFiles', $pb.PbFieldType.O3)
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'pendingFiles', $pb.PbFieldType.O3)
+    ..aInt64(5, _omitFieldNames ? '' : 'totalSize')
+    ..aInt64(6, _omitFieldNames ? '' : 'syncedSize')
+    ..aOM<$7.Timestamp>(7, _omitFieldNames ? '' : 'lastSyncTime', subBuilder: $7.Timestamp.create)
+    ..aOB(8, _omitFieldNames ? '' : 'isSyncing')
+    ..aOS(9, _omitFieldNames ? '' : 'currentOperation')
     ..hasRequiredFields = false
   ;
 
-  SyncStatus._() : super();
-  factory SyncStatus({
-    $core.String? folderId,
-    $core.int? totalFiles,
-    $core.int? syncedFiles,
-    $core.int? pendingFiles,
-    $fixnum.Int64? totalSize,
-    $fixnum.Int64? syncedSize,
-    $7.Timestamp? lastSyncTime,
-    $core.bool? isSyncing,
-    $core.String? currentOperation,
-  }) {
-    final _result = create();
-    if (folderId != null) {
-      _result.folderId = folderId;
-    }
-    if (totalFiles != null) {
-      _result.totalFiles = totalFiles;
-    }
-    if (syncedFiles != null) {
-      _result.syncedFiles = syncedFiles;
-    }
-    if (pendingFiles != null) {
-      _result.pendingFiles = pendingFiles;
-    }
-    if (totalSize != null) {
-      _result.totalSize = totalSize;
-    }
-    if (syncedSize != null) {
-      _result.syncedSize = syncedSize;
-    }
-    if (lastSyncTime != null) {
-      _result.lastSyncTime = lastSyncTime;
-    }
-    if (isSyncing != null) {
-      _result.isSyncing = isSyncing;
-    }
-    if (currentOperation != null) {
-      _result.currentOperation = currentOperation;
-    }
-    return _result;
-  }
-  factory SyncStatus.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory SyncStatus.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -440,8 +248,10 @@ class SyncStatus extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  SyncStatus copyWith(void Function(SyncStatus) updates) => super.copyWith((message) => updates(message as SyncStatus)) as SyncStatus; // ignore: deprecated_member_use
+  SyncStatus copyWith(void Function(SyncStatus) updates) => super.copyWith((message) => updates(message as SyncStatus)) as SyncStatus;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static SyncStatus create() => SyncStatus._();
   SyncStatus createEmptyInstance() => create();
@@ -535,43 +345,20 @@ class SyncStatus extends $pb.GeneratedMessage {
 }
 
 class SyncProgress extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'SyncProgress', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aInt64(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'bytesTransferred')
-    ..aInt64(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'totalBytes')
-    ..a<$core.double>(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'percentage', $pb.PbFieldType.OF)
-    ..aInt64(4, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'speedBps')
-    ..aInt64(5, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'etaSeconds')
+  factory SyncProgress() => create();
+  SyncProgress._() : super();
+  factory SyncProgress.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SyncProgress.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SyncProgress', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'bytesTransferred')
+    ..aInt64(2, _omitFieldNames ? '' : 'totalBytes')
+    ..a<$core.double>(3, _omitFieldNames ? '' : 'percentage', $pb.PbFieldType.OF)
+    ..aInt64(4, _omitFieldNames ? '' : 'speedBps')
+    ..aInt64(5, _omitFieldNames ? '' : 'etaSeconds')
     ..hasRequiredFields = false
   ;
 
-  SyncProgress._() : super();
-  factory SyncProgress({
-    $fixnum.Int64? bytesTransferred,
-    $fixnum.Int64? totalBytes,
-    $core.double? percentage,
-    $fixnum.Int64? speedBps,
-    $fixnum.Int64? etaSeconds,
-  }) {
-    final _result = create();
-    if (bytesTransferred != null) {
-      _result.bytesTransferred = bytesTransferred;
-    }
-    if (totalBytes != null) {
-      _result.totalBytes = totalBytes;
-    }
-    if (percentage != null) {
-      _result.percentage = percentage;
-    }
-    if (speedBps != null) {
-      _result.speedBps = speedBps;
-    }
-    if (etaSeconds != null) {
-      _result.etaSeconds = etaSeconds;
-    }
-    return _result;
-  }
-  factory SyncProgress.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory SyncProgress.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -581,8 +368,10 @@ class SyncProgress extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  SyncProgress copyWith(void Function(SyncProgress) updates) => super.copyWith((message) => updates(message as SyncProgress)) as SyncProgress; // ignore: deprecated_member_use
+  SyncProgress copyWith(void Function(SyncProgress) updates) => super.copyWith((message) => updates(message as SyncProgress)) as SyncProgress;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static SyncProgress create() => SyncProgress._();
   SyncProgress createEmptyInstance() => create();
@@ -638,23 +427,16 @@ class SyncProgress extends $pb.GeneratedMessage {
 }
 
 class PauseSyncRequest extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'PauseSyncRequest', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOS(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'folderId')
+  factory PauseSyncRequest() => create();
+  PauseSyncRequest._() : super();
+  factory PauseSyncRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PauseSyncRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PauseSyncRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'folderId')
     ..hasRequiredFields = false
   ;
 
-  PauseSyncRequest._() : super();
-  factory PauseSyncRequest({
-    $core.String? folderId,
-  }) {
-    final _result = create();
-    if (folderId != null) {
-      _result.folderId = folderId;
-    }
-    return _result;
-  }
-  factory PauseSyncRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory PauseSyncRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -664,8 +446,10 @@ class PauseSyncRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  PauseSyncRequest copyWith(void Function(PauseSyncRequest) updates) => super.copyWith((message) => updates(message as PauseSyncRequest)) as PauseSyncRequest; // ignore: deprecated_member_use
+  PauseSyncRequest copyWith(void Function(PauseSyncRequest) updates) => super.copyWith((message) => updates(message as PauseSyncRequest)) as PauseSyncRequest;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static PauseSyncRequest create() => PauseSyncRequest._();
   PauseSyncRequest createEmptyInstance() => create();
@@ -685,23 +469,16 @@ class PauseSyncRequest extends $pb.GeneratedMessage {
 }
 
 class ResumeSyncRequest extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'ResumeSyncRequest', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOS(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'folderId')
+  factory ResumeSyncRequest() => create();
+  ResumeSyncRequest._() : super();
+  factory ResumeSyncRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ResumeSyncRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ResumeSyncRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'folderId')
     ..hasRequiredFields = false
   ;
 
-  ResumeSyncRequest._() : super();
-  factory ResumeSyncRequest({
-    $core.String? folderId,
-  }) {
-    final _result = create();
-    if (folderId != null) {
-      _result.folderId = folderId;
-    }
-    return _result;
-  }
-  factory ResumeSyncRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ResumeSyncRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -711,8 +488,10 @@ class ResumeSyncRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  ResumeSyncRequest copyWith(void Function(ResumeSyncRequest) updates) => super.copyWith((message) => updates(message as ResumeSyncRequest)) as ResumeSyncRequest; // ignore: deprecated_member_use
+  ResumeSyncRequest copyWith(void Function(ResumeSyncRequest) updates) => super.copyWith((message) => updates(message as ResumeSyncRequest)) as ResumeSyncRequest;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static ResumeSyncRequest create() => ResumeSyncRequest._();
   ResumeSyncRequest createEmptyInstance() => create();
@@ -732,23 +511,16 @@ class ResumeSyncRequest extends $pb.GeneratedMessage {
 }
 
 class WatchSyncEventsRequest extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'WatchSyncEventsRequest', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOS(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'folderId')
+  factory WatchSyncEventsRequest() => create();
+  WatchSyncEventsRequest._() : super();
+  factory WatchSyncEventsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory WatchSyncEventsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchSyncEventsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'folderId')
     ..hasRequiredFields = false
   ;
 
-  WatchSyncEventsRequest._() : super();
-  factory WatchSyncEventsRequest({
-    $core.String? folderId,
-  }) {
-    final _result = create();
-    if (folderId != null) {
-      _result.folderId = folderId;
-    }
-    return _result;
-  }
-  factory WatchSyncEventsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory WatchSyncEventsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -758,8 +530,10 @@ class WatchSyncEventsRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  WatchSyncEventsRequest copyWith(void Function(WatchSyncEventsRequest) updates) => super.copyWith((message) => updates(message as WatchSyncEventsRequest)) as WatchSyncEventsRequest; // ignore: deprecated_member_use
+  WatchSyncEventsRequest copyWith(void Function(WatchSyncEventsRequest) updates) => super.copyWith((message) => updates(message as WatchSyncEventsRequest)) as WatchSyncEventsRequest;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static WatchSyncEventsRequest create() => WatchSyncEventsRequest._();
   WatchSyncEventsRequest createEmptyInstance() => create();
@@ -779,43 +553,20 @@ class WatchSyncEventsRequest extends $pb.GeneratedMessage {
 }
 
 class SyncEvent extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'SyncEvent', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..e<SyncEvent_EventType>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'eventType', $pb.PbFieldType.OE, defaultOrMaker: SyncEvent_EventType.EVENT_TYPE_UNSPECIFIED, valueOf: SyncEvent_EventType.valueOf, enumValues: SyncEvent_EventType.values)
-    ..aOS(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'fileId')
-    ..aOS(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'filePath')
-    ..aOM<$7.Timestamp>(4, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'timestamp', subBuilder: $7.Timestamp.create)
-    ..aOS(5, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'message')
+  factory SyncEvent() => create();
+  SyncEvent._() : super();
+  factory SyncEvent.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SyncEvent.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SyncEvent', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..e<SyncEvent_EventType>(1, _omitFieldNames ? '' : 'eventType', $pb.PbFieldType.OE, defaultOrMaker: SyncEvent_EventType.EVENT_TYPE_UNSPECIFIED, valueOf: SyncEvent_EventType.valueOf, enumValues: SyncEvent_EventType.values)
+    ..aOS(2, _omitFieldNames ? '' : 'fileId')
+    ..aOS(3, _omitFieldNames ? '' : 'filePath')
+    ..aOM<$7.Timestamp>(4, _omitFieldNames ? '' : 'timestamp', subBuilder: $7.Timestamp.create)
+    ..aOS(5, _omitFieldNames ? '' : 'message')
     ..hasRequiredFields = false
   ;
 
-  SyncEvent._() : super();
-  factory SyncEvent({
-    SyncEvent_EventType? eventType,
-    $core.String? fileId,
-    $core.String? filePath,
-    $7.Timestamp? timestamp,
-    $core.String? message,
-  }) {
-    final _result = create();
-    if (eventType != null) {
-      _result.eventType = eventType;
-    }
-    if (fileId != null) {
-      _result.fileId = fileId;
-    }
-    if (filePath != null) {
-      _result.filePath = filePath;
-    }
-    if (timestamp != null) {
-      _result.timestamp = timestamp;
-    }
-    if (message != null) {
-      _result.message = message;
-    }
-    return _result;
-  }
-  factory SyncEvent.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory SyncEvent.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -825,8 +576,10 @@ class SyncEvent extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  SyncEvent copyWith(void Function(SyncEvent) updates) => super.copyWith((message) => updates(message as SyncEvent)) as SyncEvent; // ignore: deprecated_member_use
+  SyncEvent copyWith(void Function(SyncEvent) updates) => super.copyWith((message) => updates(message as SyncEvent)) as SyncEvent;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static SyncEvent create() => SyncEvent._();
   SyncEvent createEmptyInstance() => create();
@@ -883,3 +636,6 @@ class SyncEvent extends $pb.GeneratedMessage {
   void clearMessage() => clearField(5);
 }
 
+
+const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
+const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');

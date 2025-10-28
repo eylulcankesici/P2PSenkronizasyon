@@ -1,15 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aether_desktop/data/services/grpc_provider.dart';
 import 'package:aether_desktop/generated/api/proto/peer.pb.dart';
+import 'package:aether_desktop/generated/api/proto/peer.pbgrpc.dart';
 
 /// Peer listesi provider (keşfedilen peer'lar)
 final discoveredPeersProvider = FutureProvider<List<Peer>>((ref) async {
   final client = ref.watch(grpcClientProvider);
   
   try {
-    final response = await client.peerService.discoverPeers(
-      DiscoverPeersRequest(lanOnly: true),
-    );
+    final request = DiscoverPeersRequest()..lanOnly = true;
+    final response = await client.peerService.discoverPeers(request);
     
     return response.peers;
   } catch (e) {
@@ -23,9 +23,8 @@ final connectedPeersProvider = FutureProvider<List<Peer>>((ref) async {
   final client = ref.watch(grpcClientProvider);
   
   try {
-    final response = await client.peerService.listPeers(
-      ListPeersRequest(onlineOnly: true),
-    );
+    final request = ListPeersRequest()..onlineOnly = true;
+    final response = await client.peerService.listPeers(request);
     
     return response.peers;
   } catch (e) {
@@ -60,9 +59,8 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final client = ref.read(grpcClientProvider);
       
-      final response = await client.peerService.connectToPeer(
-        ConnectToPeerRequest(peerId: peerId),
-      );
+      final request = ConnectToPeerRequest()..peerId = peerId;
+      final response = await client.peerService.connectToPeer(request);
       
       if (response.success) {
         // Bağlı peer listesini yenile
@@ -86,9 +84,8 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final client = ref.read(grpcClientProvider);
       
-      final response = await client.peerService.disconnectFromPeer(
-        DisconnectFromPeerRequest(peerId: peerId),
-      );
+      final request = DisconnectFromPeerRequest()..peerId = peerId;
+      final response = await client.peerService.disconnectFromPeer(request);
       
       if (response.success) {
         // Bağlı peer listesini yenile
@@ -112,9 +109,8 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final client = ref.read(grpcClientProvider);
       
-      final response = await client.peerService.trustPeer(
-        TrustPeerRequest(peerId: peerId),
-      );
+      final request = TrustPeerRequest()..peerId = peerId;
+      final response = await client.peerService.trustPeer(request);
       
       if (response.success) {
         ref.invalidate(discoveredPeersProvider);
@@ -138,9 +134,8 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final client = ref.read(grpcClientProvider);
       
-      final response = await client.peerService.untrustPeer(
-        UntrustPeerRequest(peerId: peerId),
-      );
+      final request = UntrustPeerRequest()..peerId = peerId;
+      final response = await client.peerService.untrustPeer(request);
       
       if (response.success) {
         ref.invalidate(discoveredPeersProvider);
@@ -164,9 +159,8 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final client = ref.read(grpcClientProvider);
       
-      final response = await client.peerService.removePeer(
-        RemovePeerRequest(peerId: peerId),
-      );
+      final request = RemovePeerRequest()..peerId = peerId;
+      final response = await client.peerService.removePeer(request);
       
       if (response.success) {
         ref.invalidate(discoveredPeersProvider);
@@ -188,9 +182,8 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final client = ref.read(grpcClientProvider);
       
-      final response = await client.peerService.getPeerInfo(
-        GetPeerInfoRequest(peerId: peerId),
-      );
+      final request = GetPeerInfoRequest()..peerId = peerId;
+      final response = await client.peerService.getPeerInfo(request);
       
       if (response.status.success) {
         return response;
@@ -270,7 +263,7 @@ final pendingConnectionsProvider = FutureProvider<List<PendingConnection>>((ref)
     return response.pendingConnections.map((pc) => PendingConnection(
       deviceId: pc.deviceId,
       deviceName: pc.deviceName,
-      timestamp: DateTime.fromMillisecondsSinceEpoch(pc.timestamp * 1000),
+      timestamp: DateTime.fromMillisecondsSinceEpoch(pc.timestamp.toInt() * 1000),
     )).toList();
   } catch (e) {
     print('Pending connections hatası: $e');

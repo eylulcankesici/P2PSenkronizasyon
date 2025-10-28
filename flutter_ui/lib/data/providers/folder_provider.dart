@@ -8,9 +8,8 @@ final foldersProvider = FutureProvider<List<Folder>>((ref) async {
   final client = ref.watch(grpcClientProvider);
   
   try {
-    final response = await client.folderService.listFolders(
-      ListFoldersRequest(activeOnly: false),
-    );
+    final request = ListFoldersRequest()..activeOnly = false;
+    final response = await client.folderService.listFolders(request);
     
     return response.folders;
   } catch (e) {
@@ -32,12 +31,10 @@ class FolderNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final client = ref.read(grpcClientProvider);
       
-      final response = await client.folderService.createFolder(
-        CreateFolderRequest(
-          localPath: path,
-          syncMode: syncMode,
-        ),
-      );
+      final request = CreateFolderRequest()
+        ..localPath = path
+        ..syncMode = syncMode;
+      final response = await client.folderService.createFolder(request);
       
       if (response.status.success) {
         // Klasör listesini yenile
@@ -61,9 +58,8 @@ class FolderNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final client = ref.read(grpcClientProvider);
       
-      final response = await client.folderService.deleteFolder(
-        DeleteFolderRequest(id: folderId),
-      );
+      final request = DeleteFolderRequest()..id = folderId;
+      final response = await client.folderService.deleteFolder(request);
       
       if (response.success) {
         // Klasör listesini yenile
@@ -87,9 +83,8 @@ class FolderNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final client = ref.read(grpcClientProvider);
       
-      final response = await client.folderService.toggleFolderActive(
-        ToggleFolderActiveRequest(id: folderId),
-      );
+      final request = ToggleFolderActiveRequest()..id = folderId;
+      final response = await client.folderService.toggleFolderActive(request);
       
       if (response.status.success) {
         // Klasör listesini yenile

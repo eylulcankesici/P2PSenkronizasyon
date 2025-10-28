@@ -1,9 +1,13 @@
-///
+//
 //  Generated code. Do not modify.
 //  source: api/proto/peer.proto
 //
 // @dart = 2.12
-// ignore_for_file: annotate_overrides,camel_case_types,constant_identifier_names,directives_ordering,library_prefixes,non_constant_identifier_names,prefer_final_fields,return_of_invalid_type,unnecessary_const,unnecessary_import,unnecessary_this,unused_import,unused_shown_name
+
+// ignore_for_file: annotate_overrides, camel_case_types
+// ignore_for_file: constant_identifier_names, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_final_fields
+// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
 
 import 'dart:core' as $core;
 
@@ -12,67 +16,27 @@ import 'package:protobuf/protobuf.dart' as $pb;
 
 import '../../google/protobuf/timestamp.pb.dart' as $7;
 import 'common.pb.dart' as $1;
-
 import 'common.pbenum.dart' as $1;
 
 class Peer extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'Peer', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOS(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'deviceId')
-    ..aOS(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'name')
-    ..pPS(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'knownAddresses')
-    ..aOB(4, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'isTrusted')
-    ..aOM<$7.Timestamp>(5, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'lastSeen', subBuilder: $7.Timestamp.create)
-    ..e<$1.PeerStatus>(6, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'status', $pb.PbFieldType.OE, defaultOrMaker: $1.PeerStatus.PEER_STATUS_UNKNOWN, valueOf: $1.PeerStatus.valueOf, enumValues: $1.PeerStatus.values)
-    ..aOS(7, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'publicKey')
-    ..aOM<$7.Timestamp>(8, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'createdAt', subBuilder: $7.Timestamp.create)
-    ..aOM<$7.Timestamp>(9, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'updatedAt', subBuilder: $7.Timestamp.create)
+  factory Peer() => create();
+  Peer._() : super();
+  factory Peer.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory Peer.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Peer', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'deviceId')
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..pPS(3, _omitFieldNames ? '' : 'knownAddresses')
+    ..aOB(4, _omitFieldNames ? '' : 'isTrusted')
+    ..aOM<$7.Timestamp>(5, _omitFieldNames ? '' : 'lastSeen', subBuilder: $7.Timestamp.create)
+    ..e<$1.PeerStatus>(6, _omitFieldNames ? '' : 'status', $pb.PbFieldType.OE, defaultOrMaker: $1.PeerStatus.PEER_STATUS_UNKNOWN, valueOf: $1.PeerStatus.valueOf, enumValues: $1.PeerStatus.values)
+    ..aOS(7, _omitFieldNames ? '' : 'publicKey')
+    ..aOM<$7.Timestamp>(8, _omitFieldNames ? '' : 'createdAt', subBuilder: $7.Timestamp.create)
+    ..aOM<$7.Timestamp>(9, _omitFieldNames ? '' : 'updatedAt', subBuilder: $7.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
-  Peer._() : super();
-  factory Peer({
-    $core.String? deviceId,
-    $core.String? name,
-    $core.Iterable<$core.String>? knownAddresses,
-    $core.bool? isTrusted,
-    $7.Timestamp? lastSeen,
-    $1.PeerStatus? status,
-    $core.String? publicKey,
-    $7.Timestamp? createdAt,
-    $7.Timestamp? updatedAt,
-  }) {
-    final _result = create();
-    if (deviceId != null) {
-      _result.deviceId = deviceId;
-    }
-    if (name != null) {
-      _result.name = name;
-    }
-    if (knownAddresses != null) {
-      _result.knownAddresses.addAll(knownAddresses);
-    }
-    if (isTrusted != null) {
-      _result.isTrusted = isTrusted;
-    }
-    if (lastSeen != null) {
-      _result.lastSeen = lastSeen;
-    }
-    if (status != null) {
-      _result.status = status;
-    }
-    if (publicKey != null) {
-      _result.publicKey = publicKey;
-    }
-    if (createdAt != null) {
-      _result.createdAt = createdAt;
-    }
-    if (updatedAt != null) {
-      _result.updatedAt = updatedAt;
-    }
-    return _result;
-  }
-  factory Peer.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory Peer.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -82,8 +46,10 @@ class Peer extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  Peer copyWith(void Function(Peer) updates) => super.copyWith((message) => updates(message as Peer)) as Peer; // ignore: deprecated_member_use
+  Peer copyWith(void Function(Peer) updates) => super.copyWith((message) => updates(message as Peer)) as Peer;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static Peer create() => Peer._();
   Peer createEmptyInstance() => create();
@@ -175,23 +141,16 @@ class Peer extends $pb.GeneratedMessage {
 }
 
 class DiscoverPeersRequest extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'DiscoverPeersRequest', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOB(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'lanOnly')
+  factory DiscoverPeersRequest() => create();
+  DiscoverPeersRequest._() : super();
+  factory DiscoverPeersRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory DiscoverPeersRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DiscoverPeersRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'lanOnly')
     ..hasRequiredFields = false
   ;
 
-  DiscoverPeersRequest._() : super();
-  factory DiscoverPeersRequest({
-    $core.bool? lanOnly,
-  }) {
-    final _result = create();
-    if (lanOnly != null) {
-      _result.lanOnly = lanOnly;
-    }
-    return _result;
-  }
-  factory DiscoverPeersRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory DiscoverPeersRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -201,8 +160,10 @@ class DiscoverPeersRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  DiscoverPeersRequest copyWith(void Function(DiscoverPeersRequest) updates) => super.copyWith((message) => updates(message as DiscoverPeersRequest)) as DiscoverPeersRequest; // ignore: deprecated_member_use
+  DiscoverPeersRequest copyWith(void Function(DiscoverPeersRequest) updates) => super.copyWith((message) => updates(message as DiscoverPeersRequest)) as DiscoverPeersRequest;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static DiscoverPeersRequest create() => DiscoverPeersRequest._();
   DiscoverPeersRequest createEmptyInstance() => create();
@@ -222,28 +183,17 @@ class DiscoverPeersRequest extends $pb.GeneratedMessage {
 }
 
 class DiscoverPeersResponse extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'DiscoverPeersResponse', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOM<$1.Status>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'status', subBuilder: $1.Status.create)
-    ..pc<Peer>(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'peers', $pb.PbFieldType.PM, subBuilder: Peer.create)
+  factory DiscoverPeersResponse() => create();
+  DiscoverPeersResponse._() : super();
+  factory DiscoverPeersResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory DiscoverPeersResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DiscoverPeersResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOM<$1.Status>(1, _omitFieldNames ? '' : 'status', subBuilder: $1.Status.create)
+    ..pc<Peer>(2, _omitFieldNames ? '' : 'peers', $pb.PbFieldType.PM, subBuilder: Peer.create)
     ..hasRequiredFields = false
   ;
 
-  DiscoverPeersResponse._() : super();
-  factory DiscoverPeersResponse({
-    $1.Status? status,
-    $core.Iterable<Peer>? peers,
-  }) {
-    final _result = create();
-    if (status != null) {
-      _result.status = status;
-    }
-    if (peers != null) {
-      _result.peers.addAll(peers);
-    }
-    return _result;
-  }
-  factory DiscoverPeersResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory DiscoverPeersResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -253,8 +203,10 @@ class DiscoverPeersResponse extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  DiscoverPeersResponse copyWith(void Function(DiscoverPeersResponse) updates) => super.copyWith((message) => updates(message as DiscoverPeersResponse)) as DiscoverPeersResponse; // ignore: deprecated_member_use
+  DiscoverPeersResponse copyWith(void Function(DiscoverPeersResponse) updates) => super.copyWith((message) => updates(message as DiscoverPeersResponse)) as DiscoverPeersResponse;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static DiscoverPeersResponse create() => DiscoverPeersResponse._();
   DiscoverPeersResponse createEmptyInstance() => create();
@@ -279,23 +231,16 @@ class DiscoverPeersResponse extends $pb.GeneratedMessage {
 }
 
 class ConnectToPeerRequest extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'ConnectToPeerRequest', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOS(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'peerId')
+  factory ConnectToPeerRequest() => create();
+  ConnectToPeerRequest._() : super();
+  factory ConnectToPeerRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ConnectToPeerRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ConnectToPeerRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'peerId')
     ..hasRequiredFields = false
   ;
 
-  ConnectToPeerRequest._() : super();
-  factory ConnectToPeerRequest({
-    $core.String? peerId,
-  }) {
-    final _result = create();
-    if (peerId != null) {
-      _result.peerId = peerId;
-    }
-    return _result;
-  }
-  factory ConnectToPeerRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ConnectToPeerRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -305,8 +250,10 @@ class ConnectToPeerRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  ConnectToPeerRequest copyWith(void Function(ConnectToPeerRequest) updates) => super.copyWith((message) => updates(message as ConnectToPeerRequest)) as ConnectToPeerRequest; // ignore: deprecated_member_use
+  ConnectToPeerRequest copyWith(void Function(ConnectToPeerRequest) updates) => super.copyWith((message) => updates(message as ConnectToPeerRequest)) as ConnectToPeerRequest;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static ConnectToPeerRequest create() => ConnectToPeerRequest._();
   ConnectToPeerRequest createEmptyInstance() => create();
@@ -326,23 +273,16 @@ class ConnectToPeerRequest extends $pb.GeneratedMessage {
 }
 
 class DisconnectFromPeerRequest extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'DisconnectFromPeerRequest', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOS(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'peerId')
+  factory DisconnectFromPeerRequest() => create();
+  DisconnectFromPeerRequest._() : super();
+  factory DisconnectFromPeerRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory DisconnectFromPeerRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DisconnectFromPeerRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'peerId')
     ..hasRequiredFields = false
   ;
 
-  DisconnectFromPeerRequest._() : super();
-  factory DisconnectFromPeerRequest({
-    $core.String? peerId,
-  }) {
-    final _result = create();
-    if (peerId != null) {
-      _result.peerId = peerId;
-    }
-    return _result;
-  }
-  factory DisconnectFromPeerRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory DisconnectFromPeerRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -352,8 +292,10 @@ class DisconnectFromPeerRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  DisconnectFromPeerRequest copyWith(void Function(DisconnectFromPeerRequest) updates) => super.copyWith((message) => updates(message as DisconnectFromPeerRequest)) as DisconnectFromPeerRequest; // ignore: deprecated_member_use
+  DisconnectFromPeerRequest copyWith(void Function(DisconnectFromPeerRequest) updates) => super.copyWith((message) => updates(message as DisconnectFromPeerRequest)) as DisconnectFromPeerRequest;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static DisconnectFromPeerRequest create() => DisconnectFromPeerRequest._();
   DisconnectFromPeerRequest createEmptyInstance() => create();
@@ -373,33 +315,18 @@ class DisconnectFromPeerRequest extends $pb.GeneratedMessage {
 }
 
 class ListPeersRequest extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'ListPeersRequest', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOB(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'onlineOnly')
-    ..aOB(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'trustedOnly')
-    ..aOM<$1.PaginationRequest>(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'pagination', subBuilder: $1.PaginationRequest.create)
+  factory ListPeersRequest() => create();
+  ListPeersRequest._() : super();
+  factory ListPeersRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListPeersRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListPeersRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'onlineOnly')
+    ..aOB(2, _omitFieldNames ? '' : 'trustedOnly')
+    ..aOM<$1.PaginationRequest>(3, _omitFieldNames ? '' : 'pagination', subBuilder: $1.PaginationRequest.create)
     ..hasRequiredFields = false
   ;
 
-  ListPeersRequest._() : super();
-  factory ListPeersRequest({
-    $core.bool? onlineOnly,
-    $core.bool? trustedOnly,
-    $1.PaginationRequest? pagination,
-  }) {
-    final _result = create();
-    if (onlineOnly != null) {
-      _result.onlineOnly = onlineOnly;
-    }
-    if (trustedOnly != null) {
-      _result.trustedOnly = trustedOnly;
-    }
-    if (pagination != null) {
-      _result.pagination = pagination;
-    }
-    return _result;
-  }
-  factory ListPeersRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ListPeersRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -409,8 +336,10 @@ class ListPeersRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  ListPeersRequest copyWith(void Function(ListPeersRequest) updates) => super.copyWith((message) => updates(message as ListPeersRequest)) as ListPeersRequest; // ignore: deprecated_member_use
+  ListPeersRequest copyWith(void Function(ListPeersRequest) updates) => super.copyWith((message) => updates(message as ListPeersRequest)) as ListPeersRequest;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static ListPeersRequest create() => ListPeersRequest._();
   ListPeersRequest createEmptyInstance() => create();
@@ -450,28 +379,17 @@ class ListPeersRequest extends $pb.GeneratedMessage {
 }
 
 class ListPeersResponse extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'ListPeersResponse', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..pc<Peer>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'peers', $pb.PbFieldType.PM, subBuilder: Peer.create)
-    ..aOM<$1.PaginationResponse>(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'pagination', subBuilder: $1.PaginationResponse.create)
+  factory ListPeersResponse() => create();
+  ListPeersResponse._() : super();
+  factory ListPeersResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListPeersResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListPeersResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..pc<Peer>(1, _omitFieldNames ? '' : 'peers', $pb.PbFieldType.PM, subBuilder: Peer.create)
+    ..aOM<$1.PaginationResponse>(2, _omitFieldNames ? '' : 'pagination', subBuilder: $1.PaginationResponse.create)
     ..hasRequiredFields = false
   ;
 
-  ListPeersResponse._() : super();
-  factory ListPeersResponse({
-    $core.Iterable<Peer>? peers,
-    $1.PaginationResponse? pagination,
-  }) {
-    final _result = create();
-    if (peers != null) {
-      _result.peers.addAll(peers);
-    }
-    if (pagination != null) {
-      _result.pagination = pagination;
-    }
-    return _result;
-  }
-  factory ListPeersResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ListPeersResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -481,8 +399,10 @@ class ListPeersResponse extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  ListPeersResponse copyWith(void Function(ListPeersResponse) updates) => super.copyWith((message) => updates(message as ListPeersResponse)) as ListPeersResponse; // ignore: deprecated_member_use
+  ListPeersResponse copyWith(void Function(ListPeersResponse) updates) => super.copyWith((message) => updates(message as ListPeersResponse)) as ListPeersResponse;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static ListPeersResponse create() => ListPeersResponse._();
   ListPeersResponse createEmptyInstance() => create();
@@ -507,23 +427,16 @@ class ListPeersResponse extends $pb.GeneratedMessage {
 }
 
 class GetPeerInfoRequest extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'GetPeerInfoRequest', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOS(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'peerId')
+  factory GetPeerInfoRequest() => create();
+  GetPeerInfoRequest._() : super();
+  factory GetPeerInfoRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetPeerInfoRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetPeerInfoRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'peerId')
     ..hasRequiredFields = false
   ;
 
-  GetPeerInfoRequest._() : super();
-  factory GetPeerInfoRequest({
-    $core.String? peerId,
-  }) {
-    final _result = create();
-    if (peerId != null) {
-      _result.peerId = peerId;
-    }
-    return _result;
-  }
-  factory GetPeerInfoRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetPeerInfoRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -533,8 +446,10 @@ class GetPeerInfoRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  GetPeerInfoRequest copyWith(void Function(GetPeerInfoRequest) updates) => super.copyWith((message) => updates(message as GetPeerInfoRequest)) as GetPeerInfoRequest; // ignore: deprecated_member_use
+  GetPeerInfoRequest copyWith(void Function(GetPeerInfoRequest) updates) => super.copyWith((message) => updates(message as GetPeerInfoRequest)) as GetPeerInfoRequest;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static GetPeerInfoRequest create() => GetPeerInfoRequest._();
   GetPeerInfoRequest createEmptyInstance() => create();
@@ -554,58 +469,23 @@ class GetPeerInfoRequest extends $pb.GeneratedMessage {
 }
 
 class PeerInfoResponse extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'PeerInfoResponse', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOM<$1.Status>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'status', subBuilder: $1.Status.create)
-    ..aOM<Peer>(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'peer', subBuilder: Peer.create)
-    ..pPS(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'sharedFolders')
-    ..a<$core.int>(4, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'sharedFiles', $pb.PbFieldType.O3)
-    ..a<$core.int>(5, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'totalChunks', $pb.PbFieldType.O3)
-    ..aOM<$7.Timestamp>(6, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'lastActivity', subBuilder: $7.Timestamp.create)
-    ..aOS(7, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'connectionType')
-    ..aInt64(8, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'latencyMs')
+  factory PeerInfoResponse() => create();
+  PeerInfoResponse._() : super();
+  factory PeerInfoResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PeerInfoResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PeerInfoResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOM<$1.Status>(1, _omitFieldNames ? '' : 'status', subBuilder: $1.Status.create)
+    ..aOM<Peer>(2, _omitFieldNames ? '' : 'peer', subBuilder: Peer.create)
+    ..pPS(3, _omitFieldNames ? '' : 'sharedFolders')
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'sharedFiles', $pb.PbFieldType.O3)
+    ..a<$core.int>(5, _omitFieldNames ? '' : 'totalChunks', $pb.PbFieldType.O3)
+    ..aOM<$7.Timestamp>(6, _omitFieldNames ? '' : 'lastActivity', subBuilder: $7.Timestamp.create)
+    ..aOS(7, _omitFieldNames ? '' : 'connectionType')
+    ..aInt64(8, _omitFieldNames ? '' : 'latencyMs')
     ..hasRequiredFields = false
   ;
 
-  PeerInfoResponse._() : super();
-  factory PeerInfoResponse({
-    $1.Status? status,
-    Peer? peer,
-    $core.Iterable<$core.String>? sharedFolders,
-    $core.int? sharedFiles,
-    $core.int? totalChunks,
-    $7.Timestamp? lastActivity,
-    $core.String? connectionType,
-    $fixnum.Int64? latencyMs,
-  }) {
-    final _result = create();
-    if (status != null) {
-      _result.status = status;
-    }
-    if (peer != null) {
-      _result.peer = peer;
-    }
-    if (sharedFolders != null) {
-      _result.sharedFolders.addAll(sharedFolders);
-    }
-    if (sharedFiles != null) {
-      _result.sharedFiles = sharedFiles;
-    }
-    if (totalChunks != null) {
-      _result.totalChunks = totalChunks;
-    }
-    if (lastActivity != null) {
-      _result.lastActivity = lastActivity;
-    }
-    if (connectionType != null) {
-      _result.connectionType = connectionType;
-    }
-    if (latencyMs != null) {
-      _result.latencyMs = latencyMs;
-    }
-    return _result;
-  }
-  factory PeerInfoResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory PeerInfoResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -615,8 +495,10 @@ class PeerInfoResponse extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  PeerInfoResponse copyWith(void Function(PeerInfoResponse) updates) => super.copyWith((message) => updates(message as PeerInfoResponse)) as PeerInfoResponse; // ignore: deprecated_member_use
+  PeerInfoResponse copyWith(void Function(PeerInfoResponse) updates) => super.copyWith((message) => updates(message as PeerInfoResponse)) as PeerInfoResponse;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static PeerInfoResponse create() => PeerInfoResponse._();
   PeerInfoResponse createEmptyInstance() => create();
@@ -699,23 +581,16 @@ class PeerInfoResponse extends $pb.GeneratedMessage {
 }
 
 class TrustPeerRequest extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'TrustPeerRequest', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOS(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'peerId')
+  factory TrustPeerRequest() => create();
+  TrustPeerRequest._() : super();
+  factory TrustPeerRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory TrustPeerRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'TrustPeerRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'peerId')
     ..hasRequiredFields = false
   ;
 
-  TrustPeerRequest._() : super();
-  factory TrustPeerRequest({
-    $core.String? peerId,
-  }) {
-    final _result = create();
-    if (peerId != null) {
-      _result.peerId = peerId;
-    }
-    return _result;
-  }
-  factory TrustPeerRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory TrustPeerRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -725,8 +600,10 @@ class TrustPeerRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  TrustPeerRequest copyWith(void Function(TrustPeerRequest) updates) => super.copyWith((message) => updates(message as TrustPeerRequest)) as TrustPeerRequest; // ignore: deprecated_member_use
+  TrustPeerRequest copyWith(void Function(TrustPeerRequest) updates) => super.copyWith((message) => updates(message as TrustPeerRequest)) as TrustPeerRequest;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static TrustPeerRequest create() => TrustPeerRequest._();
   TrustPeerRequest createEmptyInstance() => create();
@@ -746,23 +623,16 @@ class TrustPeerRequest extends $pb.GeneratedMessage {
 }
 
 class UntrustPeerRequest extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'UntrustPeerRequest', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOS(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'peerId')
+  factory UntrustPeerRequest() => create();
+  UntrustPeerRequest._() : super();
+  factory UntrustPeerRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory UntrustPeerRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UntrustPeerRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'peerId')
     ..hasRequiredFields = false
   ;
 
-  UntrustPeerRequest._() : super();
-  factory UntrustPeerRequest({
-    $core.String? peerId,
-  }) {
-    final _result = create();
-    if (peerId != null) {
-      _result.peerId = peerId;
-    }
-    return _result;
-  }
-  factory UntrustPeerRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory UntrustPeerRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -772,8 +642,10 @@ class UntrustPeerRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  UntrustPeerRequest copyWith(void Function(UntrustPeerRequest) updates) => super.copyWith((message) => updates(message as UntrustPeerRequest)) as UntrustPeerRequest; // ignore: deprecated_member_use
+  UntrustPeerRequest copyWith(void Function(UntrustPeerRequest) updates) => super.copyWith((message) => updates(message as UntrustPeerRequest)) as UntrustPeerRequest;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static UntrustPeerRequest create() => UntrustPeerRequest._();
   UntrustPeerRequest createEmptyInstance() => create();
@@ -793,23 +665,16 @@ class UntrustPeerRequest extends $pb.GeneratedMessage {
 }
 
 class RemovePeerRequest extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'RemovePeerRequest', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOS(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'peerId')
+  factory RemovePeerRequest() => create();
+  RemovePeerRequest._() : super();
+  factory RemovePeerRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RemovePeerRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RemovePeerRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'peerId')
     ..hasRequiredFields = false
   ;
 
-  RemovePeerRequest._() : super();
-  factory RemovePeerRequest({
-    $core.String? peerId,
-  }) {
-    final _result = create();
-    if (peerId != null) {
-      _result.peerId = peerId;
-    }
-    return _result;
-  }
-  factory RemovePeerRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory RemovePeerRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -819,8 +684,10 @@ class RemovePeerRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  RemovePeerRequest copyWith(void Function(RemovePeerRequest) updates) => super.copyWith((message) => updates(message as RemovePeerRequest)) as RemovePeerRequest; // ignore: deprecated_member_use
+  RemovePeerRequest copyWith(void Function(RemovePeerRequest) updates) => super.copyWith((message) => updates(message as RemovePeerRequest)) as RemovePeerRequest;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static RemovePeerRequest create() => RemovePeerRequest._();
   RemovePeerRequest createEmptyInstance() => create();
@@ -839,3 +706,366 @@ class RemovePeerRequest extends $pb.GeneratedMessage {
   void clearPeerId() => clearField(1);
 }
 
+class GetPendingConnectionsRequest extends $pb.GeneratedMessage {
+  factory GetPendingConnectionsRequest() => create();
+  GetPendingConnectionsRequest._() : super();
+  factory GetPendingConnectionsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetPendingConnectionsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetPendingConnectionsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetPendingConnectionsRequest clone() => GetPendingConnectionsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetPendingConnectionsRequest copyWith(void Function(GetPendingConnectionsRequest) updates) => super.copyWith((message) => updates(message as GetPendingConnectionsRequest)) as GetPendingConnectionsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetPendingConnectionsRequest create() => GetPendingConnectionsRequest._();
+  GetPendingConnectionsRequest createEmptyInstance() => create();
+  static $pb.PbList<GetPendingConnectionsRequest> createRepeated() => $pb.PbList<GetPendingConnectionsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetPendingConnectionsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetPendingConnectionsRequest>(create);
+  static GetPendingConnectionsRequest? _defaultInstance;
+}
+
+class GetPendingConnectionsResponse extends $pb.GeneratedMessage {
+  factory GetPendingConnectionsResponse() => create();
+  GetPendingConnectionsResponse._() : super();
+  factory GetPendingConnectionsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetPendingConnectionsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetPendingConnectionsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOM<$1.Status>(1, _omitFieldNames ? '' : 'status', subBuilder: $1.Status.create)
+    ..pc<PendingConnection>(2, _omitFieldNames ? '' : 'pendingConnections', $pb.PbFieldType.PM, subBuilder: PendingConnection.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetPendingConnectionsResponse clone() => GetPendingConnectionsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetPendingConnectionsResponse copyWith(void Function(GetPendingConnectionsResponse) updates) => super.copyWith((message) => updates(message as GetPendingConnectionsResponse)) as GetPendingConnectionsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetPendingConnectionsResponse create() => GetPendingConnectionsResponse._();
+  GetPendingConnectionsResponse createEmptyInstance() => create();
+  static $pb.PbList<GetPendingConnectionsResponse> createRepeated() => $pb.PbList<GetPendingConnectionsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetPendingConnectionsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetPendingConnectionsResponse>(create);
+  static GetPendingConnectionsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $1.Status get status => $_getN(0);
+  @$pb.TagNumber(1)
+  set status($1.Status v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasStatus() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearStatus() => clearField(1);
+  @$pb.TagNumber(1)
+  $1.Status ensureStatus() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $core.List<PendingConnection> get pendingConnections => $_getList(1);
+}
+
+class PendingConnection extends $pb.GeneratedMessage {
+  factory PendingConnection() => create();
+  PendingConnection._() : super();
+  factory PendingConnection.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PendingConnection.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PendingConnection', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'deviceId')
+    ..aOS(2, _omitFieldNames ? '' : 'deviceName')
+    ..aInt64(3, _omitFieldNames ? '' : 'timestamp')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  PendingConnection clone() => PendingConnection()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  PendingConnection copyWith(void Function(PendingConnection) updates) => super.copyWith((message) => updates(message as PendingConnection)) as PendingConnection;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PendingConnection create() => PendingConnection._();
+  PendingConnection createEmptyInstance() => create();
+  static $pb.PbList<PendingConnection> createRepeated() => $pb.PbList<PendingConnection>();
+  @$core.pragma('dart2js:noInline')
+  static PendingConnection getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PendingConnection>(create);
+  static PendingConnection? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get deviceId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set deviceId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasDeviceId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDeviceId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get deviceName => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set deviceName($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasDeviceName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDeviceName() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get timestamp => $_getI64(2);
+  @$pb.TagNumber(3)
+  set timestamp($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasTimestamp() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTimestamp() => clearField(3);
+}
+
+class AcceptConnectionRequest extends $pb.GeneratedMessage {
+  factory AcceptConnectionRequest() => create();
+  AcceptConnectionRequest._() : super();
+  factory AcceptConnectionRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory AcceptConnectionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'AcceptConnectionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'deviceId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  AcceptConnectionRequest clone() => AcceptConnectionRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  AcceptConnectionRequest copyWith(void Function(AcceptConnectionRequest) updates) => super.copyWith((message) => updates(message as AcceptConnectionRequest)) as AcceptConnectionRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AcceptConnectionRequest create() => AcceptConnectionRequest._();
+  AcceptConnectionRequest createEmptyInstance() => create();
+  static $pb.PbList<AcceptConnectionRequest> createRepeated() => $pb.PbList<AcceptConnectionRequest>();
+  @$core.pragma('dart2js:noInline')
+  static AcceptConnectionRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<AcceptConnectionRequest>(create);
+  static AcceptConnectionRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get deviceId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set deviceId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasDeviceId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDeviceId() => clearField(1);
+}
+
+class RejectConnectionRequest extends $pb.GeneratedMessage {
+  factory RejectConnectionRequest() => create();
+  RejectConnectionRequest._() : super();
+  factory RejectConnectionRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RejectConnectionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RejectConnectionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'deviceId')
+    ..aOS(2, _omitFieldNames ? '' : 'reason')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  RejectConnectionRequest clone() => RejectConnectionRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  RejectConnectionRequest copyWith(void Function(RejectConnectionRequest) updates) => super.copyWith((message) => updates(message as RejectConnectionRequest)) as RejectConnectionRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RejectConnectionRequest create() => RejectConnectionRequest._();
+  RejectConnectionRequest createEmptyInstance() => create();
+  static $pb.PbList<RejectConnectionRequest> createRepeated() => $pb.PbList<RejectConnectionRequest>();
+  @$core.pragma('dart2js:noInline')
+  static RejectConnectionRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RejectConnectionRequest>(create);
+  static RejectConnectionRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get deviceId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set deviceId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasDeviceId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDeviceId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get reason => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set reason($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasReason() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearReason() => clearField(2);
+}
+
+class ConnectionRequest extends $pb.GeneratedMessage {
+  factory ConnectionRequest() => create();
+  ConnectionRequest._() : super();
+  factory ConnectionRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ConnectionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ConnectionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'deviceId')
+    ..aOS(2, _omitFieldNames ? '' : 'deviceName')
+    ..aInt64(3, _omitFieldNames ? '' : 'timestamp')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ConnectionRequest clone() => ConnectionRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ConnectionRequest copyWith(void Function(ConnectionRequest) updates) => super.copyWith((message) => updates(message as ConnectionRequest)) as ConnectionRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ConnectionRequest create() => ConnectionRequest._();
+  ConnectionRequest createEmptyInstance() => create();
+  static $pb.PbList<ConnectionRequest> createRepeated() => $pb.PbList<ConnectionRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ConnectionRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ConnectionRequest>(create);
+  static ConnectionRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get deviceId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set deviceId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasDeviceId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDeviceId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get deviceName => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set deviceName($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasDeviceName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDeviceName() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get timestamp => $_getI64(2);
+  @$pb.TagNumber(3)
+  set timestamp($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasTimestamp() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTimestamp() => clearField(3);
+}
+
+class ConnectionResponse extends $pb.GeneratedMessage {
+  factory ConnectionResponse() => create();
+  ConnectionResponse._() : super();
+  factory ConnectionResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ConnectionResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ConnectionResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'accepted')
+    ..aOS(2, _omitFieldNames ? '' : 'message')
+    ..aOS(3, _omitFieldNames ? '' : 'deviceId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ConnectionResponse clone() => ConnectionResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ConnectionResponse copyWith(void Function(ConnectionResponse) updates) => super.copyWith((message) => updates(message as ConnectionResponse)) as ConnectionResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ConnectionResponse create() => ConnectionResponse._();
+  ConnectionResponse createEmptyInstance() => create();
+  static $pb.PbList<ConnectionResponse> createRepeated() => $pb.PbList<ConnectionResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ConnectionResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ConnectionResponse>(create);
+  static ConnectionResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get accepted => $_getBF(0);
+  @$pb.TagNumber(1)
+  set accepted($core.bool v) { $_setBool(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasAccepted() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAccepted() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get message => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set message($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasMessage() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMessage() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get deviceId => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set deviceId($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasDeviceId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearDeviceId() => clearField(3);
+}
+
+
+const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
+const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');

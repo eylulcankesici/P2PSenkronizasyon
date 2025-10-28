@@ -1,127 +1,115 @@
-///
+//
 //  Generated code. Do not modify.
 //  source: api/proto/p2p.proto
 //
 // @dart = 2.12
-// ignore_for_file: annotate_overrides,camel_case_types,constant_identifier_names,directives_ordering,library_prefixes,non_constant_identifier_names,prefer_final_fields,return_of_invalid_type,unnecessary_const,unnecessary_import,unnecessary_this,unused_import,unused_shown_name
+
+// ignore_for_file: annotate_overrides, camel_case_types
+// ignore_for_file: constant_identifier_names, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_final_fields
+// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
 
 import 'dart:async' as $async;
-
 import 'dart:core' as $core;
 
 import 'package:grpc/service_api.dart' as $grpc;
-import 'p2p.pb.dart' as $4;
+import 'package:protobuf/protobuf.dart' as $pb;
+
+import 'p2p.pb.dart' as $5;
+
 export 'p2p.pb.dart';
 
+@$pb.GrpcServiceName('aether.api.P2PDataService')
 class P2PDataServiceClient extends $grpc.Client {
-  static final _$requestChunk =
-      $grpc.ClientMethod<$4.ChunkRequest, $4.ChunkResponse>(
-          '/aether.api.P2PDataService/RequestChunk',
-          ($4.ChunkRequest value) => value.writeToBuffer(),
-          ($core.List<$core.int> value) => $4.ChunkResponse.fromBuffer(value));
-  static final _$transferChunk =
-      $grpc.ClientMethod<$4.ChunkData, $4.TransferStatus>(
-          '/aether.api.P2PDataService/TransferChunk',
-          ($4.ChunkData value) => value.writeToBuffer(),
-          ($core.List<$core.int> value) => $4.TransferStatus.fromBuffer(value));
-  static final _$shareFileMetadata =
-      $grpc.ClientMethod<$4.FileMetadataRequest, $4.FileMetadataResponse>(
-          '/aether.api.P2PDataService/ShareFileMetadata',
-          ($4.FileMetadataRequest value) => value.writeToBuffer(),
-          ($core.List<$core.int> value) =>
-              $4.FileMetadataResponse.fromBuffer(value));
-  static final _$ping = $grpc.ClientMethod<$4.PingRequest, $4.PingResponse>(
+  static final _$requestChunk = $grpc.ClientMethod<$5.ChunkRequest, $5.ChunkResponse>(
+      '/aether.api.P2PDataService/RequestChunk',
+      ($5.ChunkRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $5.ChunkResponse.fromBuffer(value));
+  static final _$transferChunk = $grpc.ClientMethod<$5.ChunkData, $5.TransferStatus>(
+      '/aether.api.P2PDataService/TransferChunk',
+      ($5.ChunkData value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $5.TransferStatus.fromBuffer(value));
+  static final _$shareFileMetadata = $grpc.ClientMethod<$5.FileMetadataRequest, $5.FileMetadataResponse>(
+      '/aether.api.P2PDataService/ShareFileMetadata',
+      ($5.FileMetadataRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $5.FileMetadataResponse.fromBuffer(value));
+  static final _$ping = $grpc.ClientMethod<$5.PingRequest, $5.PingResponse>(
       '/aether.api.P2PDataService/Ping',
-      ($4.PingRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $4.PingResponse.fromBuffer(value));
+      ($5.PingRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $5.PingResponse.fromBuffer(value));
 
   P2PDataServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
       $core.Iterable<$grpc.ClientInterceptor>? interceptors})
-      : super(channel, options: options, interceptors: interceptors);
+      : super(channel, options: options,
+        interceptors: interceptors);
 
-  $grpc.ResponseFuture<$4.ChunkResponse> requestChunk($4.ChunkRequest request,
-      {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$5.ChunkResponse> requestChunk($5.ChunkRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$requestChunk, request, options: options);
   }
 
-  $grpc.ResponseFuture<$4.TransferStatus> transferChunk(
-      $async.Stream<$4.ChunkData> request,
-      {$grpc.CallOptions? options}) {
-    return $createStreamingCall(_$transferChunk, request, options: options)
-        .single;
+  $grpc.ResponseFuture<$5.TransferStatus> transferChunk($async.Stream<$5.ChunkData> request, {$grpc.CallOptions? options}) {
+    return $createStreamingCall(_$transferChunk, request, options: options).single;
   }
 
-  $grpc.ResponseFuture<$4.FileMetadataResponse> shareFileMetadata(
-      $4.FileMetadataRequest request,
-      {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$5.FileMetadataResponse> shareFileMetadata($5.FileMetadataRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$shareFileMetadata, request, options: options);
   }
 
-  $grpc.ResponseFuture<$4.PingResponse> ping($4.PingRequest request,
-      {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$5.PingResponse> ping($5.PingRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$ping, request, options: options);
   }
 }
 
+@$pb.GrpcServiceName('aether.api.P2PDataService')
 abstract class P2PDataServiceBase extends $grpc.Service {
   $core.String get $name => 'aether.api.P2PDataService';
 
   P2PDataServiceBase() {
-    $addMethod($grpc.ServiceMethod<$4.ChunkRequest, $4.ChunkResponse>(
+    $addMethod($grpc.ServiceMethod<$5.ChunkRequest, $5.ChunkResponse>(
         'RequestChunk',
         requestChunk_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $4.ChunkRequest.fromBuffer(value),
-        ($4.ChunkResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$4.ChunkData, $4.TransferStatus>(
+        ($core.List<$core.int> value) => $5.ChunkRequest.fromBuffer(value),
+        ($5.ChunkResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$5.ChunkData, $5.TransferStatus>(
         'TransferChunk',
         transferChunk,
         true,
         false,
-        ($core.List<$core.int> value) => $4.ChunkData.fromBuffer(value),
-        ($4.TransferStatus value) => value.writeToBuffer()));
-    $addMethod(
-        $grpc.ServiceMethod<$4.FileMetadataRequest, $4.FileMetadataResponse>(
-            'ShareFileMetadata',
-            shareFileMetadata_Pre,
-            false,
-            false,
-            ($core.List<$core.int> value) =>
-                $4.FileMetadataRequest.fromBuffer(value),
-            ($4.FileMetadataResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$4.PingRequest, $4.PingResponse>(
+        ($core.List<$core.int> value) => $5.ChunkData.fromBuffer(value),
+        ($5.TransferStatus value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$5.FileMetadataRequest, $5.FileMetadataResponse>(
+        'ShareFileMetadata',
+        shareFileMetadata_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $5.FileMetadataRequest.fromBuffer(value),
+        ($5.FileMetadataResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$5.PingRequest, $5.PingResponse>(
         'Ping',
         ping_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $4.PingRequest.fromBuffer(value),
-        ($4.PingResponse value) => value.writeToBuffer()));
+        ($core.List<$core.int> value) => $5.PingRequest.fromBuffer(value),
+        ($5.PingResponse value) => value.writeToBuffer()));
   }
 
-  $async.Future<$4.ChunkResponse> requestChunk_Pre(
-      $grpc.ServiceCall call, $async.Future<$4.ChunkRequest> request) async {
+  $async.Future<$5.ChunkResponse> requestChunk_Pre($grpc.ServiceCall call, $async.Future<$5.ChunkRequest> request) async {
     return requestChunk(call, await request);
   }
 
-  $async.Future<$4.FileMetadataResponse> shareFileMetadata_Pre(
-      $grpc.ServiceCall call,
-      $async.Future<$4.FileMetadataRequest> request) async {
+  $async.Future<$5.FileMetadataResponse> shareFileMetadata_Pre($grpc.ServiceCall call, $async.Future<$5.FileMetadataRequest> request) async {
     return shareFileMetadata(call, await request);
   }
 
-  $async.Future<$4.PingResponse> ping_Pre(
-      $grpc.ServiceCall call, $async.Future<$4.PingRequest> request) async {
+  $async.Future<$5.PingResponse> ping_Pre($grpc.ServiceCall call, $async.Future<$5.PingRequest> request) async {
     return ping(call, await request);
   }
 
-  $async.Future<$4.ChunkResponse> requestChunk(
-      $grpc.ServiceCall call, $4.ChunkRequest request);
-  $async.Future<$4.TransferStatus> transferChunk(
-      $grpc.ServiceCall call, $async.Stream<$4.ChunkData> request);
-  $async.Future<$4.FileMetadataResponse> shareFileMetadata(
-      $grpc.ServiceCall call, $4.FileMetadataRequest request);
-  $async.Future<$4.PingResponse> ping(
-      $grpc.ServiceCall call, $4.PingRequest request);
+  $async.Future<$5.ChunkResponse> requestChunk($grpc.ServiceCall call, $5.ChunkRequest request);
+  $async.Future<$5.TransferStatus> transferChunk($grpc.ServiceCall call, $async.Stream<$5.ChunkData> request);
+  $async.Future<$5.FileMetadataResponse> shareFileMetadata($grpc.ServiceCall call, $5.FileMetadataRequest request);
+  $async.Future<$5.PingResponse> ping($grpc.ServiceCall call, $5.PingRequest request);
 }

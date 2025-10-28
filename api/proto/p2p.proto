@@ -76,21 +76,6 @@ message PingResponse {
   int64 latency_ms = 3;
 }
 
-message ConnectionRequest {
-  string device_id = 1;
-  string device_name = 2;
-}
-
-message ConnectionAccept {
-  Status status = 1;
-  string message = 2;
-}
-
-message ConnectionReject {
-  Status status = 1;
-  string reason = 2;
-}
-
 
 
 
