@@ -2,6 +2,7 @@ package lan
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -537,16 +538,24 @@ func (c *TCPConnection) WaitForConnectionResponse(timeout time.Duration) error {
 	}
 	
 	// Decode et
-	messageType, _, err := c.protocol.DecodeFrame(frame)
+	messageType, payload, err := c.protocol.DecodeFrame(frame)
 	if err != nil {
 		return fmt.Errorf("response decode hatası: %w", err)
 	}
 	
 	// Accept mesajı mı?
 	if messageType == MessageTypeConnectionAccept {
-		_, err := c.protocol.DecodeConnectionAccept(frame)
-		if err != nil {
+		// Payload'u decode et
+		var resp struct {
+			Accepted bool   `json:"accepted"`
+			Message  string `json:"message"`
+			DeviceID string `json:"device_id"`
+		}
+		if err := json.Unmarshal(payload, &resp); err != nil {
 			return fmt.Errorf("connection accept decode hatası: %w", err)
+		}
+		if !resp.Accepted {
+			return fmt.Errorf("bağlantı reddedildi: %s", resp.Message)
 		}
 		log.Printf("✅ Bağlantı kabul edildi")
 		return nil
@@ -554,11 +563,16 @@ func (c *TCPConnection) WaitForConnectionResponse(timeout time.Duration) error {
 	
 	// Reject mesajı mı?
 	if messageType == MessageTypeConnectionReject {
-		reason, err := c.protocol.DecodeConnectionReject(frame)
-		if err != nil {
+		// Payload'u decode et
+		var resp struct {
+			Accepted bool   `json:"accepted"`
+			Message  string `json:"message"`
+			DeviceID string `json:"device_id"`
+		}
+		if err := json.Unmarshal(payload, &resp); err != nil {
 			return fmt.Errorf("connection reject decode hatası: %w", err)
 		}
-		return fmt.Errorf("bağlantı reddedildi: %s", reason)
+		return fmt.Errorf("bağlantı reddedildi: %s", resp.Message)
 	}
 	
 	return fmt.Errorf("beklenmeyen mesaj tipi: 0x%04x", messageType)
