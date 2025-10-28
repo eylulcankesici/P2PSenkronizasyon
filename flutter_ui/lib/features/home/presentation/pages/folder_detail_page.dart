@@ -380,31 +380,31 @@ class _SyncPeerDialogState extends ConsumerState<_SyncPeerDialog> {
             style: TextStyle(fontWeight: FontWeight.w500),
           ),
           SizedBox(height: 8),
-          Container(
+          ConstrainedBox(
             constraints: BoxConstraints(maxHeight: 300),
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: widget.peers.length,
-              itemBuilder: (context, index) {
-                final peer = widget.peers[index];
-                final isSelected = _selectedPeerIds.contains(peer.deviceId);
-                
-                return CheckboxListTile(
-                  title: Text(peer.name),
-                  subtitle: Text(peer.deviceId.substring(0, 8)),
-                  value: isSelected,
-                  onChanged: (value) {
-                    setState(() {
-                      if (value == true) {
-                        _selectedPeerIds.add(peer.deviceId);
-                      } else {
-                        _selectedPeerIds.remove(peer.deviceId);
-                      }
-                    });
-                  },
-                  dense: true,
-                );
-              },
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: widget.peers.map((peer) {
+                  final isSelected = _selectedPeerIds.contains(peer.deviceId);
+                  
+                  return CheckboxListTile(
+                    title: Text(peer.name),
+                    subtitle: Text(peer.deviceId.substring(0, 8)),
+                    value: isSelected,
+                    onChanged: (value) {
+                      setState(() {
+                        if (value == true) {
+                          _selectedPeerIds.add(peer.deviceId);
+                        } else {
+                          _selectedPeerIds.remove(peer.deviceId);
+                        }
+                      });
+                    },
+                    dense: true,
+                  );
+                }).toList(),
+              ),
             ),
           ),
           if (syncState.isLoading)
