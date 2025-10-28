@@ -410,7 +410,8 @@ func (c *TCPConnection) handleChunkResponse(payload []byte) error {
 		return fmt.Errorf("chunk response decode hatası: %w", err)
 	}
 	
-	log.Printf("📥 Chunk response alındı: %s (%d bytes)", resp.ChunkHash[:8], len(resp.ChunkData))
+	log.Printf("📥 Chunk response alındı: %s (%d bytes), FileId: '%s', ChunkIndex: %d, TotalChunks: %d", 
+		resp.ChunkHash[:8], len(resp.ChunkData), resp.FileId, resp.ChunkIndex, resp.TotalChunks)
 	
 	// Eğer file_id varsa, push-based sync demektir
 	if resp.FileId != "" {
@@ -422,6 +423,8 @@ func (c *TCPConnection) handleChunkResponse(payload []byte) error {
 		}
 		
 		log.Printf("  ⚠️ Chunk received callback tanımlı değil, chunk kaydedilemiyor")
+	} else {
+		log.Printf("  ⚠️ FileId boş, push-based sync aktif değil")
 	}
 	
 	return nil

@@ -121,6 +121,7 @@ func (uc *P2PTransferUseCaseImpl) SyncFileWithPeer(ctx context.Context, peerID, 
 		if tcpConn, ok := conn.(interface {
 			SendChunkWithFileInfo(ctx context.Context, chunkHash string, data []byte, fileID string, chunkIndex, totalChunks int) error
 		}); ok {
+			log.Printf("  📤 Chunk %d/%d gönderiliyor (fileID: %s): %s", fc.ChunkIndex+1, len(fileChunks), fileID, fc.ChunkHash[:8])
 			if err := tcpConn.SendChunkWithFileInfo(ctx, fc.ChunkHash, chunkData, fileID, fc.ChunkIndex, len(fileChunks)); err != nil {
 				return fmt.Errorf("chunk gönderilemedi [%d]: %w", i, err)
 			}
