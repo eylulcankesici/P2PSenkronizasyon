@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
+	"time"
 	
 	"github.com/aether/sync/internal/config"
 	"github.com/aether/sync/internal/domain/entity"
@@ -512,22 +514,110 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 		
 		// Dosya bilgisini al
 		file, err := c.fileRepo.GetByID(ctx, fileID)
-		if err != nil {
-			return fmt.Errorf("dosya bulunamadı: %w", err)
+		var outputPath string
+		var folder *entity.Folder
+		
+		if err == nil && file != nil {
+			// Folder bilgisini al
+			folder, err = c.folderRepo.GetByID(ctx, file.FolderID)
+			if err == nil && folder != nil {
+				// Orjinal path'i kullan
+				outputPath = filepath.Join(folder.LocalPath, file.RelativePath)
+				log.Printf("  📁 Dosya bilgisi bulundu: %s", outputPath)
+			}
 		}
 		
-		// Folder bilgisini al
-		folder, err := c.folderRepo.GetByID(ctx, file.FolderID)
-		if err != nil {
-			return fmt.Errorf("folder bulunamadı: %w", err)
+		// Eğer dosya/folder bilgisi yoksa yeni klasör oluştur
+		if outputPath == "" {
+			log.Printf("  📁 Dosya/folder bilgisi yok, yeni klasör oluşturuluyor")
+			
+			// Varsayılan sync klasörü: DataDir/synced_folders/{folder_id veya file_id}
+			syncBaseDir := filepath.Join(c.config.App.DataDir, "synced_folders")
+			
+			var folderID, folderName, fileName string
+			
+			// Folder bilgisini belirle
+			if file != nil && file.FolderID != "" {
+				folderID = file.FolderID
+				// Folder adını klasör yolundan çıkar (son klasör adı)
+				if folderNameTemp, err := c.folderRepo.GetByID(ctx, file.FolderID); err == nil && folderNameTemp != nil {
+					folderName = filepath.Base(folderNameTemp.LocalPath)
+				} else {
+					folderName = folderID[:8] // İlk 8 karakter
+				}
+				fileName = file.RelativePath
+			} else {
+				// FileID'den klasör oluştur
+				folderID = fmt.Sprintf("synced_%s", fileID[:8])
+				folderName = folderID
+				if file != nil && file.RelativePath != "" {
+					fileName = file.RelativePath
+				} else {
+					fileName = fmt.Sprintf("file_%s", fileID[:8])
+				}
+			}
+			
+			syncDir := filepath.Join(syncBaseDir, folderName)
+			
+			// Klasörü oluştur
+			if err := os.MkdirAll(syncDir, 0755); err != nil {
+				log.Printf("  ⚠️ Sync klasörü oluşturulamadı: %v", err)
+				syncDir = syncBaseDir // Fallback
+				os.MkdirAll(syncDir, 0755)
+			}
+			
+			outputPath = filepath.Join(syncDir, fileName)
+			log.Printf("  📁 Yeni klasöre kaydediliyor: %s", outputPath)
+			
+			// Folder entity oluştur (alıcı taraf için)
+			if folder == nil {
+				folder = entity.NewFolder(syncDir, entity.SyncModeBidirectional)
+				folder.ID = folderID
+				if err := c.folderRepo.Create(ctx, folder); err != nil {
+					log.Printf("  ⚠️ Folder entity oluşturulamadı (belki zaten var): %v", err)
+				} else {
+					log.Printf("  ✅ Folder entity oluşturuldu: %s", folderID)
+				}
+			}
+			
+			// File entity oluştur/güncelle (alıcı taraf için)
+			if file == nil {
+				newFile := entity.NewFile(folderID, fileName, 0, time.Now())
+				newFile.ID = fileID
+				if err := c.fileRepo.Create(ctx, newFile); err != nil {
+					log.Printf("  ⚠️ File entity oluşturulamadı (belki zaten var): %v", err)
+				} else {
+					log.Printf("  ✅ File entity oluşturuldu: %s", fileID)
+				}
+			} else if file.FolderID != folderID {
+				// Folder ID'sini güncelle
+				file.FolderID = folderID
+				if err := c.fileRepo.Update(ctx, file); err != nil {
+					log.Printf("  ⚠️ File entity güncellenemedi: %v", err)
+				}
+			}
 		}
 		
-		// Output path oluştur
-		outputPath := filepath.Join(folder.LocalPath, file.RelativePath)
+		// Output path'in dizinini oluştur
+		dirPath := filepath.Dir(outputPath)
+		if err := os.MkdirAll(dirPath, 0755); err != nil {
+			return fmt.Errorf("dizin oluşturulamadı: %w", err)
+		}
 		
 		// Dosyayı oluştur
 		if err := c.fileReassembler.WriteToFile(fileID, outputPath); err != nil {
 			return fmt.Errorf("dosya yazılamadı: %w", err)
+		}
+		
+		// Dosya bilgilerini güncelle (boyut vs.)
+		if file != nil {
+			if fileInfo, err := os.Stat(outputPath); err == nil {
+				file.Size = fileInfo.Size()
+				file.ModTime = fileInfo.ModTime()
+				if err := c.fileRepo.Update(ctx, file); err != nil {
+					log.Printf("  ⚠️ Dosya bilgileri güncellenemedi: %v", err)
+				}
+			}
 		}
 		
 		log.Printf("  💾 Dosya kaydedildi: %s", outputPath)

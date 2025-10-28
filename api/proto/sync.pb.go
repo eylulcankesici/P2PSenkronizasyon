@@ -187,6 +187,124 @@ func (x *SyncFileResponse) GetProgress() *SyncProgress {
 	return nil
 }
 
+type SyncFolderRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FolderId      string                 `protobuf:"bytes,1,opt,name=folder_id,json=folderId,proto3" json:"folder_id,omitempty"`
+	TargetPeerIds []string               `protobuf:"bytes,2,rep,name=target_peer_ids,json=targetPeerIds,proto3" json:"target_peer_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SyncFolderRequest) Reset() {
+	*x = SyncFolderRequest{}
+	mi := &file_api_proto_sync_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SyncFolderRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SyncFolderRequest) ProtoMessage() {}
+
+func (x *SyncFolderRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_sync_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (*SyncFolderRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_sync_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *SyncFolderRequest) GetFolderId() string {
+	if x != nil {
+		return x.FolderId
+	}
+	return ""
+}
+
+func (x *SyncFolderRequest) GetTargetPeerIds() []string {
+	if x != nil {
+		return x.TargetPeerIds
+	}
+	return nil
+}
+
+type SyncFolderResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        *Status                `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Progress      *SyncProgress          `protobuf:"bytes,2,opt,name=progress,proto3" json:"progress,omitempty"`
+	TotalFiles    int32                  `protobuf:"varint,3,opt,name=total_files,json=totalFiles,proto3" json:"total_files,omitempty"`
+	SyncedFiles   int32                  `protobuf:"varint,4,opt,name=synced_files,json=syncedFiles,proto3" json:"synced_files,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SyncFolderResponse) Reset() {
+	*x = SyncFolderResponse{}
+	mi := &file_api_proto_sync_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SyncFolderResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SyncFolderResponse) ProtoMessage() {}
+
+func (x *SyncFolderResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_sync_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (*SyncFolderResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_sync_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *SyncFolderResponse) GetStatus() *Status {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
+func (x *SyncFolderResponse) GetProgress() *SyncProgress {
+	if x != nil {
+		return x.Progress
+	}
+	return nil
+}
+
+func (x *SyncFolderResponse) GetTotalFiles() int32 {
+	if x != nil {
+		return x.TotalFiles
+	}
+	return 0
+}
+
+func (x *SyncFolderResponse) GetSyncedFiles() int32 {
+	if x != nil {
+		return x.SyncedFiles
+	}
+	return 0
+}
+
 type GetSyncStatusRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	FolderId      string                 `protobuf:"bytes,1,opt,name=folder_id,json=folderId,proto3" json:"folder_id,omitempty"`
@@ -196,7 +314,7 @@ type GetSyncStatusRequest struct {
 
 func (x *GetSyncStatusRequest) Reset() {
 	*x = GetSyncStatusRequest{}
-	mi := &file_api_proto_sync_proto_msgTypes[2]
+	mi := &file_api_proto_sync_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -208,7 +326,7 @@ func (x *GetSyncStatusRequest) String() string {
 func (*GetSyncStatusRequest) ProtoMessage() {}
 
 func (x *GetSyncStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_sync_proto_msgTypes[2]
+	mi := &file_api_proto_sync_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -221,7 +339,7 @@ func (x *GetSyncStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSyncStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetSyncStatusRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_sync_proto_rawDescGZIP(), []int{2}
+	return file_api_proto_sync_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetSyncStatusRequest) GetFolderId() string {
@@ -241,7 +359,7 @@ type SyncStatusResponse struct {
 
 func (x *SyncStatusResponse) Reset() {
 	*x = SyncStatusResponse{}
-	mi := &file_api_proto_sync_proto_msgTypes[3]
+	mi := &file_api_proto_sync_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -253,7 +371,7 @@ func (x *SyncStatusResponse) String() string {
 func (*SyncStatusResponse) ProtoMessage() {}
 
 func (x *SyncStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_sync_proto_msgTypes[3]
+	mi := &file_api_proto_sync_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -266,7 +384,7 @@ func (x *SyncStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncStatusResponse.ProtoReflect.Descriptor instead.
 func (*SyncStatusResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_sync_proto_rawDescGZIP(), []int{3}
+	return file_api_proto_sync_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *SyncStatusResponse) GetStatus() *Status {

@@ -12,6 +12,9 @@ service SyncService {
   // Dosya senkronize et
   rpc SyncFile(SyncFileRequest) returns (SyncFileResponse);
   
+  // Klasör senkronize et (tüm dosyaları senkronize eder)
+  rpc SyncFolder(SyncFolderRequest) returns (SyncFolderResponse);
+  
   // Senkronizasyon durumunu getir
   rpc GetSyncStatus(GetSyncStatusRequest) returns (SyncStatusResponse);
   
@@ -33,6 +36,18 @@ message SyncFileRequest {
 message SyncFileResponse {
   Status status = 1;
   SyncProgress progress = 2;
+}
+
+message SyncFolderRequest {
+  string folder_id = 1;
+  repeated string target_peer_ids = 2;
+}
+
+message SyncFolderResponse {
+  Status status = 1;
+  SyncProgress progress = 2;
+  int32 total_files = 3;
+  int32 synced_files = 4;
 }
 
 message GetSyncStatusRequest {

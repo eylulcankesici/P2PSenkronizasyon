@@ -125,6 +125,128 @@ func (h *SyncHandler) SyncFile(ctx context.Context, req *pb.SyncFileRequest) (*p
 	}, nil
 }
 
+// SyncFolder klasörün tüm dosyalarını senkronize eder
+func (h *SyncHandler) SyncFolder(ctx context.Context, req *pb.SyncFolderRequest) (*pb.SyncFolderResponse, error) {
+	log.Printf("🔄 Klasör senkronize ediliyor: %s -> %d peer", req.FolderId, len(req.TargetPeerIds))
+	
+	if len(req.TargetPeerIds) == 0 {
+		return &pb.SyncFolderResponse{
+			Status: &pb.Status{
+				Success: false,
+				Message: "En az bir peer belirtilmelidir",
+				Code:    400,
+			},
+		}, nil
+	}
+	
+	// Folder bilgisini al
+	folder, err := h.container.FolderRepository().GetByID(ctx, req.FolderId)
+	if err != nil {
+		return &pb.SyncFolderResponse{
+			Status: &pb.Status{
+				Success: false,
+				Message: fmt.Sprintf("Klasör bulunamadı: %v", err),
+				Code:    404,
+			},
+		}, nil
+	}
+	
+	// Klasördeki tüm dosyaları al
+	files, err := h.container.FileRepository().GetByFolderID(ctx, req.FolderId)
+	if err != nil {
+		return &pb.SyncFolderResponse{
+			Status: &pb.Status{
+				Success: false,
+				Message: fmt.Sprintf("Dosyalar alınamadı: %v", err),
+				Code:    500,
+			},
+		}, nil
+	}
+	
+	log.Printf("  📁 %d dosya bulundu", len(files))
+	
+	if len(files) == 0 {
+		return &pb.SyncFolderResponse{
+			Status: &pb.Status{
+				Success: true,
+				Message: "Klasörde senkronize edilecek dosya yok",
+				Code:    200,
+			},
+			TotalFiles:  0,
+			SyncedFiles: 0,
+		}, nil
+	}
+	
+	// Her dosyayı her peer'a gönder
+	totalFiles := len(files)
+	syncedFiles := 0
+	var totalBytes int64
+	var lastError error
+	
+	for _, file := range files {
+		// Dosyanın chunk'ları var mı kontrol et
+		fileChunks, err := h.container.ChunkRepository().GetFileChunks(ctx, file.ID)
+		if err != nil || len(fileChunks) == 0 {
+			log.Printf("  📦 Dosya chunk'lanıyor: %s", file.RelativePath)
+			
+			// Dosya path'ini oluştur
+			filePath := filepath.Join(folder.LocalPath, file.RelativePath)
+			
+			// Dosyayı chunk'la
+			_, _, err = h.container.ChunkingUseCase().ChunkAndStoreFile(ctx, file.ID, filePath)
+			if err != nil {
+				log.Printf("  ⚠️ Dosya chunk'lanamadı (%s): %v", file.RelativePath, err)
+				continue
+			}
+		}
+		
+		// Her peer'a gönder
+		fileSynced := false
+		for _, peerID := range req.TargetPeerIds {
+			log.Printf("  📤 Dosya gönderiliyor: %s -> %s", file.RelativePath, peerID[:8])
+			
+			err := h.container.P2PTransferUseCase().SyncFileWithPeer(ctx, peerID, file.ID)
+			if err != nil {
+				log.Printf("  ⚠️ Dosya gönderilemedi (%s -> %s): %v", file.RelativePath, peerID[:8], err)
+				lastError = err
+			} else {
+				fileSynced = true
+				totalBytes += file.Size
+			}
+		}
+		
+		if fileSynced {
+			syncedFiles++
+			log.Printf("  ✅ Dosya senkronize edildi: %s", file.RelativePath)
+		}
+	}
+	
+	var statusMessage string
+	if syncedFiles == totalFiles {
+		statusMessage = fmt.Sprintf("Tüm dosyalar senkronize edildi (%d/%d)", syncedFiles, totalFiles)
+	} else {
+		statusMessage = fmt.Sprintf("Kısmen senkronize edildi (%d/%d dosya)", syncedFiles, totalFiles)
+		if lastError != nil {
+			statusMessage += fmt.Sprintf(": %v", lastError)
+		}
+	}
+	
+	return &pb.SyncFolderResponse{
+		Status: &pb.Status{
+			Success: syncedFiles > 0,
+			Message: statusMessage,
+			Code:    200,
+		},
+		Progress: &pb.SyncProgress{
+			BytesTransferred: totalBytes,
+			TotalBytes:       totalBytes,
+			Percentage:       float32(syncedFiles) / float32(totalFiles) * 100.0,
+		},
+		TotalFiles:  int32(totalFiles),
+		SyncedFiles: int32(syncedFiles),
+	}, nil
+}
+
 // GetSyncStatus senkronizasyon durumunu getirir (placeholder)
 func (h *SyncHandler) GetSyncStatus(ctx context.Context, req *pb.GetSyncStatusRequest) (*pb.SyncStatusResponse, error) {
 	return &pb.SyncStatusResponse{
