@@ -222,6 +222,8 @@ func (p *Protocol) EncodeChunkResponseWithFileInfo(chunkHash string, chunkData [
 		TotalChunks: int32(totalChunks),
 	}
 	
+	log.Printf("  🔧 Encode: FileId='%s', ChunkIndex=%d, TotalChunks=%d", fileID, chunkIndex, totalChunks)
+	
 	payload, err := proto.Marshal(resp)
 	if err != nil {
 		return nil, fmt.Errorf("protobuf marshal hatası: %w", err)
