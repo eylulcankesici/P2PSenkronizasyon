@@ -71,7 +71,7 @@ func (p *Protocol) EncodeFrame(messageType uint16, payload []byte) ([]byte, erro
 	buf.WriteByte(MagicByte4)
 	
 	// Version
-	if err := binary.Write(buf, binary.BigEndian, ProtocolVersion); err != nil {
+	if err := binary.Write(buf, binary.BigEndian, uint16(ProtocolVersion)); err != nil {
 		return nil, fmt.Errorf("version yazılamadı: %w", err)
 	}
 	
@@ -129,7 +129,7 @@ func (p *Protocol) DecodeFrame(frame []byte) (messageType uint16, payload []byte
 	// Version
 	var version uint16
 	binary.Read(buf, binary.BigEndian, &version)
-	if version != ProtocolVersion {
+	if version != uint16(ProtocolVersion) {
 		// Debug: frame'in ilk birkaç byte'ını logla
 		debugLen := len(frame)
 		if debugLen > 20 {
