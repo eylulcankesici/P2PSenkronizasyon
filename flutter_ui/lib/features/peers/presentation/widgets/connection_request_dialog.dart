@@ -79,7 +79,7 @@ class ConnectionRequestDialog extends ConsumerWidget {
           onPressed: () {
             // Reddet
             ref.read(peerNotifierProvider.notifier).rejectConnection(deviceId);
-            ref.read(pendingConnectionsProvider.notifier).removePendingConnection(deviceId);
+            ref.read(pendingConnectionsNotifierProvider.notifier).removePendingConnection(deviceId);
             Navigator.of(context).pop();
           },
           child: Row(
@@ -98,7 +98,7 @@ class ConnectionRequestDialog extends ConsumerWidget {
           onPressed: () {
             // Onayla
             ref.read(peerNotifierProvider.notifier).acceptConnection(deviceId);
-            ref.read(pendingConnectionsProvider.notifier).removePendingConnection(deviceId);
+            ref.read(pendingConnectionsNotifierProvider.notifier).removePendingConnection(deviceId);
             Navigator.of(context).pop();
           },
           child: Row(

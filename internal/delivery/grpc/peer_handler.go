@@ -205,35 +205,44 @@ func (h *PeerHandler) RemovePeer(ctx context.Context, req *pb.RemovePeerRequest)
 	}, nil
 }
 
-// GetPendingConnections bekleyen bağlantı isteklerini döner (streaming)
-// TODO: Proto derlemesi sonrası aktif edilecek
-/*
-func (h *PeerHandler) GetPendingConnections(req *pb.GetPendingConnectionsRequest, stream pb.PeerService_GetPendingConnectionsServer) error {
+// GetPendingConnections bekleyen bağlantı isteklerini döner
+func (h *PeerHandler) GetPendingConnections(ctx context.Context, req *pb.GetPendingConnectionsRequest) (*pb.GetPendingConnectionsResponse, error) {
 	transportProvider := h.container.TransportProvider()
 	lanTransport, ok := transportProvider.(*lan.LANTransport)
 	if !ok {
-		return fmt.Errorf("LAN transport bulunamadı")
+		return &pb.GetPendingConnectionsResponse{
+			Status: &pb.Status{
+				Success: false,
+				Message: "LAN transport bulunamadı",
+				Code:    500,
+			},
+			PendingConnections: []*pb.PendingConnection{},
+		}, nil
 	}
 	
 	connMgr := lanTransport.GetTCPConnectionManager()
 	pendingConns := connMgr.GetPendingConnections()
 	
-	// Pending connections'ı stream olarak gönder
+	// Pending connections'ı proto mesajlarına çevir
+	pbPendingConns := make([]*pb.PendingConnection, 0, len(pendingConns))
 	for _, pending := range pendingConns {
 		pbPending := &pb.PendingConnection{
 			DeviceId:   pending.DeviceID,
 			DeviceName: pending.DeviceName,
 			Timestamp:  pending.Timestamp.Unix(),
 		}
-		
-		if err := stream.Send(pbPending); err != nil {
-			return err
-		}
+		pbPendingConns = append(pbPendingConns, pbPending)
 	}
 	
-	return nil
+	return &pb.GetPendingConnectionsResponse{
+		Status: &pb.Status{
+			Success: true,
+			Message: fmt.Sprintf("%d bekleyen bağlantı", len(pbPendingConns)),
+			Code:    200,
+		},
+		PendingConnections: pbPendingConns,
+	}, nil
 }
-*/
 
 // AcceptConnectionHelper bağlantı isteğini onaylar (internal helper)
 func AcceptConnectionHelper(transportProvider interface{}, deviceID string) error {

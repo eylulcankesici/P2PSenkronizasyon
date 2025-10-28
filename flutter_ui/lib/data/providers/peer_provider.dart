@@ -257,8 +257,23 @@ class PendingConnection {
   });
 }
 
-/// Pending connections state
-final pendingConnectionsProvider = StateNotifierProvider<PendingConnectionsNotifier, List<PendingConnection>>((ref) {
+/// Pending connections provider (polling ile backend'den alır)
+final pendingConnectionsProvider = FutureProvider<List<PendingConnection>>((ref) async {
+  final client = ref.watch(grpcClientProvider);
+  
+  try {
+    // TODO: GetPendingConnections endpoint'i proto derlenince aktif olacak
+    // Şimdilik boş liste döndür
+    await Future.delayed(const Duration(milliseconds: 100));
+    return [];
+  } catch (e) {
+    print('Pending connections hatası: $e');
+    return [];
+  }
+});
+
+/// Pending connections state manager (UI için)
+final pendingConnectionsNotifierProvider = StateNotifierProvider<PendingConnectionsNotifier, List<PendingConnection>>((ref) {
   return PendingConnectionsNotifier(ref);
 });
 

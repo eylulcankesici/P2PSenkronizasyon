@@ -33,8 +33,8 @@ service PeerService {
   // Peer'ı kaldır
   rpc RemovePeer(RemovePeerRequest) returns (Status);
   
-  // Bekleyen bağlantı isteklerini al (streaming)
-  rpc GetPendingConnections(GetPendingConnectionsRequest) returns (stream PendingConnection);
+  // Bekleyen bağlantı isteklerini al
+  rpc GetPendingConnections(GetPendingConnectionsRequest) returns (GetPendingConnectionsResponse);
   
   // Bağlantı isteğini onayla
   rpc AcceptConnection(AcceptConnectionRequest) returns (Status);
@@ -114,6 +114,11 @@ message RemovePeerRequest {
 
 // Bağlantı istekleri için mesajlar
 message GetPendingConnectionsRequest {}
+
+message GetPendingConnectionsResponse {
+  Status status = 1;
+  repeated PendingConnection pending_connections = 2;
+}
 
 message PendingConnection {
   string device_id = 1;

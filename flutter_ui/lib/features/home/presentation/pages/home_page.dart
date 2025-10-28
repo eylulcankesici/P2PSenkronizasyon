@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -31,25 +32,42 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
   
   void _listenToPendingConnections() {
-    // Pending connections'ı dinle ve yeni gelenleri göster
-    ref.listenManual(pendingConnectionsProvider, (previous, next) {
-      if (previous != null && next.isNotEmpty) {
-        // Yeni eklenen connection request'i bul
-        final newRequests = next.where((p) => 
-          previous.every((prev) => prev.deviceId != p.deviceId)
-        ).toList();
-        
-        // Her yeni request için dialog göster
-        for (final request in newRequests) {
-          showDialog(
-            context: context,
-            builder: (context) => ConnectionRequestDialog(
-              deviceId: request.deviceId,
-              deviceName: request.deviceName,
-            ),
-          );
-        }
+    // Polling ile pending connections'ı kontrol et (her 1 saniyede bir)
+    Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
       }
+      
+      ref.read(pendingConnectionsProvider.future).then((connections) {
+        if (!mounted) return;
+        
+        // Mevcut state'i al
+        final currentState = ref.read(pendingConnectionsNotifierProvider);
+        final currentIds = currentState.map((p) => p.deviceId).toSet();
+        
+        // Yeni connection request'leri bul
+        for (final connection in connections) {
+          if (!currentIds.contains(connection.deviceId)) {
+            // Yeni request - state'e ekle ve dialog göster
+            ref.read(pendingConnectionsNotifierProvider.notifier).addPendingConnection(
+              connection.deviceId,
+              connection.deviceName,
+            );
+            
+            // Dialog göster
+            showDialog(
+              context: context,
+              builder: (context) => ConnectionRequestDialog(
+                deviceId: connection.deviceId,
+                deviceName: connection.deviceName,
+              ),
+            );
+          }
+        }
+      }).catchError((error) {
+        print('Pending connections polling hatası: $error');
+      });
     });
   }
 
