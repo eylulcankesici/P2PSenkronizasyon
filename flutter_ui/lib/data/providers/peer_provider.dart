@@ -262,10 +262,16 @@ final pendingConnectionsProvider = FutureProvider<List<PendingConnection>>((ref)
   final client = ref.watch(grpcClientProvider);
   
   try {
-    // TODO: GetPendingConnections endpoint'i proto derlenince aktif olacak
-    // Şimdilik boş liste döndür
-    await Future.delayed(const Duration(milliseconds: 100));
-    return [];
+    final response = await client.peerService.getPendingConnections(
+      GetPendingConnectionsRequest(),
+    );
+    
+    // Proto PendingConnection'ları Dart PendingConnection'a çevir
+    return response.pendingConnections.map((pc) => PendingConnection(
+      deviceId: pc.deviceId,
+      deviceName: pc.deviceName,
+      timestamp: DateTime.fromMillisecondsSinceEpoch(pc.timestamp * 1000),
+    )).toList();
   } catch (e) {
     print('Pending connections hatası: $e');
     return [];

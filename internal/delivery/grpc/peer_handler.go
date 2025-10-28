@@ -206,8 +206,6 @@ func (h *PeerHandler) RemovePeer(ctx context.Context, req *pb.RemovePeerRequest)
 }
 
 // GetPendingConnections bekleyen bağlantı isteklerini döner
-// TODO: Proto derleme sonrası aktif edilecek
-/*
 func (h *PeerHandler) GetPendingConnections(ctx context.Context, req *pb.GetPendingConnectionsRequest) (*pb.GetPendingConnectionsResponse, error) {
 	transportProvider := h.container.TransportProvider()
 	lanTransport, ok := transportProvider.(*lan.LANTransport)
@@ -245,7 +243,6 @@ func (h *PeerHandler) GetPendingConnections(ctx context.Context, req *pb.GetPend
 		PendingConnections: pbPendingConns,
 	}, nil
 }
-*/
 
 // AcceptConnectionHelper bağlantı isteğini onaylar (internal helper)
 func AcceptConnectionHelper(transportProvider interface{}, deviceID string) error {

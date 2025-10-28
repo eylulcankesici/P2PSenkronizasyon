@@ -702,6 +702,372 @@ func (x *RemovePeerRequest) GetPeerId() string {
 	return ""
 }
 
+// Bağlantı istekleri için mesajlar
+type GetPendingConnectionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPendingConnectionsRequest) Reset() {
+	*x = GetPendingConnectionsRequest{}
+	mi := &file_api_proto_peer_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPendingConnectionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPendingConnectionsRequest) ProtoMessage() {}
+
+func (x *GetPendingConnectionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_peer_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPendingConnectionsRequest.ProtoReflect.Descriptor instead.
+func (*GetPendingConnectionsRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_peer_proto_rawDescGZIP(), []int{12}
+}
+
+type GetPendingConnectionsResponse struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Status             *Status                `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	PendingConnections []*PendingConnection   `protobuf:"bytes,2,rep,name=pending_connections,json=pendingConnections,proto3" json:"pending_connections,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *GetPendingConnectionsResponse) Reset() {
+	*x = GetPendingConnectionsResponse{}
+	mi := &file_api_proto_peer_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPendingConnectionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPendingConnectionsResponse) ProtoMessage() {}
+
+func (x *GetPendingConnectionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_peer_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPendingConnectionsResponse.ProtoReflect.Descriptor instead.
+func (*GetPendingConnectionsResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_peer_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *GetPendingConnectionsResponse) GetStatus() *Status {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
+func (x *GetPendingConnectionsResponse) GetPendingConnections() []*PendingConnection {
+	if x != nil {
+		return x.PendingConnections
+	}
+	return nil
+}
+
+type PendingConnection struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DeviceId      string                 `protobuf:"bytes,1,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	DeviceName    string                 `protobuf:"bytes,2,opt,name=device_name,json=deviceName,proto3" json:"device_name,omitempty"`
+	Timestamp     int64                  `protobuf:"varint,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PendingConnection) Reset() {
+	*x = PendingConnection{}
+	mi := &file_api_proto_peer_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PendingConnection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PendingConnection) ProtoMessage() {}
+
+func (x *PendingConnection) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_peer_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PendingConnection.ProtoReflect.Descriptor instead.
+func (*PendingConnection) Descriptor() ([]byte, []int) {
+	return file_api_proto_peer_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *PendingConnection) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
+	}
+	return ""
+}
+
+func (x *PendingConnection) GetDeviceName() string {
+	if x != nil {
+		return x.DeviceName
+	}
+	return ""
+}
+
+func (x *PendingConnection) GetTimestamp() int64 {
+	if x != nil {
+		return x.Timestamp
+	}
+	return 0
+}
+
+type AcceptConnectionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DeviceId      string                 `protobuf:"bytes,1,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AcceptConnectionRequest) Reset() {
+	*x = AcceptConnectionRequest{}
+	mi := &file_api_proto_peer_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AcceptConnectionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AcceptConnectionRequest) ProtoMessage() {}
+
+func (x *AcceptConnectionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_peer_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AcceptConnectionRequest.ProtoReflect.Descriptor instead.
+func (*AcceptConnectionRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_peer_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *AcceptConnectionRequest) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
+	}
+	return ""
+}
+
+type RejectConnectionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DeviceId      string                 `protobuf:"bytes,1,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RejectConnectionRequest) Reset() {
+	*x = RejectConnectionRequest{}
+	mi := &file_api_proto_peer_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RejectConnectionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RejectConnectionRequest) ProtoMessage() {}
+
+func (x *RejectConnectionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_peer_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RejectConnectionRequest.ProtoReflect.Descriptor instead.
+func (*RejectConnectionRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_peer_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *RejectConnectionRequest) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
+	}
+	return ""
+}
+
+func (x *RejectConnectionRequest) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+// P2P bağlantı istek mesajları (binary protokol için)
+type ConnectionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DeviceId      string                 `protobuf:"bytes,1,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	DeviceName    string                 `protobuf:"bytes,2,opt,name=device_name,json=deviceName,proto3" json:"device_name,omitempty"`
+	Timestamp     int64                  `protobuf:"varint,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConnectionRequest) Reset() {
+	*x = ConnectionRequest{}
+	mi := &file_api_proto_peer_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConnectionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConnectionRequest) ProtoMessage() {}
+
+func (x *ConnectionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_peer_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConnectionRequest.ProtoReflect.Descriptor instead.
+func (*ConnectionRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_peer_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ConnectionRequest) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
+	}
+	return ""
+}
+
+func (x *ConnectionRequest) GetDeviceName() string {
+	if x != nil {
+		return x.DeviceName
+	}
+	return ""
+}
+
+func (x *ConnectionRequest) GetTimestamp() int64 {
+	if x != nil {
+		return x.Timestamp
+	}
+	return 0
+}
+
+type ConnectionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Accepted      bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	DeviceId      string                 `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConnectionResponse) Reset() {
+	*x = ConnectionResponse{}
+	mi := &file_api_proto_peer_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConnectionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConnectionResponse) ProtoMessage() {}
+
+func (x *ConnectionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_peer_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConnectionResponse.ProtoReflect.Descriptor instead.
+func (*ConnectionResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_peer_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ConnectionResponse) GetAccepted() bool {
+	if x != nil {
+		return x.Accepted
+	}
+	return false
+}
+
+func (x *ConnectionResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *ConnectionResponse) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
+	}
+	return ""
+}
+
 var File_api_proto_peer_proto protoreflect.FileDescriptor
 
 const file_api_proto_peer_proto_rawDesc = "" +
@@ -760,7 +1126,30 @@ const file_api_proto_peer_proto_rawDesc = "" +
 	"\x12UntrustPeerRequest\x12\x17\n" +
 	"\apeer_id\x18\x01 \x01(\tR\x06peerId\",\n" +
 	"\x11RemovePeerRequest\x12\x17\n" +
-	"\apeer_id\x18\x01 \x01(\tR\x06peerId2\xd5\x04\n" +
+	"\apeer_id\x18\x01 \x01(\tR\x06peerId\"\x1e\n" +
+	"\x1cGetPendingConnectionsRequest\"\x9b\x01\n" +
+	"\x1dGetPendingConnectionsResponse\x12*\n" +
+	"\x06status\x18\x01 \x01(\v2\x12.aether.api.StatusR\x06status\x12N\n" +
+	"\x13pending_connections\x18\x02 \x03(\v2\x1d.aether.api.PendingConnectionR\x12pendingConnections\"o\n" +
+	"\x11PendingConnection\x12\x1b\n" +
+	"\tdevice_id\x18\x01 \x01(\tR\bdeviceId\x12\x1f\n" +
+	"\vdevice_name\x18\x02 \x01(\tR\n" +
+	"deviceName\x12\x1c\n" +
+	"\ttimestamp\x18\x03 \x01(\x03R\ttimestamp\"6\n" +
+	"\x17AcceptConnectionRequest\x12\x1b\n" +
+	"\tdevice_id\x18\x01 \x01(\tR\bdeviceId\"N\n" +
+	"\x17RejectConnectionRequest\x12\x1b\n" +
+	"\tdevice_id\x18\x01 \x01(\tR\bdeviceId\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"o\n" +
+	"\x11ConnectionRequest\x12\x1b\n" +
+	"\tdevice_id\x18\x01 \x01(\tR\bdeviceId\x12\x1f\n" +
+	"\vdevice_name\x18\x02 \x01(\tR\n" +
+	"deviceName\x12\x1c\n" +
+	"\ttimestamp\x18\x03 \x01(\x03R\ttimestamp\"g\n" +
+	"\x12ConnectionResponse\x12\x1a\n" +
+	"\baccepted\x18\x01 \x01(\bR\baccepted\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12\x1b\n" +
+	"\tdevice_id\x18\x03 \x01(\tR\bdeviceId2\xdd\x06\n" +
 	"\vPeerService\x12T\n" +
 	"\rDiscoverPeers\x12 .aether.api.DiscoverPeersRequest\x1a!.aether.api.DiscoverPeersResponse\x12E\n" +
 	"\rConnectToPeer\x12 .aether.api.ConnectToPeerRequest\x1a\x12.aether.api.Status\x12O\n" +
@@ -770,7 +1159,10 @@ const file_api_proto_peer_proto_rawDesc = "" +
 	"\tTrustPeer\x12\x1c.aether.api.TrustPeerRequest\x1a\x12.aether.api.Status\x12A\n" +
 	"\vUntrustPeer\x12\x1e.aether.api.UntrustPeerRequest\x1a\x12.aether.api.Status\x12?\n" +
 	"\n" +
-	"RemovePeer\x12\x1d.aether.api.RemovePeerRequest\x1a\x12.aether.api.StatusB(Z&github.com/aether/sync/api/proto;protob\x06proto3"
+	"RemovePeer\x12\x1d.aether.api.RemovePeerRequest\x1a\x12.aether.api.Status\x12l\n" +
+	"\x15GetPendingConnections\x12(.aether.api.GetPendingConnectionsRequest\x1a).aether.api.GetPendingConnectionsResponse\x12K\n" +
+	"\x10AcceptConnection\x12#.aether.api.AcceptConnectionRequest\x1a\x12.aether.api.Status\x12K\n" +
+	"\x10RejectConnection\x12#.aether.api.RejectConnectionRequest\x1a\x12.aether.api.StatusB(Z&github.com/aether/sync/api/proto;protob\x06proto3"
 
 var (
 	file_api_proto_peer_proto_rawDescOnce sync.Once
@@ -784,60 +1176,75 @@ func file_api_proto_peer_proto_rawDescGZIP() []byte {
 	return file_api_proto_peer_proto_rawDescData
 }
 
-var file_api_proto_peer_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_api_proto_peer_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_api_proto_peer_proto_goTypes = []any{
-	(*Peer)(nil),                      // 0: aether.api.Peer
-	(*DiscoverPeersRequest)(nil),      // 1: aether.api.DiscoverPeersRequest
-	(*DiscoverPeersResponse)(nil),     // 2: aether.api.DiscoverPeersResponse
-	(*ConnectToPeerRequest)(nil),      // 3: aether.api.ConnectToPeerRequest
-	(*DisconnectFromPeerRequest)(nil), // 4: aether.api.DisconnectFromPeerRequest
-	(*ListPeersRequest)(nil),          // 5: aether.api.ListPeersRequest
-	(*ListPeersResponse)(nil),         // 6: aether.api.ListPeersResponse
-	(*GetPeerInfoRequest)(nil),        // 7: aether.api.GetPeerInfoRequest
-	(*PeerInfoResponse)(nil),          // 8: aether.api.PeerInfoResponse
-	(*TrustPeerRequest)(nil),          // 9: aether.api.TrustPeerRequest
-	(*UntrustPeerRequest)(nil),        // 10: aether.api.UntrustPeerRequest
-	(*RemovePeerRequest)(nil),         // 11: aether.api.RemovePeerRequest
-	(*timestamppb.Timestamp)(nil),     // 12: google.protobuf.Timestamp
-	(PeerStatus)(0),                   // 13: aether.api.PeerStatus
-	(*Status)(nil),                    // 14: aether.api.Status
-	(*PaginationRequest)(nil),         // 15: aether.api.PaginationRequest
-	(*PaginationResponse)(nil),        // 16: aether.api.PaginationResponse
+	(*Peer)(nil),                          // 0: aether.api.Peer
+	(*DiscoverPeersRequest)(nil),          // 1: aether.api.DiscoverPeersRequest
+	(*DiscoverPeersResponse)(nil),         // 2: aether.api.DiscoverPeersResponse
+	(*ConnectToPeerRequest)(nil),          // 3: aether.api.ConnectToPeerRequest
+	(*DisconnectFromPeerRequest)(nil),     // 4: aether.api.DisconnectFromPeerRequest
+	(*ListPeersRequest)(nil),              // 5: aether.api.ListPeersRequest
+	(*ListPeersResponse)(nil),             // 6: aether.api.ListPeersResponse
+	(*GetPeerInfoRequest)(nil),            // 7: aether.api.GetPeerInfoRequest
+	(*PeerInfoResponse)(nil),              // 8: aether.api.PeerInfoResponse
+	(*TrustPeerRequest)(nil),              // 9: aether.api.TrustPeerRequest
+	(*UntrustPeerRequest)(nil),            // 10: aether.api.UntrustPeerRequest
+	(*RemovePeerRequest)(nil),             // 11: aether.api.RemovePeerRequest
+	(*GetPendingConnectionsRequest)(nil),  // 12: aether.api.GetPendingConnectionsRequest
+	(*GetPendingConnectionsResponse)(nil), // 13: aether.api.GetPendingConnectionsResponse
+	(*PendingConnection)(nil),             // 14: aether.api.PendingConnection
+	(*AcceptConnectionRequest)(nil),       // 15: aether.api.AcceptConnectionRequest
+	(*RejectConnectionRequest)(nil),       // 16: aether.api.RejectConnectionRequest
+	(*ConnectionRequest)(nil),             // 17: aether.api.ConnectionRequest
+	(*ConnectionResponse)(nil),            // 18: aether.api.ConnectionResponse
+	(*timestamppb.Timestamp)(nil),         // 19: google.protobuf.Timestamp
+	(PeerStatus)(0),                       // 20: aether.api.PeerStatus
+	(*Status)(nil),                        // 21: aether.api.Status
+	(*PaginationRequest)(nil),             // 22: aether.api.PaginationRequest
+	(*PaginationResponse)(nil),            // 23: aether.api.PaginationResponse
 }
 var file_api_proto_peer_proto_depIdxs = []int32{
-	12, // 0: aether.api.Peer.last_seen:type_name -> google.protobuf.Timestamp
-	13, // 1: aether.api.Peer.status:type_name -> aether.api.PeerStatus
-	12, // 2: aether.api.Peer.created_at:type_name -> google.protobuf.Timestamp
-	12, // 3: aether.api.Peer.updated_at:type_name -> google.protobuf.Timestamp
-	14, // 4: aether.api.DiscoverPeersResponse.status:type_name -> aether.api.Status
+	19, // 0: aether.api.Peer.last_seen:type_name -> google.protobuf.Timestamp
+	20, // 1: aether.api.Peer.status:type_name -> aether.api.PeerStatus
+	19, // 2: aether.api.Peer.created_at:type_name -> google.protobuf.Timestamp
+	19, // 3: aether.api.Peer.updated_at:type_name -> google.protobuf.Timestamp
+	21, // 4: aether.api.DiscoverPeersResponse.status:type_name -> aether.api.Status
 	0,  // 5: aether.api.DiscoverPeersResponse.peers:type_name -> aether.api.Peer
-	15, // 6: aether.api.ListPeersRequest.pagination:type_name -> aether.api.PaginationRequest
+	22, // 6: aether.api.ListPeersRequest.pagination:type_name -> aether.api.PaginationRequest
 	0,  // 7: aether.api.ListPeersResponse.peers:type_name -> aether.api.Peer
-	16, // 8: aether.api.ListPeersResponse.pagination:type_name -> aether.api.PaginationResponse
-	14, // 9: aether.api.PeerInfoResponse.status:type_name -> aether.api.Status
+	23, // 8: aether.api.ListPeersResponse.pagination:type_name -> aether.api.PaginationResponse
+	21, // 9: aether.api.PeerInfoResponse.status:type_name -> aether.api.Status
 	0,  // 10: aether.api.PeerInfoResponse.peer:type_name -> aether.api.Peer
-	12, // 11: aether.api.PeerInfoResponse.last_activity:type_name -> google.protobuf.Timestamp
-	1,  // 12: aether.api.PeerService.DiscoverPeers:input_type -> aether.api.DiscoverPeersRequest
-	3,  // 13: aether.api.PeerService.ConnectToPeer:input_type -> aether.api.ConnectToPeerRequest
-	4,  // 14: aether.api.PeerService.DisconnectFromPeer:input_type -> aether.api.DisconnectFromPeerRequest
-	5,  // 15: aether.api.PeerService.ListPeers:input_type -> aether.api.ListPeersRequest
-	7,  // 16: aether.api.PeerService.GetPeerInfo:input_type -> aether.api.GetPeerInfoRequest
-	9,  // 17: aether.api.PeerService.TrustPeer:input_type -> aether.api.TrustPeerRequest
-	10, // 18: aether.api.PeerService.UntrustPeer:input_type -> aether.api.UntrustPeerRequest
-	11, // 19: aether.api.PeerService.RemovePeer:input_type -> aether.api.RemovePeerRequest
-	2,  // 20: aether.api.PeerService.DiscoverPeers:output_type -> aether.api.DiscoverPeersResponse
-	14, // 21: aether.api.PeerService.ConnectToPeer:output_type -> aether.api.Status
-	14, // 22: aether.api.PeerService.DisconnectFromPeer:output_type -> aether.api.Status
-	6,  // 23: aether.api.PeerService.ListPeers:output_type -> aether.api.ListPeersResponse
-	8,  // 24: aether.api.PeerService.GetPeerInfo:output_type -> aether.api.PeerInfoResponse
-	14, // 25: aether.api.PeerService.TrustPeer:output_type -> aether.api.Status
-	14, // 26: aether.api.PeerService.UntrustPeer:output_type -> aether.api.Status
-	14, // 27: aether.api.PeerService.RemovePeer:output_type -> aether.api.Status
-	20, // [20:28] is the sub-list for method output_type
-	12, // [12:20] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	19, // 11: aether.api.PeerInfoResponse.last_activity:type_name -> google.protobuf.Timestamp
+	21, // 12: aether.api.GetPendingConnectionsResponse.status:type_name -> aether.api.Status
+	14, // 13: aether.api.GetPendingConnectionsResponse.pending_connections:type_name -> aether.api.PendingConnection
+	1,  // 14: aether.api.PeerService.DiscoverPeers:input_type -> aether.api.DiscoverPeersRequest
+	3,  // 15: aether.api.PeerService.ConnectToPeer:input_type -> aether.api.ConnectToPeerRequest
+	4,  // 16: aether.api.PeerService.DisconnectFromPeer:input_type -> aether.api.DisconnectFromPeerRequest
+	5,  // 17: aether.api.PeerService.ListPeers:input_type -> aether.api.ListPeersRequest
+	7,  // 18: aether.api.PeerService.GetPeerInfo:input_type -> aether.api.GetPeerInfoRequest
+	9,  // 19: aether.api.PeerService.TrustPeer:input_type -> aether.api.TrustPeerRequest
+	10, // 20: aether.api.PeerService.UntrustPeer:input_type -> aether.api.UntrustPeerRequest
+	11, // 21: aether.api.PeerService.RemovePeer:input_type -> aether.api.RemovePeerRequest
+	12, // 22: aether.api.PeerService.GetPendingConnections:input_type -> aether.api.GetPendingConnectionsRequest
+	15, // 23: aether.api.PeerService.AcceptConnection:input_type -> aether.api.AcceptConnectionRequest
+	16, // 24: aether.api.PeerService.RejectConnection:input_type -> aether.api.RejectConnectionRequest
+	2,  // 25: aether.api.PeerService.DiscoverPeers:output_type -> aether.api.DiscoverPeersResponse
+	21, // 26: aether.api.PeerService.ConnectToPeer:output_type -> aether.api.Status
+	21, // 27: aether.api.PeerService.DisconnectFromPeer:output_type -> aether.api.Status
+	6,  // 28: aether.api.PeerService.ListPeers:output_type -> aether.api.ListPeersResponse
+	8,  // 29: aether.api.PeerService.GetPeerInfo:output_type -> aether.api.PeerInfoResponse
+	21, // 30: aether.api.PeerService.TrustPeer:output_type -> aether.api.Status
+	21, // 31: aether.api.PeerService.UntrustPeer:output_type -> aether.api.Status
+	21, // 32: aether.api.PeerService.RemovePeer:output_type -> aether.api.Status
+	13, // 33: aether.api.PeerService.GetPendingConnections:output_type -> aether.api.GetPendingConnectionsResponse
+	21, // 34: aether.api.PeerService.AcceptConnection:output_type -> aether.api.Status
+	21, // 35: aether.api.PeerService.RejectConnection:output_type -> aether.api.Status
+	25, // [25:36] is the sub-list for method output_type
+	14, // [14:25] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_api_proto_peer_proto_init() }
@@ -852,7 +1259,7 @@ func file_api_proto_peer_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_peer_proto_rawDesc), len(file_api_proto_peer_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

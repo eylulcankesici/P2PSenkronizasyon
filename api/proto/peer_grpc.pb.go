@@ -19,14 +19,17 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PeerService_DiscoverPeers_FullMethodName      = "/aether.api.PeerService/DiscoverPeers"
-	PeerService_ConnectToPeer_FullMethodName      = "/aether.api.PeerService/ConnectToPeer"
-	PeerService_DisconnectFromPeer_FullMethodName = "/aether.api.PeerService/DisconnectFromPeer"
-	PeerService_ListPeers_FullMethodName          = "/aether.api.PeerService/ListPeers"
-	PeerService_GetPeerInfo_FullMethodName        = "/aether.api.PeerService/GetPeerInfo"
-	PeerService_TrustPeer_FullMethodName          = "/aether.api.PeerService/TrustPeer"
-	PeerService_UntrustPeer_FullMethodName        = "/aether.api.PeerService/UntrustPeer"
-	PeerService_RemovePeer_FullMethodName         = "/aether.api.PeerService/RemovePeer"
+	PeerService_DiscoverPeers_FullMethodName         = "/aether.api.PeerService/DiscoverPeers"
+	PeerService_ConnectToPeer_FullMethodName         = "/aether.api.PeerService/ConnectToPeer"
+	PeerService_DisconnectFromPeer_FullMethodName    = "/aether.api.PeerService/DisconnectFromPeer"
+	PeerService_ListPeers_FullMethodName             = "/aether.api.PeerService/ListPeers"
+	PeerService_GetPeerInfo_FullMethodName           = "/aether.api.PeerService/GetPeerInfo"
+	PeerService_TrustPeer_FullMethodName             = "/aether.api.PeerService/TrustPeer"
+	PeerService_UntrustPeer_FullMethodName           = "/aether.api.PeerService/UntrustPeer"
+	PeerService_RemovePeer_FullMethodName            = "/aether.api.PeerService/RemovePeer"
+	PeerService_GetPendingConnections_FullMethodName = "/aether.api.PeerService/GetPendingConnections"
+	PeerService_AcceptConnection_FullMethodName      = "/aether.api.PeerService/AcceptConnection"
+	PeerService_RejectConnection_FullMethodName      = "/aether.api.PeerService/RejectConnection"
 )
 
 // PeerServiceClient is the client API for PeerService service.
@@ -51,6 +54,12 @@ type PeerServiceClient interface {
 	UntrustPeer(ctx context.Context, in *UntrustPeerRequest, opts ...grpc.CallOption) (*Status, error)
 	// Peer'ı kaldır
 	RemovePeer(ctx context.Context, in *RemovePeerRequest, opts ...grpc.CallOption) (*Status, error)
+	// Bekleyen bağlantı isteklerini al
+	GetPendingConnections(ctx context.Context, in *GetPendingConnectionsRequest, opts ...grpc.CallOption) (*GetPendingConnectionsResponse, error)
+	// Bağlantı isteğini onayla
+	AcceptConnection(ctx context.Context, in *AcceptConnectionRequest, opts ...grpc.CallOption) (*Status, error)
+	// Bağlantı isteğini reddet
+	RejectConnection(ctx context.Context, in *RejectConnectionRequest, opts ...grpc.CallOption) (*Status, error)
 }
 
 type peerServiceClient struct {
@@ -141,6 +150,36 @@ func (c *peerServiceClient) RemovePeer(ctx context.Context, in *RemovePeerReques
 	return out, nil
 }
 
+func (c *peerServiceClient) GetPendingConnections(ctx context.Context, in *GetPendingConnectionsRequest, opts ...grpc.CallOption) (*GetPendingConnectionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetPendingConnectionsResponse)
+	err := c.cc.Invoke(ctx, PeerService_GetPendingConnections_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *peerServiceClient) AcceptConnection(ctx context.Context, in *AcceptConnectionRequest, opts ...grpc.CallOption) (*Status, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Status)
+	err := c.cc.Invoke(ctx, PeerService_AcceptConnection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *peerServiceClient) RejectConnection(ctx context.Context, in *RejectConnectionRequest, opts ...grpc.CallOption) (*Status, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Status)
+	err := c.cc.Invoke(ctx, PeerService_RejectConnection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PeerServiceServer is the server API for PeerService service.
 // All implementations must embed UnimplementedPeerServiceServer
 // for forward compatibility.
@@ -163,6 +202,12 @@ type PeerServiceServer interface {
 	UntrustPeer(context.Context, *UntrustPeerRequest) (*Status, error)
 	// Peer'ı kaldır
 	RemovePeer(context.Context, *RemovePeerRequest) (*Status, error)
+	// Bekleyen bağlantı isteklerini al
+	GetPendingConnections(context.Context, *GetPendingConnectionsRequest) (*GetPendingConnectionsResponse, error)
+	// Bağlantı isteğini onayla
+	AcceptConnection(context.Context, *AcceptConnectionRequest) (*Status, error)
+	// Bağlantı isteğini reddet
+	RejectConnection(context.Context, *RejectConnectionRequest) (*Status, error)
 	mustEmbedUnimplementedPeerServiceServer()
 }
 
@@ -196,6 +241,15 @@ func (UnimplementedPeerServiceServer) UntrustPeer(context.Context, *UntrustPeerR
 }
 func (UnimplementedPeerServiceServer) RemovePeer(context.Context, *RemovePeerRequest) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemovePeer not implemented")
+}
+func (UnimplementedPeerServiceServer) GetPendingConnections(context.Context, *GetPendingConnectionsRequest) (*GetPendingConnectionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPendingConnections not implemented")
+}
+func (UnimplementedPeerServiceServer) AcceptConnection(context.Context, *AcceptConnectionRequest) (*Status, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AcceptConnection not implemented")
+}
+func (UnimplementedPeerServiceServer) RejectConnection(context.Context, *RejectConnectionRequest) (*Status, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RejectConnection not implemented")
 }
 func (UnimplementedPeerServiceServer) mustEmbedUnimplementedPeerServiceServer() {}
 func (UnimplementedPeerServiceServer) testEmbeddedByValue()                     {}
@@ -362,6 +416,60 @@ func _PeerService_RemovePeer_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PeerService_GetPendingConnections_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPendingConnectionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PeerServiceServer).GetPendingConnections(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PeerService_GetPendingConnections_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PeerServiceServer).GetPendingConnections(ctx, req.(*GetPendingConnectionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PeerService_AcceptConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AcceptConnectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PeerServiceServer).AcceptConnection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PeerService_AcceptConnection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PeerServiceServer).AcceptConnection(ctx, req.(*AcceptConnectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PeerService_RejectConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RejectConnectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PeerServiceServer).RejectConnection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PeerService_RejectConnection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PeerServiceServer).RejectConnection(ctx, req.(*RejectConnectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PeerService_ServiceDesc is the grpc.ServiceDesc for PeerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -400,6 +508,18 @@ var PeerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RemovePeer",
 			Handler:    _PeerService_RemovePeer_Handler,
+		},
+		{
+			MethodName: "GetPendingConnections",
+			Handler:    _PeerService_GetPendingConnections_Handler,
+		},
+		{
+			MethodName: "AcceptConnection",
+			Handler:    _PeerService_AcceptConnection_Handler,
+		},
+		{
+			MethodName: "RejectConnection",
+			Handler:    _PeerService_RejectConnection_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

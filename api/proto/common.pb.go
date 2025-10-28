@@ -77,9 +77,10 @@ func (SyncMode) EnumDescriptor() ([]byte, []int) {
 type PeerStatus int32
 
 const (
-	PeerStatus_PEER_STATUS_UNKNOWN PeerStatus = 0
-	PeerStatus_PEER_STATUS_ONLINE  PeerStatus = 1
-	PeerStatus_PEER_STATUS_OFFLINE PeerStatus = 2
+	PeerStatus_PEER_STATUS_UNKNOWN    PeerStatus = 0
+	PeerStatus_PEER_STATUS_ONLINE     PeerStatus = 1
+	PeerStatus_PEER_STATUS_OFFLINE    PeerStatus = 2
+	PeerStatus_PEER_STATUS_CONNECTING PeerStatus = 3
 )
 
 // Enum value maps for PeerStatus.
@@ -88,11 +89,13 @@ var (
 		0: "PEER_STATUS_UNKNOWN",
 		1: "PEER_STATUS_ONLINE",
 		2: "PEER_STATUS_OFFLINE",
+		3: "PEER_STATUS_CONNECTING",
 	}
 	PeerStatus_value = map[string]int32{
-		"PEER_STATUS_UNKNOWN": 0,
-		"PEER_STATUS_ONLINE":  1,
-		"PEER_STATUS_OFFLINE": 2,
+		"PEER_STATUS_UNKNOWN":    0,
+		"PEER_STATUS_ONLINE":     1,
+		"PEER_STATUS_OFFLINE":    2,
+		"PEER_STATUS_CONNECTING": 3,
 	}
 )
 
@@ -401,12 +404,13 @@ const file_api_proto_common_proto_rawDesc = "" +
 	"\x15SYNC_MODE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17SYNC_MODE_BIDIRECTIONAL\x10\x01\x12\x17\n" +
 	"\x13SYNC_MODE_SEND_ONLY\x10\x02\x12\x1a\n" +
-	"\x16SYNC_MODE_RECEIVE_ONLY\x10\x03*V\n" +
+	"\x16SYNC_MODE_RECEIVE_ONLY\x10\x03*r\n" +
 	"\n" +
 	"PeerStatus\x12\x17\n" +
 	"\x13PEER_STATUS_UNKNOWN\x10\x00\x12\x16\n" +
 	"\x12PEER_STATUS_ONLINE\x10\x01\x12\x17\n" +
-	"\x13PEER_STATUS_OFFLINE\x10\x02*7\n" +
+	"\x13PEER_STATUS_OFFLINE\x10\x02\x12\x1a\n" +
+	"\x16PEER_STATUS_CONNECTING\x10\x03*7\n" +
 	"\bUserRole\x12\x16\n" +
 	"\x12USER_ROLE_STANDARD\x10\x00\x12\x13\n" +
 	"\x0fUSER_ROLE_ADMIN\x10\x01B(Z&github.com/aether/sync/api/proto;protob\x06proto3"
