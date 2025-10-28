@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/crc32"
+	"log"
 	"time"
 
 	"google.golang.org/protobuf/proto"
@@ -70,22 +71,43 @@ func (p *Protocol) EncodeFrame(messageType uint16, payload []byte) ([]byte, erro
 	buf.WriteByte(MagicByte4)
 	
 	// Version
-	binary.Write(buf, binary.BigEndian, ProtocolVersion)
+	if err := binary.Write(buf, binary.BigEndian, ProtocolVersion); err != nil {
+		return nil, fmt.Errorf("version yazılamadı: %w", err)
+	}
 	
 	// Message type
-	binary.Write(buf, binary.BigEndian, messageType)
+	if err := binary.Write(buf, binary.BigEndian, messageType); err != nil {
+		return nil, fmt.Errorf("message type yazılamadı: %w", err)
+	}
 	
 	// Payload length
-	binary.Write(buf, binary.BigEndian, uint32(len(payload)))
+	if err := binary.Write(buf, binary.BigEndian, uint32(len(payload))); err != nil {
+		return nil, fmt.Errorf("payload length yazılamadı: %w", err)
+	}
 	
 	// Payload
-	buf.Write(payload)
+	if _, err := buf.Write(payload); err != nil {
+		return nil, fmt.Errorf("payload yazılamadı: %w", err)
+	}
 	
 	// CRC32 checksum (tüm frame üzerinden)
 	crc := crc32.ChecksumIEEE(buf.Bytes())
-	binary.Write(buf, binary.BigEndian, crc)
+	if err := binary.Write(buf, binary.BigEndian, crc); err != nil {
+		return nil, fmt.Errorf("CRC yazılamadı: %w", err)
+	}
 	
-	return buf.Bytes(), nil
+	frame := buf.Bytes()
+	
+	// Debug: Encode edilen frame'in ilk byte'larını logla
+	if messageType == MessageTypeConnectionRequest {
+		debugLen := len(frame)
+		if debugLen > 30 {
+			debugLen = 30
+		}
+		log.Printf("🔧 Encode edilen frame (ilk %d byte): %x", debugLen, frame[:debugLen])
+	}
+	
+	return frame, nil
 }
 
 // DecodeFrame binary frame'i decode eder
