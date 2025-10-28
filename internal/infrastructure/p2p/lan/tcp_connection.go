@@ -65,11 +65,13 @@ func NewTCPConnectionWithManager(peerID, address string, conn net.Conn, manager 
 		manager:       manager,
 	}
 	
-	// Manager varsa (server-side) messageLoop'u hemen başlat
+	// Manager varsa (server-side) messageLoop'u başlat
 	// Manager yoksa (client-side) Connect() başlatacak
 	if manager != nil {
 		go func() {
-			time.Sleep(100 * time.Millisecond) // Handshake tamamlansın
+			// Client'ın connection request göndermesi için daha fazla bekle
+			time.Sleep(200 * time.Millisecond)
+			log.Printf("🔄 Server-side messageLoop başlatılıyor (peer: %s)", tcpConn.peerID[:8])
 			tcpConn.messageLoop()
 		}()
 	}
@@ -537,6 +539,8 @@ func (m *TCPConnectionManager) handleConnectionRequestInManager(tcpConn *TCPConn
 
 // SendConnectionRequest connection request gönderir (client-side)
 func (c *TCPConnection) SendConnectionRequest(deviceID, deviceName string) error {
+	log.Printf("📤 Connection request hazırlanıyor: %s (%s)", deviceName, deviceID[:8])
+	
 	c.sendMu.Lock()
 	defer c.sendMu.Unlock()
 	
@@ -545,14 +549,20 @@ func (c *TCPConnection) SendConnectionRequest(deviceID, deviceName string) error
 		return fmt.Errorf("connection request encode hatası: %w", err)
 	}
 	
+	log.Printf("📦 Connection request frame hazır: %d bytes", len(request))
+	
 	// Frame boyutunu gönder
 	if err := c.writeUint32(uint32(len(request))); err != nil {
 		return fmt.Errorf("frame length yazılamadı: %w", err)
 	}
 	
+	log.Printf("✅ Frame length yazıldı: %d", len(request))
+	
 	// Frame'i gönder
-	if _, err := c.conn.Write(request); err != nil {
+	if n, err := c.conn.Write(request); err != nil {
 		return fmt.Errorf("frame yazılamadı: %w", err)
+	} else {
+		log.Printf("✅ Frame yazıldı: %d bytes", n)
 	}
 	
 	log.Printf("📤 Bağlantı isteği gönderildi: %s", deviceName)
