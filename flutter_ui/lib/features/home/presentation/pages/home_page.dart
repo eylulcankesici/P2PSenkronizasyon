@@ -8,6 +8,7 @@ import 'package:aether_desktop/data/providers/transfer_provider.dart';
 import 'package:aether_desktop/generated/api/proto/common.pb.dart';
 import 'package:aether_desktop/features/home/presentation/pages/folder_detail_page.dart';
 import 'package:aether_desktop/features/peers/presentation/pages/peers_page.dart';
+import 'package:aether_desktop/features/peers/presentation/widgets/connection_request_dialog.dart';
 import 'package:aether_desktop/features/transfers/presentation/pages/transfers_page.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -19,6 +20,38 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   int _selectedIndex = 0;
+  
+  @override
+  void initState() {
+    super.initState();
+    // Connection request listener
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _listenToPendingConnections();
+    });
+  }
+  
+  void _listenToPendingConnections() {
+    // Pending connections'ı dinle ve yeni gelenleri göster
+    ref.listenManual(pendingConnectionsProvider, (previous, next) {
+      if (previous != null && next.isNotEmpty) {
+        // Yeni eklenen connection request'i bul
+        final newRequests = next.where((p) => 
+          previous.every((prev) => prev.deviceId != p.deviceId)
+        ).toList();
+        
+        // Her yeni request için dialog göster
+        for (final request in newRequests) {
+          showDialog(
+            context: context,
+            builder: (context) => ConnectionRequestDialog(
+              deviceId: request.deviceId,
+              deviceName: request.deviceName,
+            ),
+          );
+        }
+      }
+    });
+  }
 
   final List<NavigationDestination> _destinations = const [
     NavigationDestination(

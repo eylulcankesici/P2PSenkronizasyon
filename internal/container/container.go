@@ -366,6 +366,14 @@ func (c *Container) initUseCases() error {
 		
 		lanTransport.SetChunkHandler(chunkHandler)
 		log.Println("✓ Chunk handler bağlandı")
+		
+		// Connection request callback'ini bağla
+		connMgr := lanTransport.GetTCPConnectionManager()
+		connMgr.SetOnConnectionRequested(func(deviceID, deviceName string) {
+			log.Printf("🔔 Connection request callback: %s (%s)", deviceName, deviceID[:8])
+			// Burada UI'a bildirim gönderilebilir (örneğin bir channel üzerinden)
+			// Şimdilik sadece log
+		})
 	}
 	
 	return nil

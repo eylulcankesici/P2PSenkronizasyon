@@ -32,6 +32,15 @@ service PeerService {
   
   // Peer'ı kaldır
   rpc RemovePeer(RemovePeerRequest) returns (Status);
+  
+  // Bekleyen bağlantı isteklerini al (streaming)
+  rpc GetPendingConnections(GetPendingConnectionsRequest) returns (stream PendingConnection);
+  
+  // Bağlantı isteğini onayla
+  rpc AcceptConnection(AcceptConnectionRequest) returns (Status);
+  
+  // Bağlantı isteğini reddet
+  rpc RejectConnection(RejectConnectionRequest) returns (Status);
 }
 
 // Mesajlar
@@ -101,6 +110,24 @@ message UntrustPeerRequest {
 
 message RemovePeerRequest {
   string peer_id = 1;
+}
+
+// Bağlantı istekleri için mesajlar
+message GetPendingConnectionsRequest {}
+
+message PendingConnection {
+  string device_id = 1;
+  string device_name = 2;
+  int64 timestamp = 3;
+}
+
+message AcceptConnectionRequest {
+  string device_id = 1;
+}
+
+message RejectConnectionRequest {
+  string device_id = 1;
+  string reason = 2;
 }
 
 // P2P bağlantı istek mesajları (binary protokol için)

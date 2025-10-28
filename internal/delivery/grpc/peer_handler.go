@@ -7,6 +7,7 @@ import (
 	pb "github.com/aether/sync/api/proto"
 	"github.com/aether/sync/internal/container"
 	"github.com/aether/sync/internal/domain/entity"
+	"github.com/aether/sync/internal/infrastructure/p2p/lan"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -202,6 +203,103 @@ func (h *PeerHandler) RemovePeer(ctx context.Context, req *pb.RemovePeerRequest)
 		Message: "PeerHandler - yakında implement edilecek",
 		Code:    501,
 	}, nil
+}
+
+// GetPendingConnections bekleyen bağlantı isteklerini döner (streaming)
+// TODO: Proto derlemesi sonrası aktif edilecek
+/*
+func (h *PeerHandler) GetPendingConnections(req *pb.GetPendingConnectionsRequest, stream pb.PeerService_GetPendingConnectionsServer) error {
+	transportProvider := h.container.TransportProvider()
+	lanTransport, ok := transportProvider.(*lan.LANTransport)
+	if !ok {
+		return fmt.Errorf("LAN transport bulunamadı")
+	}
+	
+	connMgr := lanTransport.GetTCPConnectionManager()
+	pendingConns := connMgr.GetPendingConnections()
+	
+	// Pending connections'ı stream olarak gönder
+	for _, pending := range pendingConns {
+		pbPending := &pb.PendingConnection{
+			DeviceId:   pending.DeviceID,
+			DeviceName: pending.DeviceName,
+			Timestamp:  pending.Timestamp.Unix(),
+		}
+		
+		if err := stream.Send(pbPending); err != nil {
+			return err
+		}
+	}
+	
+	return nil
+}
+*/
+
+// AcceptConnectionHelper bağlantı isteğini onaylar (internal helper)
+func AcceptConnectionHelper(transportProvider interface{}, deviceID string) error {
+	lanTransport, ok := transportProvider.(*lan.LANTransport)
+	if !ok {
+		return fmt.Errorf("LAN transport bulunamadı")
+	}
+	
+	connMgr := lanTransport.GetTCPConnectionManager()
+	return connMgr.AcceptConnection(deviceID)
+}
+
+// RejectConnectionHelper bağlantı isteğini reddeder (internal helper)
+func RejectConnectionHelper(transportProvider interface{}, deviceID string) error {
+	lanTransport, ok := transportProvider.(*lan.LANTransport)
+	if !ok {
+		return fmt.Errorf("LAN transport bulunamadı")
+	}
+	
+	connMgr := lanTransport.GetTCPConnectionManager()
+	return connMgr.RejectConnection(deviceID)
+}
+
+// GetPendingConnectionsHelper bekleyen bağlantıları döner (internal helper)
+func GetPendingConnectionsHelper(transportProvider interface{}) ([]interface {
+	DeviceID() string
+	DeviceName() string
+	Timestamp() int64
+}, error) {
+	lanTransport, ok := transportProvider.(*lan.LANTransport)
+	if !ok {
+		return nil, fmt.Errorf("LAN transport bulunamadı")
+	}
+	
+	connMgr := lanTransport.GetTCPConnectionManager()
+	pendingConns := connMgr.GetPendingConnections()
+	
+	// PendingConnection'ları interface'e dönüştür
+	result := make([]interface {
+		DeviceID() string
+		DeviceName() string
+		Timestamp() int64
+	}, len(pendingConns))
+	
+	for i, p := range pendingConns {
+		result[i] = pendingConnWrapper{p}
+	}
+	
+	return result, nil
+}
+
+// pendingConnWrapper pending connection wrapper
+type pendingConnWrapper struct {
+	pending *lan.PendingConnection
+}
+
+func (w pendingConnWrapper) DeviceID() string {
+	return w.pending.DeviceID
+}
+
+func (w pendingConnWrapper) DeviceName() string {
+	return w.pending.DeviceName
+}
+
+func (w pendingConnWrapper) Timestamp() int64 {
+	return w.pending.Timestamp.Unix()
 }
 
 // mapPeerStatus entity.PeerStatus'ü pb.PeerStatus'a çevirir

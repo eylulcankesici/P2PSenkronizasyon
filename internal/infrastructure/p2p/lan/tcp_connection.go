@@ -32,10 +32,18 @@ type TCPConnection struct {
 	
 	// Chunk handler
 	chunkHandler func(chunkHash string) ([]byte, error)
+	
+	// Manager referansı (connection request işlemek için)
+	manager *TCPConnectionManager
 }
 
 // NewTCPConnection yeni TCP connection oluşturur
 func NewTCPConnection(peerID, address string, conn net.Conn) *TCPConnection {
+	return NewTCPConnectionWithManager(peerID, address, conn, nil)
+}
+
+// NewTCPConnectionWithManager manager ile TCP connection oluşturur
+func NewTCPConnectionWithManager(peerID, address string, conn net.Conn, manager *TCPConnectionManager) *TCPConnection {
 	ctx, cancel := context.WithCancel(context.Background())
 	
 	tcpConn := &TCPConnection{
@@ -47,6 +55,7 @@ func NewTCPConnection(peerID, address string, conn net.Conn) *TCPConnection {
 		connectedAt:   time.Now(),
 		ctx:           ctx,
 		cancel:        cancel,
+		manager:       manager,
 	}
 	
 	// Start message loop
@@ -265,6 +274,15 @@ func (c *TCPConnection) handleMessage(messageType uint16, payload []byte) error 
 	case MessageTypePing:
 		return c.handlePing(payload)
 	case MessageTypeConnectionRequest:
+		// Manager varsa onun handler'ını kullan
+		if c.manager != nil {
+			deviceID, deviceName, err := c.protocol.DecodeConnectionRequest(payload)
+			if err != nil {
+				return fmt.Errorf("connection request decode hatası: %w", err)
+			}
+			c.manager.handleConnectionRequestInManager(c, deviceID, deviceName)
+			return nil
+		}
 		return c.handleConnectionRequest(payload)
 	case MessageTypeConnectionAccept, MessageTypeConnectionReject:
 		// Bu mesajlar client tarafında işlenecek
@@ -353,38 +371,131 @@ func (c *TCPConnection) handlePing(payload []byte) error {
 }
 
 // handleConnectionRequest connection request'i işler (server-side)
+// Bu fonksiyon artık manager üzerinden çağrılmalı
 func (c *TCPConnection) handleConnectionRequest(payload []byte) error {
-	deviceID, deviceName, err := c.protocol.DecodeConnectionRequest(payload)
-	if err != nil {
-		return fmt.Errorf("connection request decode hatası: %w", err)
-	}
-	
+	// Bu metod artık kullanılmıyor, handleConnectionRequestInManager kullanılmalı
+	return fmt.Errorf("deprecated: handleConnectionRequestInManager kullanın")
+}
+
+// handleConnectionRequestInManager connection request'i manager üzerinden işler
+func (m *TCPConnectionManager) handleConnectionRequestInManager(tcpConn *TCPConnection, deviceID, deviceName string) {
 	log.Printf("🔔 Bağlantı isteği alındı: %s (%s)", deviceName, deviceID[:8])
 	
-	// Şimdilik otomatik kabul et (ileride UI'dan onay alınabilir)
-	// TODO: UI'dan onay mekanizması eklenebilir
-	
-	// Accept gönder
-	c.sendMu.Lock()
-	defer c.sendMu.Unlock()
-	
-	response, err := c.protocol.EncodeConnectionAccept(c.peerID)
-	if err != nil {
-		return fmt.Errorf("connection accept encode hatası: %w", err)
+	// Pending connection oluştur
+	pending := &PendingConnection{
+		DeviceID:   deviceID,
+		DeviceName: deviceName,
+		Conn:       tcpConn,
+		Timestamp:  time.Now(),
+		ResponseCh: make(chan bool, 1),
 	}
 	
-	// Frame boyutunu gönder
-	if err := c.writeUint32(uint32(len(response))); err != nil {
-		return fmt.Errorf("frame length yazılamadı: %w", err)
+	// Pending listesine ekle
+	m.mu.Lock()
+	m.pendingConns[deviceID] = pending
+	m.mu.Unlock()
+	
+	// Callback çağır (UI'a bildir)
+	if m.onConnectionRequested != nil {
+		m.onConnectionRequested(deviceID, deviceName)
 	}
 	
-	// Frame'i gönder
-	if _, err := c.conn.Write(response); err != nil {
-		return fmt.Errorf("frame yazılamadı: %w", err)
-	}
-	
-	log.Printf("✅ Bağlantı kabul edildi: %s", deviceName)
-	return nil
+	// UI'dan yanıt bekle (30 saniye timeout)
+	go func() {
+		select {
+		case accepted := <-pending.ResponseCh:
+			m.mu.Lock()
+			delete(m.pendingConns, deviceID)
+			m.mu.Unlock()
+			
+			if accepted {
+				// Accept gönder
+				tcpConn.sendMu.Lock()
+				response, err := tcpConn.protocol.EncodeConnectionAccept(m.deviceID)
+				if err != nil {
+					log.Printf("⚠️ Connection accept encode hatası: %v", err)
+					tcpConn.sendMu.Unlock()
+					return
+				}
+				
+				// Frame boyutunu gönder
+				if err := tcpConn.writeUint32(uint32(len(response))); err != nil {
+					log.Printf("⚠️ Frame length yazılamadı: %v", err)
+					tcpConn.sendMu.Unlock()
+					return
+				}
+				
+				// Frame'i gönder
+				if _, err := tcpConn.conn.Write(response); err != nil {
+					log.Printf("⚠️ Frame yazılamadı: %v", err)
+					tcpConn.sendMu.Unlock()
+					return
+				}
+				tcpConn.sendMu.Unlock()
+				
+				// Connection pool'a ekle
+				m.mu.Lock()
+				m.connections[deviceID] = tcpConn
+				m.mu.Unlock()
+				
+				// Chunk handler'ı bağla (varsa)
+				if m.chunkHandlerCallback != nil {
+					tcpConn.SetChunkHandler(m.chunkHandlerCallback)
+				}
+				
+				// Callback çağır
+				if m.onConnectionEstablished != nil {
+					m.onConnectionEstablished(tcpConn)
+				}
+				
+				log.Printf("✅ Bağlantı kabul edildi: %s", deviceName)
+			} else {
+				// Reject gönder
+				tcpConn.sendMu.Lock()
+				response, err := tcpConn.protocol.EncodeConnectionReject("Bağlantı reddedildi")
+				if err != nil {
+					log.Printf("⚠️ Connection reject encode hatası: %v", err)
+					tcpConn.sendMu.Unlock()
+					tcpConn.Close()
+					return
+				}
+				
+				// Frame boyutunu gönder
+				if err := tcpConn.writeUint32(uint32(len(response))); err != nil {
+					log.Printf("⚠️ Frame length yazılamadı: %v", err)
+					tcpConn.sendMu.Unlock()
+					tcpConn.Close()
+					return
+				}
+				
+				// Frame'i gönder
+				if _, err := tcpConn.conn.Write(response); err != nil {
+					log.Printf("⚠️ Frame yazılamadı: %v", err)
+					tcpConn.sendMu.Unlock()
+					tcpConn.Close()
+					return
+				}
+				tcpConn.sendMu.Unlock()
+				
+				tcpConn.Close()
+				log.Printf("❌ Bağlantı reddedildi: %s", deviceName)
+			}
+		case <-time.After(30 * time.Second):
+			// Timeout - otomatik reddet
+			m.mu.Lock()
+			delete(m.pendingConns, deviceID)
+			m.mu.Unlock()
+			
+			tcpConn.sendMu.Lock()
+			response, _ := tcpConn.protocol.EncodeConnectionReject("İstek zaman aşımına uğradı")
+			tcpConn.writeUint32(uint32(len(response)))
+			tcpConn.conn.Write(response)
+			tcpConn.sendMu.Unlock()
+			
+			tcpConn.Close()
+			log.Printf("⏱️ Bağlantı isteği zaman aşımına uğradı: %s", deviceName)
+		}
+	}()
 }
 
 // SendConnectionRequest connection request gönderir (client-side)
@@ -518,6 +629,16 @@ func (c *TCPConnection) readUint32() (uint32, error) {
 	return val, nil
 }
 
+// PendingConnection bekleyen bağlantı isteği
+// Bu struct export edilmiştir, external code tarafından kullanılabilir
+type PendingConnection struct {
+	DeviceID   string
+	DeviceName string
+	Conn       *TCPConnection
+	Timestamp  time.Time
+	ResponseCh chan bool // true = accept, false = reject
+}
+
 // TCPConnectionManager TCP bağlantı yöneticisi
 type TCPConnectionManager struct {
 	listener   net.Listener
@@ -525,14 +646,16 @@ type TCPConnectionManager struct {
 	deviceID   string
 	deviceName string
 	
-	connections map[string]*TCPConnection
-	mu          sync.RWMutex
+	connections     map[string]*TCPConnection
+	pendingConns    map[string]*PendingConnection
+	mu              sync.RWMutex
 	
 	ctx    context.Context
 	cancel context.CancelFunc
 	
 	// Callbacks
 	onConnectionEstablished func(transport.Connection)
+	onConnectionRequested   func(deviceID, deviceName string)
 	chunkHandlerCallback    func(chunkHash string) ([]byte, error)
 }
 
@@ -541,12 +664,13 @@ func NewTCPConnectionManager(port int, deviceID, deviceName string) *TCPConnecti
 	ctx, cancel := context.WithCancel(context.Background())
 	
 	return &TCPConnectionManager{
-		port:        port,
-		deviceID:    deviceID,
-		deviceName:  deviceName,
-		connections: make(map[string]*TCPConnection),
-		ctx:         ctx,
-		cancel:      cancel,
+		port:         port,
+		deviceID:     deviceID,
+		deviceName:   deviceName,
+		connections:  make(map[string]*TCPConnection),
+		pendingConns: make(map[string]*PendingConnection),
+		ctx:          ctx,
+		cancel:       cancel,
 	}
 }
 
@@ -661,29 +785,18 @@ func (m *TCPConnectionManager) handleIncomingConnection(conn net.Conn) {
 	log.Printf("✅ Handshake başarılı: %s (%s) @ %s", 
 		peerHandshake.DeviceName, peerHandshake.DeviceID[:8], conn.RemoteAddr())
 	
-	// TCPConnection oluştur
-	tcpConn := NewTCPConnection(peerHandshake.DeviceID, conn.RemoteAddr().String(), conn)
+	// TCPConnection oluştur (manager ile)
+	tcpConn := NewTCPConnectionWithManager(peerHandshake.DeviceID, conn.RemoteAddr().String(), conn, m)
 	
-	// Connection pool'a ekle
-	m.mu.Lock()
-	m.connections[peerHandshake.DeviceID] = tcpConn
-	m.mu.Unlock()
+	// Connection request bekle (messageLoop içinde işlenecek)
+	// Connection request geldiğinde handleConnectionRequestInManager çağrılacak
+	// Bu connection'ı özel bir şekilde işlemek için messageLoop'a manager referansı verilmeli
+	// Şimdilik basit bir yaklaşım: connection request'i manuel olarak bekle
 	
-	// Chunk handler'ı bağla (varsa)
-	if m.chunkHandlerCallback != nil {
-		tcpConn.SetChunkHandler(m.chunkHandlerCallback)
-	}
+	// Connection'ı geçici olarak sakla (handleConnectionRequestInManager'da işlenecek)
+	// MessageLoop connection request'i aldığında manager'a bildirecek
 	
-	// Callback çağır
-	if m.onConnectionEstablished != nil {
-		m.onConnectionEstablished(tcpConn)
-	}
-	
-	log.Printf("🔗 Peer bağlantı kabul edildi: %s (%s)", 
-		peerHandshake.DeviceName, peerHandshake.DeviceID[:8])
-	
-	// Connection'ı aktif tut (chunk request/response için)
-	// Bu goroutine connection kapatılana kadar yaşar
+	// Connection'ı aktif tut - connection request geldiğinde handleConnectionRequestInManager çağrılacak
 	<-tcpConn.ctx.Done()
 	log.Printf("🔌 Peer bağlantısı kapandı: %s", peerHandshake.DeviceID[:8])
 }
@@ -744,5 +857,60 @@ func (m *TCPConnectionManager) SetChunkHandler(handler func(chunkHash string) ([
 		conn.SetChunkHandler(handler)
 	}
 	m.mu.RUnlock()
+}
+
+// SetOnConnectionRequested connection requested callback'ini set eder
+func (m *TCPConnectionManager) SetOnConnectionRequested(callback func(deviceID, deviceName string)) {
+	m.onConnectionRequested = callback
+}
+
+// GetPendingConnections bekleyen bağlantı isteklerini döner
+func (m *TCPConnectionManager) GetPendingConnections() []*PendingConnection {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	
+	pending := make([]*PendingConnection, 0, len(m.pendingConns))
+	for _, p := range m.pendingConns {
+		pending = append(pending, p)
+	}
+	return pending
+}
+
+// AcceptConnection bağlantı isteğini onaylar
+func (m *TCPConnectionManager) AcceptConnection(deviceID string) error {
+	m.mu.RLock()
+	pending, exists := m.pendingConns[deviceID]
+	m.mu.RUnlock()
+	
+	if !exists {
+		return fmt.Errorf("bekleyen bağlantı isteği bulunamadı: %s", deviceID)
+	}
+	
+	// Response channel'a true gönder
+	select {
+	case pending.ResponseCh <- true:
+		return nil
+	default:
+		return fmt.Errorf("bağlantı isteği zaten işlenmiş")
+	}
+}
+
+// RejectConnection bağlantı isteğini reddeder
+func (m *TCPConnectionManager) RejectConnection(deviceID string) error {
+	m.mu.RLock()
+	pending, exists := m.pendingConns[deviceID]
+	m.mu.RUnlock()
+	
+	if !exists {
+		return fmt.Errorf("bekleyen bağlantı isteği bulunamadı: %s", deviceID)
+	}
+	
+	// Response channel'a false gönder
+	select {
+	case pending.ResponseCh <- false:
+		return nil
+	default:
+		return fmt.Errorf("bağlantı isteği zaten işlenmiş")
+	}
 }
 

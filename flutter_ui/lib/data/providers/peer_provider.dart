@@ -202,10 +202,92 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
       return null;
     }
   }
+  
+  /// Bağlantı isteğini onayla
+  Future<void> acceptConnection(String deviceId) async {
+    state = const AsyncValue.loading();
+    
+    try {
+      final client = ref.read(grpcClientProvider);
+      
+      // TODO: AcceptConnection endpoint'i proto derlenince aktif olacak
+      // Şimdilik placeholder
+      await Future.delayed(const Duration(milliseconds: 100));
+      
+      // Bağlı peer listesini yenile
+      ref.invalidate(connectedPeersProvider);
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+  
+  /// Bağlantı isteğini reddet
+  Future<void> rejectConnection(String deviceId) async {
+    state = const AsyncValue.loading();
+    
+    try {
+      final client = ref.read(grpcClientProvider);
+      
+      // TODO: RejectConnection endpoint'i proto derlenince aktif olacak
+      // Şimdilik placeholder
+      await Future.delayed(const Duration(milliseconds: 100));
+      
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
 }
 
 final peerNotifierProvider = StateNotifierProvider<PeerNotifier, AsyncValue<void>>((ref) {
   return PeerNotifier(ref);
 });
+
+/// Pending connection model
+class PendingConnection {
+  final String deviceId;
+  final String deviceName;
+  final DateTime timestamp;
+  
+  PendingConnection({
+    required this.deviceId,
+    required this.deviceName,
+    required this.timestamp,
+  });
+}
+
+/// Pending connections state
+final pendingConnectionsProvider = StateNotifierProvider<PendingConnectionsNotifier, List<PendingConnection>>((ref) {
+  return PendingConnectionsNotifier(ref);
+});
+
+class PendingConnectionsNotifier extends StateNotifier<List<PendingConnection>> {
+  PendingConnectionsNotifier(this.ref) : super([]);
+  
+  final Ref ref;
+  
+  /// Pending connection ekle
+  void addPendingConnection(String deviceId, String deviceName) {
+    state = [
+      ...state,
+      PendingConnection(
+        deviceId: deviceId,
+        deviceName: deviceName,
+        timestamp: DateTime.now(),
+      ),
+    ];
+  }
+  
+  /// Pending connection kaldır
+  void removePendingConnection(String deviceId) {
+    state = state.where((p) => p.deviceId != deviceId).toList();
+  }
+  
+  /// Tüm pending connections'ı temizle
+  void clear() {
+    state = [];
+  }
+}
 
 

@@ -183,3 +183,8 @@ func (t *LANTransport) SetChunkHandler(handler func(chunkHash string) ([]byte, e
 	t.connMgr.SetChunkHandler(handler)
 }
 
+// GetTCPConnectionManager TCP connection manager'ı döner (internal use)
+func (t *LANTransport) GetTCPConnectionManager() *TCPConnectionManager {
+	return t.connMgr
+}
+
