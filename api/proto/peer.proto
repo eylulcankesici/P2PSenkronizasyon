@@ -103,6 +103,19 @@ message RemovePeerRequest {
   string peer_id = 1;
 }
 
+// P2P bağlantı istek mesajları (binary protokol için)
+message ConnectionRequest {
+  string device_id = 1;
+  string device_name = 2;
+  int64 timestamp = 3;
+}
+
+message ConnectionResponse {
+  bool accepted = 1;
+  string message = 2;
+  string device_id = 3;
+}
+
 
 
 

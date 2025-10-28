@@ -99,7 +99,7 @@ func (t *LANTransport) Connect(ctx context.Context, peer *transport.DiscoveredPe
 	// İlk adresi kullan
 	address := peer.Addresses[0]
 	
-	conn, err := t.connMgr.Connect(ctx, address, peer.DeviceID)
+	conn, err := t.connMgr.Connect(ctx, address, peer.DeviceID, peer.DeviceName)
 	if err != nil {
 		return nil, fmt.Errorf("bağlantı kurulamadı: %w", err)
 	}

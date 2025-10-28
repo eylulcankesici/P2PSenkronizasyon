@@ -3,8 +3,10 @@ package lan
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"hash/crc32"
+	"time"
 
 	"google.golang.org/protobuf/proto"
 
@@ -325,5 +327,125 @@ func (p *Protocol) DecodePong(data []byte) (int64, error) {
 	return resp.LatencyMs, nil
 }
 
+// connectionRequest connection request için basit struct
+type connectionRequest struct {
+	DeviceID   string `json:"device_id"`
+	DeviceName string `json:"device_name"`
+	Timestamp  int64  `json:"timestamp"`
+}
 
+// connectionResponse connection response için basit struct
+type connectionResponse struct {
+	Accepted bool   `json:"accepted"`
+	Message  string `json:"message"`
+	DeviceID string `json:"device_id"`
+}
+
+// EncodeConnectionRequest connection request mesajı oluşturur
+func (p *Protocol) EncodeConnectionRequest(deviceID, deviceName string) ([]byte, error) {
+	req := &connectionRequest{
+		DeviceID:   deviceID,
+		DeviceName: deviceName,
+		Timestamp:  time.Now().Unix(),
+	}
+	
+	payload, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("JSON marshal hatası: %w", err)
+	}
+	
+	return p.EncodeFrame(MessageTypeConnectionRequest, payload)
+}
+
+// DecodeConnectionRequest connection request mesajını parse eder
+func (p *Protocol) DecodeConnectionRequest(data []byte) (string, string, error) {
+	messageType, payload, err := p.DecodeFrame(data)
+	if err != nil {
+		return "", "", err
+	}
+	
+	if messageType != MessageTypeConnectionRequest {
+		return "", "", fmt.Errorf("beklenmeyen message type: 0x%04x", messageType)
+	}
+	
+	req := &connectionRequest{}
+	if err := json.Unmarshal(payload, req); err != nil {
+		return "", "", fmt.Errorf("JSON unmarshal hatası: %w", err)
+	}
+	
+	return req.DeviceID, req.DeviceName, nil
+}
+
+// EncodeConnectionAccept connection accept mesajı oluşturur
+func (p *Protocol) EncodeConnectionAccept(deviceID string) ([]byte, error) {
+	resp := &connectionResponse{
+		Accepted: true,
+		Message:  "Bağlantı kabul edildi",
+		DeviceID: deviceID,
+	}
+	
+	payload, err := json.Marshal(resp)
+	if err != nil {
+		return nil, fmt.Errorf("JSON marshal hatası: %w", err)
+	}
+	
+	return p.EncodeFrame(MessageTypeConnectionAccept, payload)
+}
+
+// DecodeConnectionAccept connection accept mesajını parse eder
+func (p *Protocol) DecodeConnectionAccept(data []byte) (string, error) {
+	messageType, payload, err := p.DecodeFrame(data)
+	if err != nil {
+		return "", err
+	}
+	
+	if messageType != MessageTypeConnectionAccept {
+		return "", fmt.Errorf("beklenmeyen message type: 0x%04x", messageType)
+	}
+	
+	resp := &connectionResponse{}
+	if err := json.Unmarshal(payload, resp); err != nil {
+		return "", fmt.Errorf("JSON unmarshal hatası: %w", err)
+	}
+	
+	if !resp.Accepted {
+		return "", fmt.Errorf("bağlantı reddedildi: %s", resp.Message)
+	}
+	
+	return resp.DeviceID, nil
+}
+
+// EncodeConnectionReject connection reject mesajı oluşturur
+func (p *Protocol) EncodeConnectionReject(reason string) ([]byte, error) {
+	resp := &connectionResponse{
+		Accepted: false,
+		Message:  reason,
+	}
+	
+	payload, err := json.Marshal(resp)
+	if err != nil {
+		return nil, fmt.Errorf("JSON marshal hatası: %w", err)
+	}
+	
+	return p.EncodeFrame(MessageTypeConnectionReject, payload)
+}
+
+// DecodeConnectionReject connection reject mesajını parse eder
+func (p *Protocol) DecodeConnectionReject(data []byte) (string, error) {
+	messageType, payload, err := p.DecodeFrame(data)
+	if err != nil {
+		return "", err
+	}
+	
+	if messageType != MessageTypeConnectionReject {
+		return "", fmt.Errorf("beklenmeyen message type: 0x%04x", messageType)
+	}
+	
+	resp := &connectionResponse{}
+	if err := json.Unmarshal(payload, resp); err != nil {
+		return "", fmt.Errorf("JSON unmarshal hatası: %w", err)
+	}
+	
+	return resp.Message, nil
+}
 

@@ -264,6 +264,11 @@ func (c *TCPConnection) handleMessage(messageType uint16, payload []byte) error 
 		return c.handleChunkRequest(payload)
 	case MessageTypePing:
 		return c.handlePing(payload)
+	case MessageTypeConnectionRequest:
+		return c.handleConnectionRequest(payload)
+	case MessageTypeConnectionAccept, MessageTypeConnectionReject:
+		// Bu mesajlar client tarafında işlenecek
+		return nil
 	default:
 		return fmt.Errorf("bilinmeyen mesaj tipi: 0x%04x", messageType)
 	}
@@ -345,6 +350,107 @@ func (c *TCPConnection) handlePing(payload []byte) error {
 	}
 	
 	return nil
+}
+
+// handleConnectionRequest connection request'i işler (server-side)
+func (c *TCPConnection) handleConnectionRequest(payload []byte) error {
+	deviceID, deviceName, err := c.protocol.DecodeConnectionRequest(payload)
+	if err != nil {
+		return fmt.Errorf("connection request decode hatası: %w", err)
+	}
+	
+	log.Printf("🔔 Bağlantı isteği alındı: %s (%s)", deviceName, deviceID[:8])
+	
+	// Şimdilik otomatik kabul et (ileride UI'dan onay alınabilir)
+	// TODO: UI'dan onay mekanizması eklenebilir
+	
+	// Accept gönder
+	c.sendMu.Lock()
+	defer c.sendMu.Unlock()
+	
+	response, err := c.protocol.EncodeConnectionAccept(c.peerID)
+	if err != nil {
+		return fmt.Errorf("connection accept encode hatası: %w", err)
+	}
+	
+	// Frame boyutunu gönder
+	if err := c.writeUint32(uint32(len(response))); err != nil {
+		return fmt.Errorf("frame length yazılamadı: %w", err)
+	}
+	
+	// Frame'i gönder
+	if _, err := c.conn.Write(response); err != nil {
+		return fmt.Errorf("frame yazılamadı: %w", err)
+	}
+	
+	log.Printf("✅ Bağlantı kabul edildi: %s", deviceName)
+	return nil
+}
+
+// SendConnectionRequest connection request gönderir (client-side)
+func (c *TCPConnection) SendConnectionRequest(deviceID, deviceName string) error {
+	c.sendMu.Lock()
+	defer c.sendMu.Unlock()
+	
+	request, err := c.protocol.EncodeConnectionRequest(deviceID, deviceName)
+	if err != nil {
+		return fmt.Errorf("connection request encode hatası: %w", err)
+	}
+	
+	// Frame boyutunu gönder
+	if err := c.writeUint32(uint32(len(request))); err != nil {
+		return fmt.Errorf("frame length yazılamadı: %w", err)
+	}
+	
+	// Frame'i gönder
+	if _, err := c.conn.Write(request); err != nil {
+		return fmt.Errorf("frame yazılamadı: %w", err)
+	}
+	
+	log.Printf("📤 Bağlantı isteği gönderildi: %s", deviceName)
+	return nil
+}
+
+// WaitForConnectionResponse connection response bekler (client-side)
+func (c *TCPConnection) WaitForConnectionResponse(timeout time.Duration) error {
+	// Frame boyutunu oku
+	frameLen, err := c.readUint32()
+	if err != nil {
+		return fmt.Errorf("response length okunamadı: %w", err)
+	}
+	
+	// Frame'i oku
+	frame := make([]byte, frameLen)
+	if _, err := io.ReadFull(c.conn, frame); err != nil {
+		return fmt.Errorf("response frame okunamadı: %w", err)
+	}
+	
+	// Decode et
+	messageType, _, err := c.protocol.DecodeFrame(frame)
+	if err != nil {
+		return fmt.Errorf("response decode hatası: %w", err)
+	}
+	
+	// Accept mesajı mı?
+	if messageType == MessageTypeConnectionAccept {
+		_, err := c.protocol.DecodeConnectionAccept(frame)
+		if err != nil {
+			return fmt.Errorf("connection accept decode hatası: %w", err)
+		}
+		log.Printf("✅ Bağlantı kabul edildi")
+		return nil
+	}
+	
+	// Reject mesajı mı?
+	if messageType == MessageTypeConnectionReject {
+		reason, err := c.protocol.DecodeConnectionReject(frame)
+		if err != nil {
+			return fmt.Errorf("connection reject decode hatası: %w", err)
+		}
+		return fmt.Errorf("bağlantı reddedildi: %s", reason)
+	}
+	
+	return fmt.Errorf("beklenmeyen mesaj tipi: 0x%04x", messageType)
 }
 
 // Close bağlantıyı kapatır
@@ -463,7 +569,7 @@ func (m *TCPConnectionManager) Listen(ctx context.Context, port int) error {
 }
 
 // Connect peer'a TCP bağlantısı kurar
-func (m *TCPConnectionManager) Connect(ctx context.Context, address string, peerID string) (transport.Connection, error) {
+func (m *TCPConnectionManager) Connect(ctx context.Context, address string, peerID string, deviceName string) (transport.Connection, error) {
 	// TCP dial
 	conn, err := net.DialTimeout("tcp", address, 5*time.Second)
 	if err != nil {
@@ -483,15 +589,27 @@ func (m *TCPConnectionManager) Connect(ctx context.Context, address string, peer
 		return nil, fmt.Errorf("peer ID uyuşmazlığı: expected=%s, got=%s", peerID, peerHandshake.DeviceID)
 	}
 	
-	// TCPConnection oluştur
+	// TCPConnection oluştur (messageLoop başlamadan önce)
 	tcpConn := NewTCPConnection(peerID, address, conn)
+	
+	// Connection request gönder
+	if err := tcpConn.SendConnectionRequest(m.deviceID, m.deviceName); err != nil {
+		tcpConn.Close()
+		return nil, fmt.Errorf("connection request gönderilemedi: %w", err)
+	}
+	
+	// Connection response bekle (5 saniye timeout)
+	if err := tcpConn.WaitForConnectionResponse(5 * time.Second); err != nil {
+		tcpConn.Close()
+		return nil, fmt.Errorf("connection response alınamadı: %w", err)
+	}
 	
 	// Connection pool'a ekle
 	m.mu.Lock()
 	m.connections[peerID] = tcpConn
 	m.mu.Unlock()
 	
-	log.Printf("🔗 TCP bağlantı kuruldu: %s (%s) - %s", peerHandshake.DeviceName, peerID[:8], address)
+	log.Printf("🔗 TCP bağlantı kuruldu ve kabul edildi: %s (%s) - %s", peerHandshake.DeviceName, peerID[:8], address)
 	
 	return tcpConn, nil
 }
