@@ -67,10 +67,21 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
 
   Widget _buildDiscoveredPeersTab() {
     final peersAsync = ref.watch(discoveredPeersProvider);
+    final connectedPeersAsync = ref.watch(connectedPeersProvider);
 
     return peersAsync.when(
       data: (peers) {
-        if (peers.isEmpty) {
+        // Bağlı peer'ların ID'lerini al
+        final connectedIds = connectedPeersAsync.valueOrNull
+            ?.map((p) => p.deviceId)
+            .toSet() ?? {};
+        
+        // Zaten bağlı olan peer'ları filtrele
+        final availablePeers = peers
+            .where((peer) => !connectedIds.contains(peer.deviceId))
+            .toList();
+        
+        if (availablePeers.isEmpty) {
           return _buildEmptyState(
             icon: LucideIcons.search,
             title: 'Peer Bulunamadı',
@@ -87,10 +98,10 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
             await ref.read(peerNotifierProvider.notifier).discoverPeers();
           },
           child: ListView.builder(
-            itemCount: peers.length,
+            itemCount: availablePeers.length,
             padding: const EdgeInsets.all(16),
             itemBuilder: (context, index) {
-              return _buildPeerCard(peers[index], isConnected: false);
+              return _buildPeerCard(availablePeers[index], isConnected: false);
             },
           ),
         );
@@ -223,23 +234,28 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
               children: [
                 if (!isConnected)
                   TextButton.icon(
-                    onPressed: () {
-                      ref
+                    onPressed: () async {
+                      await ref
                           .read(peerNotifierProvider.notifier)
                           .connectToPeer(peer.deviceId);
+                      // Bağlı peer listesini yenile
+                      ref.invalidate(connectedPeersProvider);
                     },
                     icon: const Icon(LucideIcons.link, size: 16),
                     label: const Text('Bağlan'),
                   ),
                 if (isConnected)
                   TextButton.icon(
-                    onPressed: () {
-                      ref
+                    onPressed: () async {
+                      await ref
                           .read(peerNotifierProvider.notifier)
                           .disconnectFromPeer(peer.deviceId);
+                      // Bağlı peer listesini yenile
+                      ref.invalidate(connectedPeersProvider);
                     },
                     icon: const Icon(LucideIcons.link2Off, size: 16),
                     label: const Text('Bağlantıyı Kes'),
+                    style: TextButton.styleFrom(foregroundColor: Colors.red),
                   ),
                 const SizedBox(width: 8),
                 if (!peer.isTrusted)

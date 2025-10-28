@@ -90,6 +90,8 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
       if (response.success) {
         // Bağlı peer listesini yenile
         ref.invalidate(connectedPeersProvider);
+        // Keşfedilen peer listesini de yenile (bağlantı kesildi, tekrar keşfedilebilir)
+        ref.invalidate(discoveredPeersProvider);
         state = const AsyncValue.data(null);
       } else {
         state = AsyncValue.error(
