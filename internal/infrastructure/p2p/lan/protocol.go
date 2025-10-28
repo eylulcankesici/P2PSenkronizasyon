@@ -101,14 +101,21 @@ func (p *Protocol) DecodeFrame(frame []byte) (messageType uint16, payload []byte
 	buf.Read(magic)
 	if magic[0] != MagicByte1 || magic[1] != MagicByte2 || 
 	   magic[2] != MagicByte3 || magic[3] != MagicByte4 {
-		return 0, nil, fmt.Errorf("geçersiz magic bytes")
+		return 0, nil, fmt.Errorf("geçersiz magic bytes: %02x %02x %02x %02x", magic[0], magic[1], magic[2], magic[3])
 	}
 	
 	// Version
 	var version uint16
 	binary.Read(buf, binary.BigEndian, &version)
 	if version != ProtocolVersion {
-		return 0, nil, fmt.Errorf("desteklenmeyen protocol version: 0x%04x", version)
+		// Debug: frame'in ilk birkaç byte'ını logla
+		debugLen := len(frame)
+		if debugLen > 20 {
+			debugLen = 20
+		}
+		debugBytes := make([]byte, debugLen)
+		copy(debugBytes, frame)
+		return 0, nil, fmt.Errorf("desteklenmeyen protocol version: 0x%04x (expected: 0x%04x), frame start: %x", version, ProtocolVersion, debugBytes)
 	}
 	
 	// Message type

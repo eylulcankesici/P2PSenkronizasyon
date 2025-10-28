@@ -62,8 +62,12 @@ func NewTCPConnectionWithManager(peerID, address string, conn net.Conn, manager 
 		manager:       manager,
 	}
 	
-	// Start message loop
-	go tcpConn.messageLoop()
+	// Start message loop (handshake tamamlandıktan sonra başlatılmalı)
+	// Kısa bir gecikme ile başlat ki handshake tamamen tamamlansın
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		tcpConn.messageLoop()
+	}()
 	
 	return tcpConn
 }
@@ -232,25 +236,30 @@ func (c *TCPConnection) Ping(ctx context.Context) (time.Duration, error) {
 
 // messageLoop gelen mesajları işler
 func (c *TCPConnection) messageLoop() {
+	log.Printf("🔄 Message loop başladı (peer: %s)", c.peerID[:8])
+	
 	for {
 		select {
 		case <-c.ctx.Done():
+			log.Printf("🔌 Message loop sonlandı (peer: %s)", c.peerID[:8])
 			return
 		default:
 			// Frame boyutunu oku
 			frameLen, err := c.readUint32()
 			if err != nil {
 				if c.ctx.Err() == nil {
-					log.Printf("⚠️ Frame length okuma hatası: %v", err)
+					log.Printf("⚠️ Frame length okuma hatası (%s): %v", c.peerID[:8], err)
 				}
 				return
 			}
+			
+			log.Printf("📦 Frame alındı: %d bytes (peer: %s)", frameLen, c.peerID[:8])
 			
 			// Frame'i oku
 			frame := make([]byte, frameLen)
 			if _, err := io.ReadFull(c.conn, frame); err != nil {
 				if c.ctx.Err() == nil {
-					log.Printf("⚠️ Frame okuma hatası: %v", err)
+					log.Printf("⚠️ Frame okuma hatası (%s): %v", c.peerID[:8], err)
 				}
 				return
 			}
@@ -258,13 +267,21 @@ func (c *TCPConnection) messageLoop() {
 			// Decode et
 			messageType, payload, err := c.protocol.DecodeFrame(frame)
 			if err != nil {
-				log.Printf("⚠️ Frame decode hatası: %v", err)
+				log.Printf("⚠️ Frame decode hatası (%s): %v", c.peerID[:8], err)
+				// Frame'in ilk birkaç byte'ını logla
+				debugLen := len(frame)
+				if debugLen > 30 {
+					debugLen = 30
+				}
+				log.Printf("   Frame (ilk %d byte): %x", debugLen, frame[:debugLen])
 				continue
 			}
 			
+			log.Printf("✅ Frame decode başarılı: type=0x%04x, payload=%d bytes (peer: %s)", messageType, len(payload), c.peerID[:8])
+			
 			// Mesaj tipine göre işle
 			if err := c.handleMessage(messageType, payload); err != nil {
-				log.Printf("⚠️ Mesaj işleme hatası: %v", err)
+				log.Printf("⚠️ Mesaj işleme hatası (%s): %v", c.peerID[:8], err)
 			}
 		}
 	}
