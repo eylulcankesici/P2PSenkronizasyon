@@ -42,11 +42,14 @@ type TCPConnection struct {
 }
 
 // NewTCPConnection yeni TCP connection oluşturur
+// manager nil ise messageLoop hemen başlatılır (server tarafında)
 func NewTCPConnection(peerID, address string, conn net.Conn) *TCPConnection {
 	return NewTCPConnectionWithManager(peerID, address, conn, nil)
 }
 
 // NewTCPConnectionWithManager manager ile TCP connection oluşturur
+// manager varsa (server-side) messageLoop hemen başlatılır
+// manager yoksa (client-side) messageLoop başlatılmaz, Connect() başlatır
 func NewTCPConnectionWithManager(peerID, address string, conn net.Conn, manager *TCPConnectionManager) *TCPConnection {
 	ctx, cancel := context.WithCancel(context.Background())
 	
@@ -62,14 +65,24 @@ func NewTCPConnectionWithManager(peerID, address string, conn net.Conn, manager 
 		manager:       manager,
 	}
 	
-	// Start message loop (handshake tamamlandıktan sonra başlatılmalı)
-	// Kısa bir gecikme ile başlat ki handshake tamamen tamamlansın
-	go func() {
-		time.Sleep(100 * time.Millisecond)
-		tcpConn.messageLoop()
-	}()
+	// Manager varsa (server-side) messageLoop'u hemen başlat
+	// Manager yoksa (client-side) Connect() başlatacak
+	if manager != nil {
+		go func() {
+			time.Sleep(100 * time.Millisecond) // Handshake tamamlansın
+			tcpConn.messageLoop()
+		}()
+	}
 	
 	return tcpConn
+}
+
+// startMessageLoop messageLoop'u başlatır (client-side)
+func (c *TCPConnection) startMessageLoop() {
+	go func() {
+		time.Sleep(100 * time.Millisecond) // Handshake tamamlansın
+		c.messageLoop()
+	}()
 }
 
 // SetChunkHandler chunk handler'ı set eder
@@ -750,10 +763,10 @@ func (m *TCPConnectionManager) Connect(ctx context.Context, address string, peer
 		return nil, fmt.Errorf("peer ID uyuşmazlığı: expected=%s, got=%s", peerID, peerHandshake.DeviceID)
 	}
 	
-	// TCPConnection oluştur (messageLoop başlamadan önce)
+	// TCPConnection oluştur (messageLoop başlatma, Connect başlatacak)
 	tcpConn := NewTCPConnection(peerID, address, conn)
 	
-	// Connection request gönder
+	// Connection request gönder (messageLoop başlamadan önce)
 	if err := tcpConn.SendConnectionRequest(m.deviceID, m.deviceName); err != nil {
 		tcpConn.Close()
 		return nil, fmt.Errorf("connection request gönderilemedi: %w", err)
@@ -764,6 +777,9 @@ func (m *TCPConnectionManager) Connect(ctx context.Context, address string, peer
 		tcpConn.Close()
 		return nil, fmt.Errorf("connection response alınamadı: %w", err)
 	}
+	
+	// Response alındıktan sonra messageLoop'u başlat
+	tcpConn.startMessageLoop()
 	
 	// Connection pool'a ekle
 	m.mu.Lock()
