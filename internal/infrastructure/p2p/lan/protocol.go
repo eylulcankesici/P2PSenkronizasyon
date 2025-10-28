@@ -358,16 +358,8 @@ func (p *Protocol) EncodeConnectionRequest(deviceID, deviceName string) ([]byte,
 }
 
 // DecodeConnectionRequest connection request mesajını parse eder
-func (p *Protocol) DecodeConnectionRequest(data []byte) (string, string, error) {
-	messageType, payload, err := p.DecodeFrame(data)
-	if err != nil {
-		return "", "", err
-	}
-	
-	if messageType != MessageTypeConnectionRequest {
-		return "", "", fmt.Errorf("beklenmeyen message type: 0x%04x", messageType)
-	}
-	
+// payload zaten DecodeFrame'den gelmiş olmalı (frame decode edilmiş değil)
+func (p *Protocol) DecodeConnectionRequest(payload []byte) (string, string, error) {
 	req := &connectionRequest{}
 	if err := json.Unmarshal(payload, req); err != nil {
 		return "", "", fmt.Errorf("JSON unmarshal hatası: %w", err)

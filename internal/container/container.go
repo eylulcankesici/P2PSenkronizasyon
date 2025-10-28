@@ -370,9 +370,9 @@ func (c *Container) initUseCases() error {
 		// Connection request callback'ini bağla
 		connMgr := lanTransport.GetTCPConnectionManager()
 		connMgr.SetOnConnectionRequested(func(deviceID, deviceName string) {
-			log.Printf("🔔 Connection request callback: %s (%s)", deviceName, deviceID[:8])
-			// Burada UI'a bildirim gönderilebilir (örneğin bir channel üzerinden)
-			// Şimdilik sadece log
+			log.Printf("🔔 Connection request callback tetiklendi: %s (%s)", deviceName, deviceID[:8])
+			// UI'a bildirim gönderilebilir (gRPC üzerinden veya event system ile)
+			// Şimdilik sadece log - UI tarafında polling ile alınabilir
 		})
 	}
 	
