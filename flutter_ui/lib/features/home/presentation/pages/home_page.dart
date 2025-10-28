@@ -39,6 +39,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         return;
       }
       
+      // Provider'ı invalidate et ve yeni veriyi al
+      ref.invalidate(pendingConnectionsProvider);
       ref.read(pendingConnectionsProvider.future).then((connections) {
         if (!mounted) return;
         
@@ -56,13 +58,15 @@ class _HomePageState extends ConsumerState<HomePage> {
             );
             
             // Dialog göster
-            showDialog(
-              context: context,
-              builder: (context) => ConnectionRequestDialog(
-                deviceId: connection.deviceId,
-                deviceName: connection.deviceName,
-              ),
-            );
+            if (mounted) {
+              showDialog(
+                context: context,
+                builder: (context) => ConnectionRequestDialog(
+                  deviceId: connection.deviceId,
+                  deviceName: connection.deviceName,
+                ),
+              );
+            }
           }
         }
       }).catchError((error) {
