@@ -262,7 +262,10 @@ func (c *TCPConnection) messageLoop() {
 			// Frame boyutunu oku
 			frameLen, err := c.readUint32()
 			if err != nil {
-				if c.ctx.Err() == nil {
+				// EOF veya bağlantı kapatıldığında normal bir durum
+				if err == io.EOF || c.ctx.Err() != nil {
+					log.Printf("🔌 Bağlantı kapandı (peer: %s)", c.peerID[:8])
+				} else {
 					log.Printf("⚠️ Frame length okuma hatası (%s): %v", c.peerID[:8], err)
 				}
 				return
@@ -273,7 +276,10 @@ func (c *TCPConnection) messageLoop() {
 			// Frame'i oku
 			frame := make([]byte, frameLen)
 			if _, err := io.ReadFull(c.conn, frame); err != nil {
-				if c.ctx.Err() == nil {
+				// EOF veya bağlantı kapatıldığında normal bir durum
+				if err == io.EOF || c.ctx.Err() != nil {
+					log.Printf("🔌 Bağlantı kapandı (peer: %s)", c.peerID[:8])
+				} else {
 					log.Printf("⚠️ Frame okuma hatası (%s): %v", c.peerID[:8], err)
 				}
 				return
@@ -865,6 +871,30 @@ func (m *TCPConnectionManager) handleIncomingConnection(conn net.Conn) {
 	// Connection'ı aktif tut - connection request geldiğinde handleConnectionRequestInManager çağrılacak
 	<-tcpConn.ctx.Done()
 	log.Printf("🔌 Peer bağlantısı kapandı: %s", peerHandshake.DeviceID[:8])
+}
+
+// Disconnect peer bağlantısını keser ve map'ten kaldırır
+func (m *TCPConnectionManager) Disconnect(peerID string) error {
+	m.mu.Lock()
+	conn, exists := m.connections[peerID]
+	if exists {
+		delete(m.connections, peerID)
+	}
+	m.mu.Unlock()
+	
+	if !exists {
+		return fmt.Errorf("bağlantı bulunamadı: %s", peerID)
+	}
+	
+	log.Printf("🔌 Bağlantı kesiliyor: %s", peerID[:8])
+	
+	// Bağlantıyı kapat (messageLoop sonlandırılacak)
+	if err := conn.Close(); err != nil {
+		return fmt.Errorf("bağlantı kapatılamadı: %w", err)
+	}
+	
+	log.Printf("✅ Bağlantı kapatıldı: %s", peerID[:8])
+	return nil
 }
 
 // Close manager'ı kapat

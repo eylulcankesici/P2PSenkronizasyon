@@ -113,15 +113,12 @@ func (t *LANTransport) Connect(ctx context.Context, peer *transport.DiscoveredPe
 
 // Disconnect peer bağlantısını keser
 func (t *LANTransport) Disconnect(peerID string) error {
-	conn, exists := t.connMgr.GetConnection(peerID)
-	if !exists {
-		return fmt.Errorf("bağlantı bulunamadı: %s", peerID)
-	}
-	
-	if err := conn.Close(); err != nil {
+	// Connection manager'dan bağlantıyı kes ve map'ten kaldır
+	if err := t.connMgr.Disconnect(peerID); err != nil {
 		return err
 	}
 	
+	// Callback çağır
 	if t.onConnectionLost != nil {
 		t.onConnectionLost(peerID)
 	}
