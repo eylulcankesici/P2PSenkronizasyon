@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -14,16 +15,24 @@ class PeersPage extends ConsumerStatefulWidget {
 
 class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    // Connected peers listesini düzenli olarak yenile (her 2 saniyede bir)
+    _refreshTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+      if (mounted && _tabController.index == 1) { // Bağlı sekmesinde ise
+        ref.invalidate(connectedPeersProvider);
+      }
+    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _refreshTimer?.cancel();
     super.dispose();
   }
 
@@ -246,12 +255,8 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
                   ),
                 if (isConnected)
                   TextButton.icon(
-                    onPressed: () async {
-                      await ref
-                          .read(peerNotifierProvider.notifier)
-                          .disconnectFromPeer(peer.deviceId);
-                      // Bağlı peer listesini yenile
-                      ref.invalidate(connectedPeersProvider);
+                    onPressed: () {
+                      _confirmDisconnect(peer);
                     },
                     icon: const Icon(LucideIcons.link2Off, size: 16),
                     label: const Text('Bağlantıyı Kes'),
@@ -486,6 +491,36 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Kaldır'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDisconnect(peer_pb.Peer peer) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Bağlantıyı Kes'),
+        content: Text('${peer.name} cihazıyla bağlantıyı kesmek istediğinize emin misiniz?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('İptal'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await ref
+                  .read(peerNotifierProvider.notifier)
+                  .disconnectFromPeer(peer.deviceId);
+              // Bağlı peer listesini yenile
+              ref.invalidate(connectedPeersProvider);
+              // Keşfedilen peer listesini de yenile
+              ref.invalidate(discoveredPeersProvider);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Kes'),
           ),
         ],
       ),
