@@ -777,10 +777,13 @@ func (m *TCPConnectionManager) Connect(ctx context.Context, address string, peer
 	tcpConn := NewTCPConnection(peerID, address, conn)
 	
 	// Connection request gönder (messageLoop başlamadan önce)
+	log.Printf("🔧 SendConnectionRequest çağrılıyor...")
 	if err := tcpConn.SendConnectionRequest(m.deviceID, m.deviceName); err != nil {
+		log.Printf("❌ Connection request hatası: %v", err)
 		tcpConn.Close()
 		return nil, fmt.Errorf("connection request gönderilemedi: %w", err)
 	}
+	log.Printf("✅ SendConnectionRequest tamamlandı")
 	
 	// Connection response bekle (5 saniye timeout)
 	if err := tcpConn.WaitForConnectionResponse(5 * time.Second); err != nil {
