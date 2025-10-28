@@ -58,6 +58,13 @@ func (t *LANTransport) Start(ctx context.Context) error {
 	t.discovery.SetOnPeerDiscovered(t.onPeerDiscovered)
 	t.discovery.SetOnPeerLost(t.onPeerLost)
 	
+	// Connection lost callback'ini connection manager'a bağla
+	t.connMgr.SetOnConnectionLost(func(peerID string) {
+		if t.onConnectionLost != nil {
+			t.onConnectionLost(peerID)
+		}
+	})
+	
 	log.Printf("✅ LAN Transport hazır (device: %s, port: %d)", t.deviceName, t.port)
 	
 	return nil

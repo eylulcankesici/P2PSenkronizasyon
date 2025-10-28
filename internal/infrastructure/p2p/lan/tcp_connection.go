@@ -257,6 +257,10 @@ func (c *TCPConnection) messageLoop() {
 		select {
 		case <-c.ctx.Done():
 			log.Printf("🔌 Message loop sonlandı (peer: %s)", c.peerID[:8])
+			// Manager varsa connection'ı map'ten kaldır ve callback çağır
+			if c.manager != nil {
+				c.manager.handleConnectionLost(c.peerID)
+			}
 			return
 		default:
 			// Frame boyutunu oku
@@ -267,6 +271,10 @@ func (c *TCPConnection) messageLoop() {
 					log.Printf("🔌 Bağlantı kapandı (peer: %s)", c.peerID[:8])
 				} else {
 					log.Printf("⚠️ Frame length okuma hatası (%s): %v", c.peerID[:8], err)
+				}
+				// Manager varsa connection'ı map'ten kaldır ve callback çağır
+				if c.manager != nil {
+					c.manager.handleConnectionLost(c.peerID)
 				}
 				return
 			}
@@ -281,6 +289,10 @@ func (c *TCPConnection) messageLoop() {
 					log.Printf("🔌 Bağlantı kapandı (peer: %s)", c.peerID[:8])
 				} else {
 					log.Printf("⚠️ Frame okuma hatası (%s): %v", c.peerID[:8], err)
+				}
+				// Manager varsa connection'ı map'ten kaldır ve callback çağır
+				if c.manager != nil {
+					c.manager.handleConnectionLost(c.peerID)
 				}
 				return
 			}
@@ -722,6 +734,7 @@ type TCPConnectionManager struct {
 	// Callbacks
 	onConnectionEstablished func(transport.Connection)
 	onConnectionRequested   func(deviceID, deviceName string)
+	onConnectionLost        func(peerID string)
 	chunkHandlerCallback    func(chunkHash string) ([]byte, error)
 }
 
@@ -958,6 +971,29 @@ func (m *TCPConnectionManager) SetChunkHandler(handler func(chunkHash string) ([
 // SetOnConnectionRequested connection requested callback'ini set eder
 func (m *TCPConnectionManager) SetOnConnectionRequested(callback func(deviceID, deviceName string)) {
 	m.onConnectionRequested = callback
+}
+
+// SetOnConnectionLost connection lost callback'ini set eder
+func (m *TCPConnectionManager) SetOnConnectionLost(callback func(peerID string)) {
+	m.onConnectionLost = callback
+}
+
+// handleConnectionLost bağlantı kaybını işler (internal)
+func (m *TCPConnectionManager) handleConnectionLost(peerID string) {
+	m.mu.Lock()
+	_, exists := m.connections[peerID]
+	if exists {
+		delete(m.connections, peerID)
+		log.Printf("🔌 Connection map'ten kaldırıldı: %s", peerID[:8])
+	}
+	m.mu.Unlock()
+	
+	if exists {
+		// Callback çağır
+		if m.onConnectionLost != nil {
+			m.onConnectionLost(peerID)
+		}
+	}
 }
 
 // GetPendingConnections bekleyen bağlantı isteklerini döner

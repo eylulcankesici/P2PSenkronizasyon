@@ -387,6 +387,7 @@ func (c *Container) setupPeerDiscoveryCallback() error {
 	if lanTransport, ok := c.transportProvider.(interface {
 		OnPeerDiscovered(func(*transport.DiscoveredPeer))
 		OnPeerLost(func(string))
+		OnConnectionLost(func(string))
 	}); ok {
 		lanTransport.OnPeerDiscovered(func(discoveredPeer *transport.DiscoveredPeer) {
 			// Peer'ı veritabanına kaydet
@@ -423,6 +424,16 @@ func (c *Container) setupPeerDiscoveryCallback() error {
 				log.Printf("⚠️ Peer durumu güncellenemedi: %v", err)
 			} else {
 				log.Printf("⏱️ Peer offline: %s", deviceID[:8])
+			}
+		})
+		
+		// Connection lost callback'ini ayarla
+		lanTransport.OnConnectionLost(func(peerID string) {
+			// Peer'ı offline olarak işaretle
+			if err := c.peerRepo.UpdateStatus(ctx, peerID, entity.PeerStatusOffline); err != nil {
+				log.Printf("⚠️ Peer durumu güncellenemedi: %v", err)
+			} else {
+				log.Printf("🔌 Connection lost, peer offline: %s", peerID[:8])
 			}
 		})
 	}
