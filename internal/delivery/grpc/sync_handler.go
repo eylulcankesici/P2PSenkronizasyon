@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"path/filepath"
 
 	pb "github.com/aether/sync/api/proto"
 	"github.com/aether/sync/internal/container"
@@ -44,6 +45,41 @@ func (h *SyncHandler) SyncFile(ctx context.Context, req *pb.SyncFileRequest) (*p
 				Code:    404,
 			},
 		}, nil
+	}
+	
+	// Dosyanın chunk'ları var mı kontrol et
+	fileChunks, err := h.container.ChunkRepository().GetFileChunks(ctx, req.FileId)
+	if err != nil || len(fileChunks) == 0 {
+		log.Printf("  📦 Dosya henüz chunk'lanmamış, chunk'lama başlatılıyor: %s", file.RelativePath)
+		
+		// Folder bilgisini al (dosya path'i için)
+		folder, err := h.container.FolderRepository().GetByID(ctx, file.FolderID)
+		if err != nil {
+			return &pb.SyncFileResponse{
+				Status: &pb.Status{
+					Success: false,
+					Message: fmt.Sprintf("Folder bulunamadı: %v", err),
+					Code:    404,
+				},
+			}, nil
+		}
+		
+		// Dosya path'ini oluştur
+		filePath := filepath.Join(folder.LocalPath, file.RelativePath)
+		
+		// Dosyayı chunk'la
+		_, _, err = h.container.ChunkingUseCase().ChunkAndStoreFile(ctx, req.FileId, filePath)
+		if err != nil {
+			return &pb.SyncFileResponse{
+				Status: &pb.Status{
+					Success: false,
+					Message: fmt.Sprintf("Dosya chunk'lanamadı: %v", err),
+					Code:    500,
+				},
+			}, nil
+		}
+		
+		log.Printf("  ✅ Dosya chunk'landı: %d chunk", len(fileChunks))
 	}
 	
 	// Her peer için senkronizasyon başlat
