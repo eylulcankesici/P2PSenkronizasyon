@@ -203,13 +203,19 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final client = ref.read(grpcClientProvider);
       
-      // TODO: AcceptConnection endpoint'i proto derlenince aktif olacak
-      // Şimdilik placeholder
-      await Future.delayed(const Duration(milliseconds: 100));
+      final request = AcceptConnectionRequest()..deviceId = deviceId;
+      final response = await client.peerService.acceptConnection(request);
       
-      // Bağlı peer listesini yenile
-      ref.invalidate(connectedPeersProvider);
-      state = const AsyncValue.data(null);
+      if (response.success) {
+        // Bağlı peer listesini yenile
+        ref.invalidate(connectedPeersProvider);
+        state = const AsyncValue.data(null);
+      } else {
+        state = AsyncValue.error(
+          response.message,
+          StackTrace.current,
+        );
+      }
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
@@ -222,11 +228,17 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final client = ref.read(grpcClientProvider);
       
-      // TODO: RejectConnection endpoint'i proto derlenince aktif olacak
-      // Şimdilik placeholder
-      await Future.delayed(const Duration(milliseconds: 100));
+      final request = RejectConnectionRequest()..deviceId = deviceId;
+      final response = await client.peerService.rejectConnection(request);
       
-      state = const AsyncValue.data(null);
+      if (response.success) {
+        state = const AsyncValue.data(null);
+      } else {
+        state = AsyncValue.error(
+          response.message,
+          StackTrace.current,
+        );
+      }
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }

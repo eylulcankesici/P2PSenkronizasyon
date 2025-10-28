@@ -76,11 +76,11 @@ class ConnectionRequestDialog extends ConsumerWidget {
       ),
       actions: [
         TextButton(
-          onPressed: () {
+          onPressed: () async {
             // Reddet
-            ref.read(peerNotifierProvider.notifier).rejectConnection(deviceId);
-            ref.read(pendingConnectionsNotifierProvider.notifier).removePendingConnection(deviceId);
             Navigator.of(context).pop();
+            await ref.read(peerNotifierProvider.notifier).rejectConnection(deviceId);
+            ref.read(pendingConnectionsNotifierProvider.notifier).removePendingConnection(deviceId);
           },
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -95,11 +95,13 @@ class ConnectionRequestDialog extends ConsumerWidget {
           ),
         ),
         ElevatedButton(
-          onPressed: () {
+          onPressed: () async {
             // Onayla
-            ref.read(peerNotifierProvider.notifier).acceptConnection(deviceId);
-            ref.read(pendingConnectionsNotifierProvider.notifier).removePendingConnection(deviceId);
             Navigator.of(context).pop();
+            await ref.read(peerNotifierProvider.notifier).acceptConnection(deviceId);
+            ref.read(pendingConnectionsNotifierProvider.notifier).removePendingConnection(deviceId);
+            // Peer listesini yenile
+            ref.invalidate(connectedPeersProvider);
           },
           child: Row(
             mainAxisSize: MainAxisSize.min,

@@ -244,6 +244,44 @@ func (h *PeerHandler) GetPendingConnections(ctx context.Context, req *pb.GetPend
 	}, nil
 }
 
+// AcceptConnection bağlantı isteğini onaylar
+func (h *PeerHandler) AcceptConnection(ctx context.Context, req *pb.AcceptConnectionRequest) (*pb.Status, error) {
+	transportProvider := h.container.TransportProvider()
+	err := AcceptConnectionHelper(transportProvider, req.DeviceId)
+	if err != nil {
+		return &pb.Status{
+			Success: false,
+			Message: fmt.Sprintf("Bağlantı onaylanamadı: %v", err),
+			Code:    500,
+		}, nil
+	}
+	
+	return &pb.Status{
+		Success: true,
+		Message: "Bağlantı başarıyla onaylandı",
+		Code:    200,
+	}, nil
+}
+
+// RejectConnection bağlantı isteğini reddeder
+func (h *PeerHandler) RejectConnection(ctx context.Context, req *pb.RejectConnectionRequest) (*pb.Status, error) {
+	transportProvider := h.container.TransportProvider()
+	err := RejectConnectionHelper(transportProvider, req.DeviceId)
+	if err != nil {
+		return &pb.Status{
+			Success: false,
+			Message: fmt.Sprintf("Bağlantı reddedilemedi: %v", err),
+			Code:    500,
+		}, nil
+	}
+	
+	return &pb.Status{
+		Success: true,
+		Message: "Bağlantı başarıyla reddedildi",
+		Code:    200,
+	}, nil
+}
+
 // AcceptConnectionHelper bağlantı isteğini onaylar (internal helper)
 func AcceptConnectionHelper(transportProvider interface{}, deviceID string) error {
 	lanTransport, ok := transportProvider.(*lan.LANTransport)
