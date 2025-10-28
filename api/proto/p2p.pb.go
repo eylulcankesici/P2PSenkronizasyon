@@ -87,6 +87,9 @@ type ChunkResponse struct {
 	ChunkData     []byte                 `protobuf:"bytes,2,opt,name=chunk_data,json=chunkData,proto3" json:"chunk_data,omitempty"`
 	ChunkHash     string                 `protobuf:"bytes,3,opt,name=chunk_hash,json=chunkHash,proto3" json:"chunk_hash,omitempty"`
 	ChunkSize     int64                  `protobuf:"varint,4,opt,name=chunk_size,json=chunkSize,proto3" json:"chunk_size,omitempty"`
+	FileId        string                 `protobuf:"bytes,5,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`
+	ChunkIndex    int32                  `protobuf:"varint,6,opt,name=chunk_index,json=chunkIndex,proto3" json:"chunk_index,omitempty"`
+	TotalChunks   int32                  `protobuf:"varint,7,opt,name=total_chunks,json=totalChunks,proto3" json:"total_chunks,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -145,6 +148,27 @@ func (x *ChunkResponse) GetChunkHash() string {
 func (x *ChunkResponse) GetChunkSize() int64 {
 	if x != nil {
 		return x.ChunkSize
+	}
+	return 0
+}
+
+func (x *ChunkResponse) GetFileId() string {
+	if x != nil {
+		return x.FileId
+	}
+	return ""
+}
+
+func (x *ChunkResponse) GetChunkIndex() int32 {
+	if x != nil {
+		return x.ChunkIndex
+	}
+	return 0
+}
+
+func (x *ChunkResponse) GetTotalChunks() int32 {
+	if x != nil {
+		return x.TotalChunks
 	}
 	return 0
 }

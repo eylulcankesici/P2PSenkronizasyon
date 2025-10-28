@@ -92,13 +92,18 @@ func (c *TCPConnection) SetChunkHandler(handler func(chunkHash string) ([]byte, 
 	c.chunkHandler = handler
 }
 
-// SendChunk chunk gönderir
+// SendChunk chunk gönderir (pull-based için)
 func (c *TCPConnection) SendChunk(ctx context.Context, chunkHash string, data []byte) error {
+	return c.SendChunkWithFileInfo(ctx, chunkHash, data, "", 0, 0)
+}
+
+// SendChunkWithFileInfo chunk gönderir (push-based sync için file bilgisiyle)
+func (c *TCPConnection) SendChunkWithFileInfo(ctx context.Context, chunkHash string, data []byte, fileID string, chunkIndex, totalChunks int) error {
 	c.sendMu.Lock()
 	defer c.sendMu.Unlock()
 	
 	// Chunk response mesajı encode et
-	frame, err := c.protocol.EncodeChunkResponse(chunkHash, data)
+	frame, err := c.protocol.EncodeChunkResponseWithFileInfo(chunkHash, data, fileID, chunkIndex, totalChunks)
 	if err != nil {
 		return fmt.Errorf("chunk encode hatası: %w", err)
 	}
@@ -325,6 +330,8 @@ func (c *TCPConnection) handleMessage(messageType uint16, payload []byte) error 
 	switch messageType {
 	case MessageTypeChunkRequest:
 		return c.handleChunkRequest(payload)
+	case MessageTypeChunkResponse:
+		return c.handleChunkResponse(payload)
 	case MessageTypePing:
 		return c.handlePing(payload)
 	case MessageTypeConnectionRequest:
@@ -391,6 +398,31 @@ func (c *TCPConnection) handleChunkRequest(payload []byte) error {
 	}
 	
 	log.Printf("✅ Chunk response gönderildi: %s (%d bytes)", chunkHash[:8], len(chunkData))
+	
+	return nil
+}
+
+// handleChunkResponse chunk response'i işler (push-based sync için)
+func (c *TCPConnection) handleChunkResponse(payload []byte) error {
+	// Payload zaten decode edilmiş, protobuf unmarshal yap
+	resp := &pb.ChunkResponse{}
+	if err := proto.Unmarshal(payload, resp); err != nil {
+		return fmt.Errorf("chunk response decode hatası: %w", err)
+	}
+	
+	log.Printf("📥 Chunk response alındı: %s (%d bytes)", resp.ChunkHash[:8], len(resp.ChunkData))
+	
+	// Eğer file_id varsa, push-based sync demektir
+	if resp.FileId != "" {
+		log.Printf("  📁 Dosya sync: %s, chunk %d/%d", resp.FileId[:8], resp.ChunkIndex+1, resp.TotalChunks)
+		
+		// Manager varsa ve chunk received callback varsa çağır
+		if c.manager != nil && c.manager.onChunkReceived != nil {
+			return c.manager.onChunkReceived(c.peerID, resp.FileId, resp.ChunkHash, resp.ChunkData, int(resp.ChunkIndex), int(resp.TotalChunks))
+		}
+		
+		log.Printf("  ⚠️ Chunk received callback tanımlı değil, chunk kaydedilemiyor")
+	}
 	
 	return nil
 }
@@ -736,6 +768,7 @@ type TCPConnectionManager struct {
 	onConnectionRequested   func(deviceID, deviceName string)
 	onConnectionLost        func(peerID string)
 	chunkHandlerCallback    func(chunkHash string) ([]byte, error)
+	onChunkReceived         func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int) error
 }
 
 // NewTCPConnectionManager yeni TCP connection manager oluşturur
@@ -976,6 +1009,11 @@ func (m *TCPConnectionManager) SetOnConnectionRequested(callback func(deviceID, 
 // SetOnConnectionLost connection lost callback'ini set eder
 func (m *TCPConnectionManager) SetOnConnectionLost(callback func(peerID string)) {
 	m.onConnectionLost = callback
+}
+
+// SetOnChunkReceived chunk received callback'ini set eder
+func (m *TCPConnectionManager) SetOnChunkReceived(callback func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int) error) {
+	m.onChunkReceived = callback
 }
 
 // handleConnectionLost bağlantı kaybını işler (internal)

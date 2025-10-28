@@ -91,22 +91,48 @@ func (uc *P2PTransferUseCaseImpl) RequestChunkFromPeer(ctx context.Context, peer
 func (uc *P2PTransferUseCaseImpl) SyncFileWithPeer(ctx context.Context, peerID, fileID string) error {
 	log.Printf("🔄 Dosya senkronize ediliyor: %s <-> %s", fileID, peerID[:8])
 	
-	// Dosyanın chunk'larını al
-	chunks, err := uc.chunkingUseCase.LoadFileChunks(ctx, fileID)
+	// Dosyanın file-chunk ilişkilerini al (index bilgisi için)
+	fileChunks, err := uc.chunkRepo.GetFileChunks(ctx, fileID)
 	if err != nil {
 		return fmt.Errorf("dosya chunk'ları alınamadı: %w", err)
 	}
 	
-	// Her chunk'ı peer'a gönder
-	for i, chunk := range chunks {
-		log.Printf("  📤 Chunk %d/%d gönderiliyor: %s", i+1, len(chunks), chunk.Hash[:8])
+	if len(fileChunks) == 0 {
+		return fmt.Errorf("dosyanın chunk'ı yok: %s", fileID)
+	}
+	
+	// Bağlantıyı al
+	conn, exists := uc.transportProvider.GetConnection(peerID)
+	if !exists {
+		return fmt.Errorf("peer bağlı değil: %s", peerID)
+	}
+	
+	// Her chunk'ı peer'a gönder (file_id ve index bilgisiyle)
+	for i, fc := range fileChunks {
+		log.Printf("  📤 Chunk %d/%d gönderiliyor: %s", i+1, len(fileChunks), fc.ChunkHash[:8])
 		
-		if err := uc.SendChunkToPeer(ctx, peerID, chunk.Hash); err != nil {
-			return fmt.Errorf("chunk gönderilemedi [%d]: %w", i, err)
+		// Chunk verisini al
+		chunkData, err := uc.chunkingUseCase.GetChunkData(ctx, fc.ChunkHash)
+		if err != nil {
+			return fmt.Errorf("chunk verisi alınamadı [%d]: %w", i, err)
+		}
+		
+		// Chunk'ı file bilgisiyle gönder
+		if tcpConn, ok := conn.(interface {
+			SendChunkWithFileInfo(ctx context.Context, chunkHash string, data []byte, fileID string, chunkIndex, totalChunks int) error
+		}); ok {
+			if err := tcpConn.SendChunkWithFileInfo(ctx, fc.ChunkHash, chunkData, fileID, fc.ChunkIndex, len(fileChunks)); err != nil {
+				return fmt.Errorf("chunk gönderilemedi [%d]: %w", i, err)
+			}
+		} else {
+			// Fallback: normal SendChunk (file bilgisi olmadan)
+			if err := conn.SendChunk(ctx, fc.ChunkHash, chunkData); err != nil {
+				return fmt.Errorf("chunk gönderilemedi [%d]: %w", i, err)
+			}
 		}
 	}
 	
-	log.Printf("✅ Dosya senkronize edildi: %s (%d chunks)", fileID, len(chunks))
+	log.Printf("✅ Dosya senkronize edildi: %s (%d chunks)", fileID, len(fileChunks))
 	
 	return nil
 }

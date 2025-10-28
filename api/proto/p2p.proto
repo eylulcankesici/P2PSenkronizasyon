@@ -35,6 +35,10 @@ message ChunkResponse {
   bytes chunk_data = 2;
   string chunk_hash = 3;
   int64 chunk_size = 4;
+  // Push-based sync için (opsiyonel)
+  string file_id = 5;
+  int32 chunk_index = 6;
+  int32 total_chunks = 7;
 }
 
 message ChunkData {

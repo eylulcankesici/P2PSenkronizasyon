@@ -201,17 +201,25 @@ func (p *Protocol) DecodeChunkRequest(data []byte) (string, error) {
 	return req.ChunkHash, nil
 }
 
-// EncodeChunkResponse chunk response mesajı oluşturur
+// EncodeChunkResponse chunk response mesajı oluşturur (pull-based için)
 func (p *Protocol) EncodeChunkResponse(chunkHash string, chunkData []byte) ([]byte, error) {
+	return p.EncodeChunkResponseWithFileInfo(chunkHash, chunkData, "", 0, 0)
+}
+
+// EncodeChunkResponseWithFileInfo chunk response mesajı oluşturur (push-based sync için)
+func (p *Protocol) EncodeChunkResponseWithFileInfo(chunkHash string, chunkData []byte, fileID string, chunkIndex, totalChunks int) ([]byte, error) {
 	resp := &pb.ChunkResponse{
 		Status: &pb.Status{
 			Success: true,
 			Message: "OK",
 			Code:    200,
 		},
-		ChunkHash: chunkHash,
-		ChunkData: chunkData,
-		ChunkSize: int64(len(chunkData)),
+		ChunkHash:   chunkHash,
+		ChunkData:   chunkData,
+		ChunkSize:   int64(len(chunkData)),
+		FileId:      fileID,
+		ChunkIndex:  int32(chunkIndex),
+		TotalChunks: int32(totalChunks),
 	}
 	
 	payload, err := proto.Marshal(resp)

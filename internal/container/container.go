@@ -17,6 +17,7 @@ import (
 	"github.com/aether/sync/internal/infrastructure/p2p/lan"
 	usecaseImpl "github.com/aether/sync/internal/usecase/impl"
 	"github.com/aether/sync/pkg/chunking"
+	"github.com/aether/sync/pkg/reassembly"
 )
 
 // Container dependency injection container
@@ -44,6 +45,9 @@ type Container struct {
 	
 	// P2P Transport
 	transportProvider transport.TransportProvider
+	
+	// File reassembler (push-based sync için)
+	fileReassembler *reassembly.FileReassembler
 }
 
 // NewContainer yeni bir container oluşturur
@@ -343,6 +347,9 @@ func (c *Container) initUseCases() error {
 		return fmt.Errorf("peer discovery callback ayarlanamadı: %w", err)
 	}
 	
+	// File reassembler oluştur (push-based sync için)
+	c.fileReassembler = reassembly.NewFileReassembler()
+	
 	// P2P Transfer use case oluştur
 	c.p2pTransferUseCase = usecaseImpl.NewP2PTransferUseCase(
 		c.transportProvider,
@@ -374,6 +381,13 @@ func (c *Container) initUseCases() error {
 			// UI'a bildirim gönderilebilir (gRPC üzerinden veya event system ile)
 			// Şimdilik sadece log - UI tarafında polling ile alınabilir
 		})
+		
+		// Chunk received callback'ini bağla (push-based sync için)
+		connMgr.SetOnChunkReceived(func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int) error {
+			return c.handleIncomingChunk(context.Background(), peerID, fileID, chunkHash, chunkData, chunkIndex, totalChunks)
+		})
+		
+		log.Println("✓ Chunk received callback bağlandı")
 	}
 	
 	return nil
@@ -471,6 +485,56 @@ func (c *Container) initP2PTransport() error {
 	c.transportProvider = lanTransport
 	
 	log.Printf("✓ P2P Transport başlatıldı (device: %s, port: %d)", deviceName, p2pPort)
+	
+	return nil
+}
+
+// handleIncomingChunk gelen chunk'ı işler (push-based sync)
+func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int) error {
+	log.Printf("📥 Incoming chunk: file=%s, chunk=%d/%d, hash=%s", fileID[:8], chunkIndex+1, totalChunks, chunkHash[:8])
+	
+	// İlk chunk ise dosyayı initialize et
+	if chunkIndex == 0 {
+		if err := c.fileReassembler.InitializeFile(fileID, totalChunks, ""); err != nil {
+			log.Printf("  ⚠️ Dosya initialize hatası: %v", err)
+			// Devam et, belki zaten initialize edilmiş
+		}
+	}
+	
+	// Chunk'ı reassembler'a ekle
+	if err := c.fileReassembler.AddChunk(fileID, chunkIndex, chunkHash, chunkData); err != nil {
+		return fmt.Errorf("chunk eklenemedi: %w", err)
+	}
+	
+	// Tüm chunk'lar geldi mi kontrol et
+	if c.fileReassembler.IsFileComplete(fileID) {
+		log.Printf("  ✅ Dosya tamamlandı: %s", fileID[:8])
+		
+		// Dosya bilgisini al
+		file, err := c.fileRepo.GetByID(ctx, fileID)
+		if err != nil {
+			return fmt.Errorf("dosya bulunamadı: %w", err)
+		}
+		
+		// Folder bilgisini al
+		folder, err := c.folderRepo.GetByID(ctx, file.FolderID)
+		if err != nil {
+			return fmt.Errorf("folder bulunamadı: %w", err)
+		}
+		
+		// Output path oluştur
+		outputPath := filepath.Join(folder.LocalPath, file.RelativePath)
+		
+		// Dosyayı oluştur
+		if err := c.fileReassembler.WriteToFile(fileID, outputPath); err != nil {
+			return fmt.Errorf("dosya yazılamadı: %w", err)
+		}
+		
+		log.Printf("  💾 Dosya kaydedildi: %s", outputPath)
+		
+		// Cleanup
+		c.fileReassembler.CleanupFile(fileID)
+	}
 	
 	return nil
 }
