@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:aether_desktop/data/providers/file_provider.dart';
+import 'package:aether_desktop/data/providers/peer_provider.dart';
+import 'package:aether_desktop/data/providers/sync_provider.dart';
 import 'package:aether_desktop/generated/api/proto/folder.pb.dart';
 import 'package:aether_desktop/generated/api/proto/common.pb.dart';
+import 'package:aether_desktop/generated/api/proto/file.pb.dart' as file_pb;
+import 'package:aether_desktop/generated/api/proto/peer.pb.dart' as peer_pb;
 
 class FolderDetailPage extends ConsumerWidget {
   final Folder folder;
@@ -39,7 +43,7 @@ class FolderDetailPage extends ConsumerWidget {
           // Dosya listesi
           Expanded(
             child: filesAsync.when(
-              data: (files) => _buildFileList(context, files),
+              data: (files) => _buildFileList(context, ref, files),
               loading: () => Center(child: CircularProgressIndicator()),
               error: (error, stack) => Center(
                 child: Column(
@@ -136,7 +140,7 @@ class FolderDetailPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildFileList(BuildContext context, List files) {
+  Widget _buildFileList(BuildContext context, WidgetRef ref, List files) {
     if (files.isEmpty) {
       return Center(
         child: Column(
@@ -186,6 +190,21 @@ class FolderDetailPage extends ConsumerWidget {
             trailing: PopupMenuButton(
               icon: Icon(LucideIcons.moreVertical),
               itemBuilder: (context) => [
+                PopupMenuItem(
+                  child: Row(
+                    children: [
+                      Icon(LucideIcons.send, size: 16),
+                      SizedBox(width: 8),
+                      Text('Senkronize Et'),
+                    ],
+                  ),
+                  onTap: () {
+                    // PopupMenu kapandıktan sonra dialog'u göster
+                    Future.delayed(Duration(milliseconds: 100), () {
+                      _showSyncDialog(context, ref, file);
+                    });
+                  },
+                ),
                 PopupMenuItem(
                   child: Row(
                     children: [
@@ -287,6 +306,172 @@ class FolderDetailPage extends ConsumerWidget {
     if (diff.inDays < 7) return '${diff.inDays} gün önce';
     
     return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+  }
+
+  void _showSyncDialog(BuildContext context, WidgetRef ref, file_pb.File file) {
+    final connectedPeersAsync = ref.read(connectedPeersProvider);
+    
+    connectedPeersAsync.whenData((peers) {
+      if (peers.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Bağlı peer bulunamadı. Önce bir peer\'a bağlanın.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+      
+      showDialog(
+        context: context,
+        builder: (context) => _SyncPeerDialog(
+          file: file,
+          peers: peers,
+        ),
+      );
+    });
+  }
+}
+
+class _SyncPeerDialog extends ConsumerStatefulWidget {
+  final file_pb.File file;
+  final List<peer_pb.Peer> peers;
+
+  const _SyncPeerDialog({
+    required this.file,
+    required this.peers,
+  });
+
+  @override
+  ConsumerState<_SyncPeerDialog> createState() => _SyncPeerDialogState();
+}
+
+class _SyncPeerDialogState extends ConsumerState<_SyncPeerDialog> {
+  final Set<String> _selectedPeerIds = {};
+
+  @override
+  Widget build(BuildContext context) {
+    final syncState = ref.watch(syncNotifierProvider);
+    
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(LucideIcons.send, size: 20),
+          SizedBox(width: 8),
+          Text('Dosyayı Senkronize Et'),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Dosya: ${widget.file.relativePath}',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Boyut: ${_formatFileSize(widget.file.size.toInt())}',
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Peer Seç:',
+            style: TextStyle(fontWeight: FontWeight.w500),
+          ),
+          SizedBox(height: 8),
+          Container(
+            constraints: BoxConstraints(maxHeight: 300),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: widget.peers.length,
+              itemBuilder: (context, index) {
+                final peer = widget.peers[index];
+                final isSelected = _selectedPeerIds.contains(peer.deviceId);
+                
+                return CheckboxListTile(
+                  title: Text(peer.name),
+                  subtitle: Text(peer.deviceId.substring(0, 8)),
+                  value: isSelected,
+                  onChanged: (value) {
+                    setState(() {
+                      if (value == true) {
+                        _selectedPeerIds.add(peer.deviceId);
+                      } else {
+                        _selectedPeerIds.remove(peer.deviceId);
+                      }
+                    });
+                  },
+                  dense: true,
+                );
+              },
+            ),
+          ),
+          if (syncState.isLoading)
+            Padding(
+              padding: EdgeInsets.only(top: 16),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 8),
+                  Text('Senkronize ediliyor...'),
+                ],
+              ),
+            ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: syncState.isLoading
+              ? null
+              : () => Navigator.pop(context),
+          child: Text('İptal'),
+        ),
+        FilledButton(
+          onPressed: syncState.isLoading || _selectedPeerIds.isEmpty
+              ? null
+              : () async {
+                  await ref
+                      .read(syncNotifierProvider.notifier)
+                      .syncFile(widget.file.id, _selectedPeerIds.toList());
+                  
+                  if (mounted) {
+                    final newState = ref.read(syncNotifierProvider);
+                    if (!newState.hasError) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Dosya başarıyla senkronize edildi'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Hata: ${newState.error}'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+          child: Text('Senkronize Et'),
+        ),
+      ],
+    );
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 }
 

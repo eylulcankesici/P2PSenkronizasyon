@@ -2,6 +2,8 @@ package grpc
 
 import (
 	"context"
+	"fmt"
+	"log"
 
 	pb "github.com/aether/sync/api/proto"
 	"github.com/aether/sync/internal/container"
@@ -18,13 +20,71 @@ func NewSyncHandler(cont *container.Container) *SyncHandler {
 	return &SyncHandler{container: cont}
 }
 
-// SyncFile dosya senkronize eder (placeholder)
+// SyncFile dosya senkronize eder
 func (h *SyncHandler) SyncFile(ctx context.Context, req *pb.SyncFileRequest) (*pb.SyncFileResponse, error) {
+	log.Printf("🔄 Dosya senkronize ediliyor: %s -> %d peer", req.FileId, len(req.TargetPeerIds))
+	
+	if len(req.TargetPeerIds) == 0 {
+		return &pb.SyncFileResponse{
+			Status: &pb.Status{
+				Success: false,
+				Message: "En az bir peer belirtilmelidir",
+				Code:    400,
+			},
+		}, nil
+	}
+	
+	// Dosya bilgisini al
+	file, err := h.container.FileRepository().GetByID(ctx, req.FileId)
+	if err != nil {
+		return &pb.SyncFileResponse{
+			Status: &pb.Status{
+				Success: false,
+				Message: fmt.Sprintf("Dosya bulunamadı: %v", err),
+				Code:    404,
+			},
+		}, nil
+	}
+	
+	// Her peer için senkronizasyon başlat
+	successCount := 0
+	var lastError error
+	
+	for _, peerID := range req.TargetPeerIds {
+		log.Printf("  📤 Peer'a gönderiliyor: %s", peerID[:8])
+		
+		// P2P transfer use case ile senkronize et
+		err := h.container.P2PTransferUseCase().SyncFileWithPeer(ctx, peerID, req.FileId)
+		if err != nil {
+			log.Printf("  ⚠️ Peer'a gönderim hatası (%s): %v", peerID[:8], err)
+			lastError = err
+			continue
+		}
+		
+		successCount++
+		log.Printf("  ✅ Peer'a gönderildi: %s", peerID[:8])
+	}
+	
+	if successCount == 0 {
+		return &pb.SyncFileResponse{
+			Status: &pb.Status{
+				Success: false,
+				Message: fmt.Sprintf("Hiçbir peer'a gönderilemedi: %v", lastError),
+				Code:    500,
+			},
+		}, nil
+	}
+	
 	return &pb.SyncFileResponse{
 		Status: &pb.Status{
 			Success: true,
-			Message: "SyncHandler - yakında implement edilecek",
-			Code:    501,
+			Message: fmt.Sprintf("Dosya %d/%d peer'a gönderildi", successCount, len(req.TargetPeerIds)),
+			Code:    200,
+		},
+		Progress: &pb.SyncProgress{
+			BytesTransferred: int64(file.Size),
+			TotalBytes:       int64(file.Size),
+			Percentage:       100.0,
 		},
 	}, nil
 }
