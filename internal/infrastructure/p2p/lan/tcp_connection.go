@@ -10,6 +10,9 @@ import (
 	"sync"
 	"time"
 
+	"google.golang.org/protobuf/proto"
+
+	pb "github.com/aether/sync/api/proto"
 	"github.com/aether/sync/internal/domain/transport"
 )
 
@@ -295,10 +298,12 @@ func (c *TCPConnection) handleMessage(messageType uint16, payload []byte) error 
 
 // handleChunkRequest chunk request'i işler
 func (c *TCPConnection) handleChunkRequest(payload []byte) error {
-	chunkHash, err := c.protocol.DecodeChunkRequest(payload)
-	if err != nil {
+	// Payload zaten decode edilmiş, protobuf unmarshal yap
+	req := &pb.ChunkRequest{}
+	if err := proto.Unmarshal(payload, req); err != nil {
 		return fmt.Errorf("chunk request decode hatası: %w", err)
 	}
+	chunkHash := req.ChunkHash
 	
 	log.Printf("📥 Chunk request alındı: %s", chunkHash[:8])
 	
@@ -342,8 +347,9 @@ func (c *TCPConnection) handleChunkRequest(payload []byte) error {
 
 // handlePing ping request'i işler
 func (c *TCPConnection) handlePing(payload []byte) error {
-	_, err := c.protocol.DecodePing(payload)
-	if err != nil {
+	// Payload zaten decode edilmiş, protobuf unmarshal yap
+	req := &pb.PingRequest{}
+	if err := proto.Unmarshal(payload, req); err != nil {
 		return fmt.Errorf("ping decode hatası: %w", err)
 	}
 	
