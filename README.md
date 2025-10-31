@@ -136,6 +136,7 @@ aether/
 
 - **Go** 1.21 veya üstü ([İndir](https://go.dev/dl/))
 - **Flutter** 3.16 veya üstü ([İndir](https://flutter.dev/docs/get-started/install))
+- **Protocol Buffers Compiler** (protoc) ([İndir](https://grpc.io/docs/protoc-installation/))
 - **Git** (versiyon kontrol)
 - **Windows/macOS/Linux** (cross-platform)
 
@@ -153,6 +154,13 @@ cd aether
 ```bash
 # Go bağımlılıklarını yükle
 go mod download
+
+# Go protoc plugins'lerini yükle
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+# Proto dosyalarını compile et
+protoc -I. -Ithird_party --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/*.proto
 
 # Backend'i çalıştır
 go run cmd/aether-server/main.go
@@ -325,6 +333,9 @@ go run cmd/test-chunk-api/main.go
 ### Build
 
 ```bash
+# Proto dosyalarını compile et
+protoc -I. -Ithird_party --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/*.proto
+
 # Backend build
 go build -o bin/aether-server.exe cmd/aether-server/main.go
 

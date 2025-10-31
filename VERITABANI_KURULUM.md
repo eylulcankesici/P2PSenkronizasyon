@@ -27,28 +27,8 @@ go mod tidy
 
 ### **3️⃣ PROTO DOSYALARINI COMPILE ET**
 ```powershell
-# Proto dosyalarını tek tek compile et:
-
-# 1. common.proto
-protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/common.proto
-
-# 2. folder.proto
-protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/folder.proto
-
-# 3. file.proto
-protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/file.proto
-
-# 4. sync.proto
-protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/sync.proto
-
-# 5. peer.proto
-protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/peer.proto
-
-# 6. auth.proto
-protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/auth.proto
-
-# 7. p2p.proto
-protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/p2p.proto
+# Tüm proto dosyalarını compile et (include path ile):
+protoc -I. -Ithird_party --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/*.proto
 ```
 
 ### **4️⃣ DATA DİZİNİNİ OLUŞTUR**
@@ -229,7 +209,7 @@ sqlite3 C:\Aether\data\aether.db "SELECT * FROM folders;"
 ### **⚡ TÜM ADIMLARI TEK SEFERDE:**
 ```powershell
 # Tüm kurulum adımlarını tek seferde çalıştır
-go mod download && Get-ChildItem -Path "api/proto" -Filter "*.proto" | ForEach-Object { protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative "api/proto/$($_.Name)" } && New-Item -ItemType Directory -Path "data" -Force && go run cmd/aether-server/main.go
+go mod download; protoc -I. -Ithird_party --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/*.proto; New-Item -ItemType Directory -Path "data" -Force; go run cmd/aether-server/main.go
 ```
 
 ---
@@ -239,7 +219,7 @@ go mod download && Get-ChildItem -Path "api/proto" -Filter "*.proto" | ForEach-O
 ### **🔧 YAPILACAKLAR:**
 1. **Proje dizinine git**
 2. **Bağımlılıkları indir** (`go mod download`)
-3. **Proto dosyalarını compile et** (7 komut)
+3. **Proto dosyalarını compile et** (1 komut)
 4. **Data dizinini oluştur** (`New-Item -ItemType Directory -Path "data" -Force`)
 5. **Uygulamayı çalıştır** (`go run cmd/aether-server/main.go`)
 

@@ -82,14 +82,15 @@ func (x *ChunkRequest) GetRequesterDeviceId() string {
 }
 
 type ChunkResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        *Status                `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
-	ChunkData     []byte                 `protobuf:"bytes,2,opt,name=chunk_data,json=chunkData,proto3" json:"chunk_data,omitempty"`
-	ChunkHash     string                 `protobuf:"bytes,3,opt,name=chunk_hash,json=chunkHash,proto3" json:"chunk_hash,omitempty"`
-	ChunkSize     int64                  `protobuf:"varint,4,opt,name=chunk_size,json=chunkSize,proto3" json:"chunk_size,omitempty"`
-	FileId        string                 `protobuf:"bytes,5,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`
-	ChunkIndex    int32                  `protobuf:"varint,6,opt,name=chunk_index,json=chunkIndex,proto3" json:"chunk_index,omitempty"`
-	TotalChunks   int32                  `protobuf:"varint,7,opt,name=total_chunks,json=totalChunks,proto3" json:"total_chunks,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Status    *Status                `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	ChunkData []byte                 `protobuf:"bytes,2,opt,name=chunk_data,json=chunkData,proto3" json:"chunk_data,omitempty"`
+	ChunkHash string                 `protobuf:"bytes,3,opt,name=chunk_hash,json=chunkHash,proto3" json:"chunk_hash,omitempty"`
+	ChunkSize int64                  `protobuf:"varint,4,opt,name=chunk_size,json=chunkSize,proto3" json:"chunk_size,omitempty"`
+	// Push-based sync için (opsiyonel)
+	FileId        string `protobuf:"bytes,5,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`
+	ChunkIndex    int32  `protobuf:"varint,6,opt,name=chunk_index,json=chunkIndex,proto3" json:"chunk_index,omitempty"`
+	TotalChunks   int32  `protobuf:"varint,7,opt,name=total_chunks,json=totalChunks,proto3" json:"total_chunks,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -567,7 +568,7 @@ const file_api_proto_p2p_proto_rawDesc = "" +
 	"\n" +
 	"chunk_hash\x18\x01 \x01(\tR\tchunkHash\x12\x17\n" +
 	"\afile_id\x18\x02 \x01(\tR\x06fileId\x12.\n" +
-	"\x13requester_device_id\x18\x03 \x01(\tR\x11requesterDeviceId\"\x98\x01\n" +
+	"\x13requester_device_id\x18\x03 \x01(\tR\x11requesterDeviceId\"\xf5\x01\n" +
 	"\rChunkResponse\x12*\n" +
 	"\x06status\x18\x01 \x01(\v2\x12.aether.api.StatusR\x06status\x12\x1d\n" +
 	"\n" +
@@ -575,7 +576,11 @@ const file_api_proto_p2p_proto_rawDesc = "" +
 	"\n" +
 	"chunk_hash\x18\x03 \x01(\tR\tchunkHash\x12\x1d\n" +
 	"\n" +
-	"chunk_size\x18\x04 \x01(\x03R\tchunkSize\"\x90\x01\n" +
+	"chunk_size\x18\x04 \x01(\x03R\tchunkSize\x12\x17\n" +
+	"\afile_id\x18\x05 \x01(\tR\x06fileId\x12\x1f\n" +
+	"\vchunk_index\x18\x06 \x01(\x05R\n" +
+	"chunkIndex\x12!\n" +
+	"\ftotal_chunks\x18\a \x01(\x05R\vtotalChunks\"\x90\x01\n" +
 	"\tChunkData\x12\x1d\n" +
 	"\n" +
 	"chunk_hash\x18\x01 \x01(\tR\tchunkHash\x12\x12\n" +

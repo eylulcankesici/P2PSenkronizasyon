@@ -174,14 +174,8 @@ go mod download
 
 ### **3️⃣ Proto Dosyalarını Compile Et:**
 ```powershell
-# Tüm proto dosyalarını compile edin:
-protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/common.proto
-protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/folder.proto
-protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/file.proto
-protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/sync.proto
-protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/peer.proto
-protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/auth.proto
-protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/p2p.proto
+# Tüm proto dosyalarını compile edin (include path ile):
+protoc -I. -Ithird_party --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/*.proto
 
 # Başarılı çıktı: (hata yoksa başarılı)
 ```
@@ -247,7 +241,7 @@ cd C:\Aether
 # 3. Bağımlılıkları indir (otomatik)
 go mod download
 # 4. Proto compile et
-protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/common.proto
+protoc -I. -Ithird_party --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/*.proto
 # 5. Data dizini oluştur
 New-Item -ItemType Directory -Path "data" -Force
 # 6. Backend'i çalıştır
