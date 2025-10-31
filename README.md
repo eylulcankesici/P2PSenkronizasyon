@@ -159,7 +159,7 @@ go mod download
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
-# Proto dosyalarını compile et
+# Proto dosyalarını compile et (gerekli, çünkü .pb.go dosyaları Git'e commit edilmez)
 protoc -I. -Ithird_party --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/*.proto
 
 # Backend'i çalıştır
@@ -168,6 +168,8 @@ go run cmd/aether-server/main.go
 # Veya PowerShell script ile (Windows)
 .\start-backend.ps1
 ```
+
+> **Not:** Proto dosyaları (`.pb.go`) Git'te saklanmaz. Her proje klonlamasında proto dosyalarını compile etmeniz gerekir. Bu, platform ve protoc versiyon farklarından kaynaklanan uyumsuzlukları önler.
 
 **Backend başarıyla çalıştığında göreceğiniz log'lar:**
 ```

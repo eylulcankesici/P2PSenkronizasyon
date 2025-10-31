@@ -116,16 +116,13 @@ ios/Flutter/Flutter.framework
 ios/Flutter/Flutter.podspec
 
 # ==================== PROTOBUF ====================
-# Generated protobuf files - COMMITTED TO GIT (so others don't need protoc)
-# Uncomment the lines below only if you want to generate them on each machine
-# *.pb.go
-# *.pb.gw.go
-# *_grpc.pb.go
+# Generated protobuf files - NOT COMMITTED (must be generated locally)
+*.pb.go
+*.pb.gw.go
+*_grpc.pb.go
 
-# Keep proto source files (.proto) and generated files (.pb.go, .pb.dart)
+# Keep proto source files (.proto) and Flutter generated files (.pb.dart)
 !*.proto
-!**/*.pb.go
-!**/*.pbgrpc.go
 !**/*.pb.dart
 !**/*.pbgrpc.dart
 
