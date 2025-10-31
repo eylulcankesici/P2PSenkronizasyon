@@ -534,7 +534,7 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 			// Varsayılan sync klasörü: DataDir/synced_folders/{folder_id veya file_id}
 			syncBaseDir := filepath.Join(c.config.App.DataDir, "synced_folders")
 			
-			var folderID, folderName, fileName string
+			var folderID, folderName, finalFileName string
 			
 			// Folder bilgisini belirle
 			if file != nil && file.FolderID != "" {
@@ -545,18 +545,18 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 				} else {
 					folderName = folderID[:8] // İlk 8 karakter
 				}
-				fileName = file.RelativePath
+				finalFileName = file.RelativePath
 			} else {
 				// FileID'den klasör oluştur
 				folderID = fmt.Sprintf("synced_%s", fileID[:8])
 				folderName = folderID
 				// Önce gelen fileName'i kullan, yoksa file.RelativePath, yoksa fallback
 				if fileName != "" {
-					// Gelen fileName'i kullan
+					finalFileName = fileName  // Gelen fileName'i kullan
 				} else if file != nil && file.RelativePath != "" {
-					fileName = file.RelativePath
+					finalFileName = file.RelativePath
 				} else {
-					fileName = fmt.Sprintf("file_%s", fileID[:8])
+					finalFileName = fmt.Sprintf("file_%s", fileID[:8])
 				}
 			}
 			
@@ -569,7 +569,7 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 				os.MkdirAll(syncDir, 0755)
 			}
 			
-			outputPath = filepath.Join(syncDir, fileName)
+			outputPath = filepath.Join(syncDir, finalFileName)
 			log.Printf("  📁 Yeni klasöre kaydediliyor: %s", outputPath)
 			
 			// Folder entity oluştur (alıcı taraf için)
@@ -585,7 +585,7 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 			
 			// File entity oluştur/güncelle (alıcı taraf için)
 			if file == nil {
-				newFile := entity.NewFile(folderID, fileName, 0, time.Now())
+				newFile := entity.NewFile(folderID, finalFileName, 0, time.Now())
 				newFile.ID = fileID
 				if err := c.fileRepo.Create(ctx, newFile); err != nil {
 					log.Printf("  ⚠️ File entity oluşturulamadı (belki zaten var): %v", err)
