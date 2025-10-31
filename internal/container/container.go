@@ -551,12 +551,16 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 				folderID = fmt.Sprintf("synced_%s", fileID[:8])
 				folderName = folderID
 				// Önce gelen fileName'i kullan, yoksa file.RelativePath, yoksa fallback
+				log.Printf("  🔍 fileName kontrol ediliyor: fileName='%s', file.RelativePath='%s'", fileName, func() string { if file != nil { return file.RelativePath } else { return "" } }())
 				if fileName != "" {
 					finalFileName = fileName  // Gelen fileName'i kullan
+					log.Printf("  ✅ Gelen fileName kullaniliyor: %s", finalFileName)
 				} else if file != nil && file.RelativePath != "" {
 					finalFileName = file.RelativePath
+					log.Printf("  ✅ File.RelativePath kullaniliyor: %s", finalFileName)
 				} else {
 					finalFileName = fmt.Sprintf("file_%s", fileID[:8])
+					log.Printf("  ⚠️ Fallback fileName kullaniliyor: %s", finalFileName)
 				}
 			}
 			
