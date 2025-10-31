@@ -385,8 +385,8 @@ func (c *Container) initUseCases() error {
 		})
 		
 		// Chunk received callback'ini bağla (push-based sync için)
-		connMgr.SetOnChunkReceived(func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int) error {
-			return c.handleIncomingChunk(context.Background(), peerID, fileID, chunkHash, chunkData, chunkIndex, totalChunks)
+		connMgr.SetOnChunkReceived(func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName string) error {
+			return c.handleIncomingChunk(context.Background(), peerID, fileID, chunkHash, chunkData, chunkIndex, totalChunks, fileName)
 		})
 		
 		log.Println("✓ Chunk received callback bağlandı")
@@ -491,8 +491,8 @@ func (c *Container) initP2PTransport() error {
 	return nil
 }
 
-// handleIncomingChunk gelen chunk'ı işler (push-based sync)
-func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int) error {
+	// handleIncomingChunk gelen chunk'ı işler (push-based sync)
+func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName string) error {
 	log.Printf("📥 Incoming chunk: file=%s, chunk=%d/%d, hash=%s", fileID[:8], chunkIndex+1, totalChunks, chunkHash[:8])
 	
 	// İlk chunk ise dosyayı initialize et
@@ -550,7 +550,10 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 				// FileID'den klasör oluştur
 				folderID = fmt.Sprintf("synced_%s", fileID[:8])
 				folderName = folderID
-				if file != nil && file.RelativePath != "" {
+				// Önce gelen fileName'i kullan, yoksa file.RelativePath, yoksa fallback
+				if fileName != "" {
+					// Gelen fileName'i kullan
+				} else if file != nil && file.RelativePath != "" {
 					fileName = file.RelativePath
 				} else {
 					fileName = fmt.Sprintf("file_%s", fileID[:8])

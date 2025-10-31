@@ -91,6 +91,12 @@ func (uc *P2PTransferUseCaseImpl) RequestChunkFromPeer(ctx context.Context, peer
 func (uc *P2PTransferUseCaseImpl) SyncFileWithPeer(ctx context.Context, peerID, fileID string) error {
 	log.Printf("🔄 Dosya senkronize ediliyor: %s <-> %s", fileID, peerID[:8])
 	
+	// Dosya bilgisini al (fileName için)
+	file, err := uc.fileRepo.GetByID(ctx, fileID)
+	if err != nil {
+		return fmt.Errorf("dosya bilgisi alınamadı: %w", err)
+	}
+	
 	// Dosyanın file-chunk ilişkilerini al (index bilgisi için)
 	fileChunks, err := uc.chunkRepo.GetFileChunks(ctx, fileID)
 	if err != nil {
@@ -107,7 +113,7 @@ func (uc *P2PTransferUseCaseImpl) SyncFileWithPeer(ctx context.Context, peerID, 
 		return fmt.Errorf("peer bağlı değil: %s", peerID)
 	}
 	
-	// Her chunk'ı peer'a gönder (file_id ve index bilgisiyle)
+	// Her chunk'ı peer'a gönder (file_id, fileName ve index bilgisiyle)
 	for i, fc := range fileChunks {
 		log.Printf("  📤 Chunk %d/%d gönderiliyor: %s", i+1, len(fileChunks), fc.ChunkHash[:8])
 		
@@ -119,10 +125,10 @@ func (uc *P2PTransferUseCaseImpl) SyncFileWithPeer(ctx context.Context, peerID, 
 		
 		// Chunk'ı file bilgisiyle gönder
 		if tcpConn, ok := conn.(interface {
-			SendChunkWithFileInfo(ctx context.Context, chunkHash string, data []byte, fileID string, chunkIndex, totalChunks int) error
+			SendChunkWithFileInfo(ctx context.Context, chunkHash string, data []byte, fileID string, chunkIndex, totalChunks int, fileName string) error
 		}); ok {
-			log.Printf("  📤 Chunk %d/%d gönderiliyor (fileID: %s): %s", fc.ChunkIndex+1, len(fileChunks), fileID, fc.ChunkHash[:8])
-			if err := tcpConn.SendChunkWithFileInfo(ctx, fc.ChunkHash, chunkData, fileID, fc.ChunkIndex, len(fileChunks)); err != nil {
+			log.Printf("  📤 Chunk %d/%d gönderiliyor (fileID: %s, fileName: %s): %s", fc.ChunkIndex+1, len(fileChunks), fileID, file.RelativePath, fc.ChunkHash[:8])
+			if err := tcpConn.SendChunkWithFileInfo(ctx, fc.ChunkHash, chunkData, fileID, fc.ChunkIndex, len(fileChunks), file.RelativePath); err != nil {
 				return fmt.Errorf("chunk gönderilemedi [%d]: %w", i, err)
 			}
 		} else {

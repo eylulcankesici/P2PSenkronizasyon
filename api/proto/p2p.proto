@@ -39,6 +39,7 @@ message ChunkResponse {
   string file_id = 5;
   int32 chunk_index = 6;
   int32 total_chunks = 7;
+  string file_name = 8;  // Dosya adı (uzantı dahil)
 }
 
 message ChunkData {
