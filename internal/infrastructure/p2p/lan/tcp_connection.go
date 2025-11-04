@@ -48,9 +48,16 @@ func NewTCPConnection(peerID, address string, conn net.Conn) *TCPConnection {
 }
 
 // NewTCPConnectionWithManager manager ile TCP connection oluşturur
-// manager varsa (server-side) messageLoop hemen başlatılır
-// manager yoksa (client-side) messageLoop başlatılmaz, Connect() başlatır
+// autoStartMessageLoop true ise messageLoop otomatik başlatılır (server-side)
+// autoStartMessageLoop false ise messageLoop başlatılmaz, manuel başlatılmalı (client-side)
 func NewTCPConnectionWithManager(peerID, address string, conn net.Conn, manager *TCPConnectionManager) *TCPConnection {
+	return NewTCPConnectionWithManagerAndAutoStart(peerID, address, conn, manager, manager != nil)
+}
+
+// NewTCPConnectionWithManagerAndAutoStart manager ile TCP connection oluşturur ve messageLoop başlatmayı kontrol eder
+// autoStartMessageLoop true ise messageLoop otomatik başlatılır (server-side)
+// autoStartMessageLoop false ise messageLoop başlatılmaz, manuel başlatılmalı (client-side)
+func NewTCPConnectionWithManagerAndAutoStart(peerID, address string, conn net.Conn, manager *TCPConnectionManager, autoStartMessageLoop bool) *TCPConnection {
 	ctx, cancel := context.WithCancel(context.Background())
 	
 	tcpConn := &TCPConnection{
@@ -65,9 +72,9 @@ func NewTCPConnectionWithManager(peerID, address string, conn net.Conn, manager 
 		manager:       manager,
 	}
 	
-	// Manager varsa (server-side) messageLoop'u başlat
-	// Manager yoksa (client-side) Connect() başlatacak
-	if manager != nil {
+	// Server-side için otomatik başlat (manager var VE autoStartMessageLoop true)
+	// Client-side için manuel başlatılacak (autoStartMessageLoop false)
+	if autoStartMessageLoop && manager != nil {
 		go func() {
 			// Client'ın connection request göndermesi için daha fazla bekle
 			time.Sleep(200 * time.Millisecond)
@@ -837,8 +844,10 @@ func (m *TCPConnectionManager) Connect(ctx context.Context, address string, peer
 		return nil, fmt.Errorf("peer ID uyuşmazlığı: expected=%s, got=%s", peerID, peerHandshake.DeviceID)
 	}
 	
-	// TCPConnection oluştur (messageLoop başlatma, Connect başlatacak)
-	tcpConn := NewTCPConnection(peerID, address, conn)
+	// TCPConnection oluştur (manager referansı ile - client-side connection da manager'a bağlı olmalı)
+	// Böylece bağlantı kapandığında handleConnectionLost çağrılabilir
+	// autoStartMessageLoop=false çünkü önce connection request gönderip response bekleyeceğiz
+	tcpConn := NewTCPConnectionWithManagerAndAutoStart(peerID, address, conn, m, false)
 	
 	// Connection request gönder (messageLoop başlamadan önce)
 	log.Printf("🔧 SendConnectionRequest çağrılıyor...")
