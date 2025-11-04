@@ -364,19 +364,18 @@ func isValidIPv4Address(addr string) bool {
 		return false
 	}
 	
-	// Private network IP'lerini kabul et (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+	// Private network IP'lerini kabul et (192.168.x.x, 10.x.x.x, 172.16-25.x.x)
 	if ip.IsPrivate() {
-		// Ancak 172.26.x.x gibi VPN aralıklarını şüpheli kabul et
-		// 172.16-25 aralığı genelde gerçek private network
 		octets := ip.To4()
+		
+		// 172.x.x.x aralığı kontrolü
 		if octets[0] == 172 {
 			if octets[1] >= 16 && octets[1] <= 25 {
 				return true // 172.16-25: Güvenilir private range
 			} else if octets[1] >= 26 && octets[1] <= 31 {
-				// 172.26-31: VPN/virtual adapter olabilir, ama yine de dene
-				// Ancak bazı gerçek network'ler de bu aralığı kullanabilir
-				// Bu yüzden şimdilik kabul edelim ama log'layalım
-				return true
+				// ❌ 172.26-31: VPN/virtual adapter aralığı - FİLTRELE
+				log.Printf("⚠️  VPN/virtual adapter IP filtrelendi: %s (172.26-31.x.x aralığı)", addr)
+				return false
 			}
 		}
 		
