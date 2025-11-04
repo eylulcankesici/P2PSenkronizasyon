@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 
 	"github.com/aether/sync/internal/domain/transport"
 )
@@ -103,12 +104,15 @@ func (t *LANTransport) Connect(ctx context.Context, peer *transport.DiscoveredPe
 		return nil, fmt.Errorf("peer adresi yok: %s", peer.DeviceID)
 	}
 	
-	log.Printf("🔌 %d adres deneniyor: %v", len(peer.Addresses), peer.Addresses)
+	// Adresleri önceliklendir (IPv4 private önce, sonra diğerleri)
+	sortedAddresses := prioritizeAddresses(peer.Addresses)
+	
+	log.Printf("🔌 %d adres deneniyor: %v", len(sortedAddresses), sortedAddresses)
 	
 	// Tüm adresleri dene
 	var lastErr error
-	for i, address := range peer.Addresses {
-		log.Printf("  [%d/%d] Adres deneniyor: %s", i+1, len(peer.Addresses), address)
+	for i, address := range sortedAddresses {
+		log.Printf("  [%d/%d] Adres deneniyor: %s", i+1, len(sortedAddresses), address)
 		
 		conn, err := t.connMgr.Connect(ctx, address, peer.DeviceID, peer.DeviceName)
 		if err != nil {
@@ -202,5 +206,48 @@ func (t *LANTransport) SetChunkHandler(handler func(chunkHash string) ([]byte, e
 // GetTCPConnectionManager TCP connection manager'ı döner (internal use)
 func (t *LANTransport) GetTCPConnectionManager() *TCPConnectionManager {
 	return t.connMgr
+}
+
+// prioritizeAddresses adresleri önceliğe göre sıralar
+// Öncelik: IPv4 private > IPv4 other > IPv6 (link-local hariç)
+func prioritizeAddresses(addresses []string) []string {
+	var ipv4Private []string
+	var ipv4Other []string
+	var ipv6 []string
+	
+	for _, addr := range addresses {
+		host, _, err := net.SplitHostPort(addr)
+		if err != nil {
+			// Geçersiz format, sona ekle
+			ipv6 = append(ipv6, addr)
+			continue
+		}
+		
+		ip := net.ParseIP(host)
+		if ip == nil {
+			// Parse edilemeyen, sona ekle
+			ipv6 = append(ipv6, addr)
+			continue
+		}
+		
+		if ip.To4() != nil {
+			// IPv4
+			if ip.IsPrivate() && !ip.IsLoopback() {
+				ipv4Private = append(ipv4Private, addr)
+			} else {
+				ipv4Other = append(ipv4Other, addr)
+			}
+		} else {
+			// IPv6 - link-local'ı zaten filtreledik ama yine de kontrol edelim
+			if !ip.IsLinkLocalUnicast() {
+				ipv6 = append(ipv6, addr)
+			}
+		}
+	}
+	
+	// Öncelik sırası: IPv4 private > IPv4 other > IPv6
+	result := append(ipv4Private, ipv4Other...)
+	result = append(result, ipv6...)
+	return result
 }
 

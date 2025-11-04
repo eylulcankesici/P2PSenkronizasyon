@@ -215,17 +215,31 @@ func (s *MDNSDiscoveryService) handleDiscoveredPeer(entry *mdns.ServiceEntry) {
 	
 	version := extractTXTValue(entry.InfoFields, "version")
 	
-	// Adresleri topla
+	// Adresleri topla ve filtrele (VPN/virtual adapter ve IPv6 link-local'ı filtrele)
 	addresses := make([]string, 0)
+	
 	if entry.AddrV4 != nil {
-		addresses = append(addresses, net.JoinHostPort(entry.AddrV4.String(), strconv.Itoa(entry.Port)))
+		addr := entry.AddrV4.String()
+		// Sadece private IPv4 adreslerini kabul et ve VPN IP'lerini filtrele
+		if isValidIPv4Address(addr) {
+			addresses = append(addresses, net.JoinHostPort(addr, strconv.Itoa(entry.Port)))
+		} else {
+			log.Printf("⚠️  Filtrelenen IPv4 adresi: %s (VPN/virtual adapter olabilir)", addr)
+		}
 	}
+	
 	if entry.AddrV6 != nil {
-		addresses = append(addresses, net.JoinHostPort(entry.AddrV6.String(), strconv.Itoa(entry.Port)))
+		addr := entry.AddrV6.String()
+		// IPv6 link-local'ı filtrele (Windows'ta sorun çıkarıyor)
+		if !isLinkLocalIPv6(addr) {
+			addresses = append(addresses, net.JoinHostPort(addr, strconv.Itoa(entry.Port)))
+		} else {
+			log.Printf("⚠️  Filtrelenen IPv6 link-local adresi: %s", addr)
+		}
 	}
 	
 	if len(addresses) == 0 {
-		log.Printf("⚠️  Peer adresi bulunamadı: %s", deviceID)
+		log.Printf("⚠️  Peer adresi bulunamadı (tüm adresler filtrelendi): %s (%s)", deviceName, deviceID[:8])
 		return
 	}
 	
@@ -331,5 +345,54 @@ func parseTXTRecord(record string) (key, value string) {
 		}
 	}
 	return "", ""
+}
+
+// isValidIPv4Address geçerli LAN IPv4 adresi kontrolü (VPN/virtual adapter'ları filtreler)
+func isValidIPv4Address(addr string) bool {
+	ip := net.ParseIP(addr)
+	if ip == nil {
+		return false
+	}
+	
+	// Loopback'i atla
+	if ip.IsLoopback() {
+		return false
+	}
+	
+	// IPv4 olmalı
+	if ip.To4() == nil {
+		return false
+	}
+	
+	// Private network IP'lerini kabul et (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+	if ip.IsPrivate() {
+		// Ancak 172.26.x.x gibi VPN aralıklarını şüpheli kabul et
+		// 172.16-25 aralığı genelde gerçek private network
+		octets := ip.To4()
+		if octets[0] == 172 {
+			if octets[1] >= 16 && octets[1] <= 25 {
+				return true // 172.16-25: Güvenilir private range
+			} else if octets[1] >= 26 && octets[1] <= 31 {
+				// 172.26-31: VPN/virtual adapter olabilir, ama yine de dene
+				// Ancak bazı gerçek network'ler de bu aralığı kullanabilir
+				// Bu yüzden şimdilik kabul edelim ama log'layalım
+				return true
+			}
+		}
+		
+		// 192.168.x.x ve 10.x.x.x her zaman güvenilir
+		return true
+	}
+	
+	return false
+}
+
+// isLinkLocalIPv6 IPv6 link-local adres kontrolü
+func isLinkLocalIPv6(addr string) bool {
+	ip := net.ParseIP(addr)
+	if ip == nil {
+		return false
+	}
+	return ip.IsLinkLocalUnicast()
 }
 
