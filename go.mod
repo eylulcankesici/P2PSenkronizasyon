@@ -1,11 +1,10 @@
-module github.com/eylulcankesici/P2PSenkronizasyon
+module github.com/aether/sync
 
 go 1.24.0
 
 require go.etcd.io/bbolt v1.3.8
 
 require (
-	github.com/aether/sync v0.0.0-00010101000000-000000000000
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/mdns v1.0.6
 	github.com/mattn/go-sqlite3 v1.14.32
@@ -33,5 +32,3 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
-
-replace github.com/aether/sync => .
