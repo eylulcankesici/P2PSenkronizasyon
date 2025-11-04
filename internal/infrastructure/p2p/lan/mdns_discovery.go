@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -110,6 +111,9 @@ func (s *MDNSDiscoveryService) Announce(deviceID, deviceName string, port int, m
 		txtRecords = append(txtRecords, key+"="+value)
 	}
 	
+	// Sadece gerçek LAN IP'lerini al (VPN/virtual adapter IP'lerini filtrele)
+	validIPs := getValidLANIPs()
+	
 	// mDNS service info
 	service, err := mdns.NewMDNSService(
 		deviceName,          // Instance name
@@ -117,7 +121,7 @@ func (s *MDNSDiscoveryService) Announce(deviceID, deviceName string, port int, m
 		"",                  // Domain (local)
 		"",                  // Host name (auto-detect)
 		port,                // Port
-		nil,                 // IPs (auto-detect)
+		validIPs,            // ✅ Sadece geçerli LAN IP'leri
 		txtRecords,          // TXT records
 	)
 	if err != nil {
@@ -393,5 +397,92 @@ func isLinkLocalIPv6(addr string) bool {
 		return false
 	}
 	return ip.IsLinkLocalUnicast()
+}
+
+// getValidLANIPs sadece gerçek LAN interface'lerinden IP'leri döner
+// VPN/virtual adapter IP'lerini filtreler
+func getValidLANIPs() []net.IP {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		log.Printf("⚠️  Network interface'leri alınamadı: %v", err)
+		return nil // Fallback: mDNS kütüphanesi auto-detect yapacak
+	}
+	
+	var validIPs []net.IP
+	
+	for _, iface := range interfaces {
+		// Loopback, down, veya point-to-point interface'leri atla
+		if iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		if iface.Flags&net.FlagUp == 0 {
+			continue
+		}
+		
+		// VPN/Virtual adapter'ları filtrele (isimlerine göre)
+		ifaceName := strings.ToLower(iface.Name)
+		if strings.Contains(ifaceName, "vpn") ||
+			strings.Contains(ifaceName, "virtual") ||
+			strings.Contains(ifaceName, "hyper-v") ||
+			strings.Contains(ifaceName, "vmware") ||
+			strings.Contains(ifaceName, "virtualbox") ||
+			strings.Contains(ifaceName, "tap") ||
+			strings.Contains(ifaceName, "tun") ||
+			strings.Contains(ifaceName, "wsl") {
+			log.Printf("⚠️  VPN/Virtual adapter atlandı: %s", iface.Name)
+			continue
+		}
+		
+		// Interface'in IP adreslerini al
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+		
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			default:
+				continue
+			}
+			
+			// Loopback'i atla
+			if ip.IsLoopback() {
+				continue
+			}
+			
+			// IPv4 kontrolü
+			if ip.To4() != nil {
+				ipStr := ip.String()
+				// Sadece geçerli LAN IP'lerini ekle
+				if isValidIPv4Address(ipStr) {
+					validIPs = append(validIPs, ip)
+					log.Printf("✅ mDNS için geçerli IPv4 bulundu: %s (%s)", ipStr, iface.Name)
+				} else {
+					log.Printf("⚠️  Filtrelenen IPv4: %s (%s)", ipStr, iface.Name)
+				}
+			} else {
+				// IPv6 - link-local'ı atla (Windows sorunu)
+				if !ip.IsLinkLocalUnicast() {
+					validIPs = append(validIPs, ip)
+					log.Printf("✅ mDNS için geçerli IPv6 bulundu: %s (%s)", ip.String(), iface.Name)
+				} else {
+					log.Printf("⚠️  Filtrelenen IPv6 link-local: %s (%s)", ip.String(), iface.Name)
+				}
+			}
+		}
+	}
+	
+	if len(validIPs) == 0 {
+		log.Printf("⚠️  Geçerli LAN IP bulunamadı, mDNS auto-detect kullanacak")
+		return nil // Fallback: mDNS kütüphanesi auto-detect yapacak
+	}
+	
+	log.Printf("📡 mDNS için %d geçerli IP bulundu", len(validIPs))
+	return validIPs
 }
 
