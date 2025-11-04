@@ -81,6 +81,7 @@ func (uc *PeerDiscoveryUseCaseImpl) ConnectToPeer(ctx context.Context, peerID st
 		// Veritabanından peer bilgisi al
 		dbPeer, err := uc.peerRepo.GetByID(ctx, peerID)
 		if err != nil {
+			log.Printf("❌ Peer bulunamadı: %v", err)
 			return fmt.Errorf("peer bulunamadı: %w", err)
 		}
 		
@@ -93,9 +94,12 @@ func (uc *PeerDiscoveryUseCaseImpl) ConnectToPeer(ctx context.Context, peerID st
 		}
 	}
 	
+	log.Printf("🌐 Peer adresi: %v (device: %s)", targetPeer.Addresses, targetPeer.DeviceName)
+	
 	// Bağlantı kur
 	conn, err := uc.transportProvider.Connect(ctx, targetPeer)
 	if err != nil {
+		log.Printf("❌ Bağlantı hatası: %v (peer: %s, adres: %v)", err, peerID[:8], targetPeer.Addresses)
 		return fmt.Errorf("bağlantı kurulamadı: %w", err)
 	}
 	

@@ -103,19 +103,31 @@ func (t *LANTransport) Connect(ctx context.Context, peer *transport.DiscoveredPe
 		return nil, fmt.Errorf("peer adresi yok: %s", peer.DeviceID)
 	}
 	
-	// İlk adresi kullan
-	address := peer.Addresses[0]
+	log.Printf("🔌 %d adres deneniyor: %v", len(peer.Addresses), peer.Addresses)
 	
-	conn, err := t.connMgr.Connect(ctx, address, peer.DeviceID, peer.DeviceName)
-	if err != nil {
-		return nil, fmt.Errorf("bağlantı kurulamadı: %w", err)
+	// Tüm adresleri dene
+	var lastErr error
+	for i, address := range peer.Addresses {
+		log.Printf("  [%d/%d] Adres deneniyor: %s", i+1, len(peer.Addresses), address)
+		
+		conn, err := t.connMgr.Connect(ctx, address, peer.DeviceID, peer.DeviceName)
+		if err != nil {
+			log.Printf("  ❌ Adres başarısız: %s - %v", address, err)
+			lastErr = err
+			continue // Bir sonraki adresi dene
+		}
+		
+		log.Printf("  ✅ Bağlantı başarılı: %s", address)
+		
+		if t.onConnectionEstablished != nil {
+			t.onConnectionEstablished(conn)
+		}
+		
+		return conn, nil
 	}
 	
-	if t.onConnectionEstablished != nil {
-		t.onConnectionEstablished(conn)
-	}
-	
-	return conn, nil
+	// Tüm adresler başarısız oldu
+	return nil, fmt.Errorf("tüm adresler başarısız oldu (son hata: %w)", lastErr)
 }
 
 // Disconnect peer bağlantısını keser

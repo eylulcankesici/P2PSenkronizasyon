@@ -809,18 +809,27 @@ func (m *TCPConnectionManager) Listen(ctx context.Context, port int) error {
 
 // Connect peer'a TCP bağlantısı kurar
 func (m *TCPConnectionManager) Connect(ctx context.Context, address string, peerID string, deviceName string) (transport.Connection, error) {
+	log.Printf("🔌 TCP bağlantısı deneniyor: %s (peer: %s)", address, peerID[:8])
+	
 	// TCP dial
 	conn, err := net.DialTimeout("tcp", address, 5*time.Second)
 	if err != nil {
+		log.Printf("❌ TCP connect hatası: %v (address: %s)", err, address)
 		return nil, fmt.Errorf("TCP connect hatası: %w", err)
 	}
 	
+	log.Printf("✅ TCP bağlantısı kuruldu: %s", address)
+	
 	// Client handshake yap
+	log.Printf("🤝 Handshake başlatılıyor...")
 	peerHandshake, err := PerformClientHandshake(conn, m.deviceID, m.deviceName)
 	if err != nil {
+		log.Printf("❌ Handshake hatası: %v", err)
 		conn.Close()
 		return nil, fmt.Errorf("handshake başarısız: %w", err)
 	}
+	
+	log.Printf("✅ Handshake başarılı: %s (%s)", peerHandshake.DeviceName, peerHandshake.DeviceID[:8])
 	
 	// Handshake'den gelen peer ID ile parametredeki eşleşiyor mu?
 	if peerHandshake.DeviceID != peerID {
