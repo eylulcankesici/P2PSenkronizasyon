@@ -597,8 +597,14 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 				newFile.ID = fileID
 				if err := c.fileRepo.Create(ctx, newFile); err != nil {
 					log.Printf("  ⚠️ File entity oluşturulamadı (belki zaten var): %v", err)
+					// Entity zaten varsa tekrar oku
+					file, err = c.fileRepo.GetByID(ctx, fileID)
+					if err != nil {
+						log.Printf("  ⚠️ File entity okunamadı: %v", err)
+					}
 				} else {
 					log.Printf("  ✅ File entity oluşturuldu: %s", fileID)
+					file = newFile  // Yeni oluşturulan file entity'yi file değişkenine ata
 				}
 			} else if file.FolderID != folderID {
 				// Folder ID'sini güncelle
@@ -620,15 +626,56 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 			return fmt.Errorf("dosya yazılamadı: %w", err)
 		}
 		
-		// Dosya bilgilerini güncelle (boyut vs.)
+		// Dosya bilgilerini güncelle (boyut vs.) - Her durumda güncelle (yeni oluşturulmuş olsa bile)
+		// File entity'yi tekrar oku (eğer yoksa)
+		if file == nil {
+			file, err = c.fileRepo.GetByID(ctx, fileID)
+			if err != nil {
+				log.Printf("  ⚠️ File entity okunamadı (güncelleme için): %v", err)
+			}
+		}
+		
 		if file != nil {
+			// Dosya bilgilerini disk'ten oku ve güncelle
 			if fileInfo, err := os.Stat(outputPath); err == nil {
 				file.Size = fileInfo.Size()
 				file.ModTime = fileInfo.ModTime()
+				
+				// Relative path'i güncelle (folder bilgisi varsa folder'a göre hesapla)
+				if folder != nil {
+					relPath, err := filepath.Rel(folder.LocalPath, outputPath)
+					if err == nil {
+						file.RelativePath = relPath
+					} else {
+						// Fallback: sadece dosya adı
+						file.RelativePath = filepath.Base(outputPath)
+					}
+				} else {
+					// Folder bilgisi yoksa, folder entity'yi oku
+					if file.FolderID != "" {
+						folderTemp, err := c.folderRepo.GetByID(ctx, file.FolderID)
+						if err == nil && folderTemp != nil {
+							relPath, err := filepath.Rel(folderTemp.LocalPath, outputPath)
+							if err == nil {
+								file.RelativePath = relPath
+							} else {
+								// Fallback: sadece dosya adı
+								file.RelativePath = filepath.Base(outputPath)
+							}
+						}
+					}
+				}
+				
 				if err := c.fileRepo.Update(ctx, file); err != nil {
 					log.Printf("  ⚠️ Dosya bilgileri güncellenemedi: %v", err)
+				} else {
+					log.Printf("  ✅ Dosya bilgileri güncellendi: size=%d bytes, modTime=%v, relativePath=%s", file.Size, file.ModTime, file.RelativePath)
 				}
+			} else {
+				log.Printf("  ⚠️ Dosya bilgisi alınamadı: %v", err)
 			}
+		} else {
+			log.Printf("  ⚠️ File entity bulunamadı, dosya bilgileri güncellenemedi")
 		}
 		
 		log.Printf("  💾 Dosya kaydedildi: %s", outputPath)
