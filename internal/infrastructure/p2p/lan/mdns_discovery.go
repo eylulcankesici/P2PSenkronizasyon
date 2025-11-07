@@ -372,6 +372,17 @@ func isValidIPv4Address(addr string) bool {
 	if ip.IsPrivate() {
 		octets := ip.To4()
 		
+		// 192.168.x.x kontrolü - VirtualBox/Hyper-V aralığını filtrele
+		if octets[0] == 192 && octets[1] == 168 {
+			if octets[2] == 56 {
+				// ❌ 192.168.56.x: VirtualBox/Hyper-V default aralığı - FİLTRELE
+				log.Printf("⚠️  VirtualBox/Hyper-V IP filtrelendi: %s (192.168.56.x aralığı)", addr)
+				return false
+			}
+			// Diğer 192.168.x.x aralıkları güvenilir
+			return true
+		}
+		
 		// 172.x.x.x aralığı kontrolü
 		if octets[0] == 172 {
 			if octets[1] >= 16 && octets[1] <= 25 {
@@ -383,7 +394,7 @@ func isValidIPv4Address(addr string) bool {
 			}
 		}
 		
-		// 192.168.x.x ve 10.x.x.x her zaman güvenilir
+		// 10.x.x.x her zaman güvenilir
 		return true
 	}
 	
@@ -401,6 +412,7 @@ func isLinkLocalIPv6(addr string) bool {
 
 // getValidLANIPs sadece gerçek LAN interface'lerinden IP'leri döner
 // VPN/virtual adapter IP'lerini filtreler
+// IPv4'leri önceliklendirir (IPv4 önce, IPv6 sonra) - mDNS announce sırası önemli
 func getValidLANIPs() []net.IP {
 	interfaces, err := net.Interfaces()
 	if err != nil {
@@ -408,7 +420,8 @@ func getValidLANIPs() []net.IP {
 		return nil // Fallback: mDNS kütüphanesi auto-detect yapacak
 	}
 	
-	var validIPs []net.IP
+	var validIPv4s []net.IP  // IPv4'ler önce
+	var validIPv6s []net.IP  // IPv6'lar sonra
 	
 	for _, iface := range interfaces {
 		// Loopback, down, veya point-to-point interface'leri atla
@@ -460,7 +473,7 @@ func getValidLANIPs() []net.IP {
 				ipStr := ip.String()
 				// Sadece geçerli LAN IP'lerini ekle
 				if isValidIPv4Address(ipStr) {
-					validIPs = append(validIPs, ip)
+					validIPv4s = append(validIPv4s, ip)  // IPv4'leri ayrı slice'a ekle
 					log.Printf("✅ mDNS için geçerli IPv4 bulundu: %s (%s)", ipStr, iface.Name)
 				} else {
 					log.Printf("⚠️  Filtrelenen IPv4: %s (%s)", ipStr, iface.Name)
@@ -468,7 +481,7 @@ func getValidLANIPs() []net.IP {
 			} else {
 				// IPv6 - link-local'ı atla (Windows sorunu)
 				if !ip.IsLinkLocalUnicast() {
-					validIPs = append(validIPs, ip)
+					validIPv6s = append(validIPv6s, ip)  // IPv6'ları ayrı slice'a ekle
 					log.Printf("✅ mDNS için geçerli IPv6 bulundu: %s (%s)", ip.String(), iface.Name)
 				} else {
 					log.Printf("⚠️  Filtrelenen IPv6 link-local: %s (%s)", ip.String(), iface.Name)
@@ -477,12 +490,15 @@ func getValidLANIPs() []net.IP {
 		}
 	}
 	
+	// IPv4'leri önce, IPv6'ları sonra birleştir (mDNS announce sırası önemli)
+	validIPs := append(validIPv4s, validIPv6s...)
+	
 	if len(validIPs) == 0 {
 		log.Printf("⚠️  Geçerli LAN IP bulunamadı, mDNS auto-detect kullanacak")
 		return nil // Fallback: mDNS kütüphanesi auto-detect yapacak
 	}
 	
-	log.Printf("📡 mDNS için %d geçerli IP bulundu", len(validIPs))
+	log.Printf("📡 mDNS için %d geçerli IP bulundu (%d IPv4, %d IPv6)", len(validIPs), len(validIPv4s), len(validIPv6s))
 	return validIPs
 }
 
