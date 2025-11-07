@@ -21,6 +21,7 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   int _selectedIndex = 0;
+  Timer? _foldersRefreshTimer;
   
   @override
   void initState() {
@@ -28,6 +29,29 @@ class _HomePageState extends ConsumerState<HomePage> {
     // Connection request listener
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _listenToPendingConnections();
+      _startFoldersRefreshTimer();
+    });
+  }
+  
+  @override
+  void dispose() {
+    _foldersRefreshTimer?.cancel();
+    super.dispose();
+  }
+  
+  /// Klasörler sekmesini periyodik olarak yenile (dosya alma işlemleri için)
+  void _startFoldersRefreshTimer() {
+    // Her 5 saniyede bir klasörleri yenile (dosya alma işlemlerini algılamak için)
+    _foldersRefreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      
+      // Klasörler sekmesinde isek ve klasörler provider'ı varsa yenile
+      if (_selectedIndex == 0) {
+        ref.invalidate(foldersProvider);
+      }
     });
   }
   
@@ -143,6 +167,11 @@ class _HomePageState extends ConsumerState<HomePage> {
           setState(() {
             _selectedIndex = index;
           });
+          
+          // Klasörler sekmesine geçildiğinde klasörleri yenile
+          if (index == 0) {
+            ref.invalidate(foldersProvider);
+          }
         },
         destinations: _destinations,
       ),

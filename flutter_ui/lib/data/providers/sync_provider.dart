@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aether_desktop/data/services/grpc_provider.dart';
 import 'package:aether_desktop/generated/api/proto/sync.pb.dart';
 import 'package:aether_desktop/generated/api/proto/sync.pbgrpc.dart';
+import 'package:aether_desktop/data/providers/folder_provider.dart';
 
 /// Sync işlemleri notifier
 class SyncNotifier extends StateNotifier<AsyncValue<void>> {
@@ -23,6 +24,8 @@ class SyncNotifier extends StateNotifier<AsyncValue<void>> {
       final response = await client.syncService.syncFile(request);
       
       if (response.status.success) {
+        // Klasörler sekmesini yenile (dosya gönderildikten sonra)
+        ref.invalidate(foldersProvider);
         state = const AsyncValue.data(null);
       } else {
         state = AsyncValue.error(

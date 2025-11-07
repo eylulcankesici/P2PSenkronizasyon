@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:aether_desktop/data/services/grpc_provider.dart';
-import 'package:aether_desktop/generated/api/proto/p2p.pb.dart';
+import 'package:aether_desktop/data/providers/folder_provider.dart';
 
 /// Transfer durumu modeli
 class TransferState {
@@ -116,9 +115,8 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
     state = {...state, fileId: transfer};
     
     try {
-      final client = ref.read(grpcClientProvider);
-      
       // Backend'e request gönder (placeholder - gerçek API implementasyonu gerekli)
+      // final client = ref.read(grpcClientProvider);
       // final response = await client.p2pService.requestFile(...);
       
       // Simüle edilmiş progress güncellemesi
@@ -149,6 +147,9 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
     final current = state[fileId];
     if (current == null) return;
     
+    final wasComplete = current.isComplete;
+    final nowComplete = isComplete ?? false;
+    
     state = {
       ...state,
       fileId: current.copyWith(
@@ -160,6 +161,11 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
         endTime: endTime,
       ),
     };
+    
+    // Transfer tamamlandığında klasörler sekmesini yenile (dosya alındıktan sonra)
+    if (!wasComplete && nowComplete) {
+      ref.invalidate(foldersProvider);
+    }
   }
   
   /// Transfer'ı sil (history'den kaldır)
