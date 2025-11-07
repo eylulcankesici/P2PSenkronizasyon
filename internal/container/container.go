@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 	
 	"github.com/aether/sync/internal/config"
@@ -50,12 +51,17 @@ type Container struct {
 	
 	// File reassembler (push-based sync için)
 	fileReassembler *reassembly.FileReassembler
+	
+	// Retry tracking (chunk hash doğrulama için)
+	chunkRetryCount map[string]int
+	retryMu         sync.RWMutex
 }
 
 // NewContainer yeni bir container oluşturur
 func NewContainer(cfg *config.Config) (*Container, error) {
 	container := &Container{
-		config: cfg,
+		config:          cfg,
+		chunkRetryCount: make(map[string]int),
 	}
 	
 	// Database bağlantılarını kur
@@ -503,10 +509,34 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 		}
 	}
 	
-	// Chunk'ı reassembler'a ekle
+	// Retry sayacını kontrol et (max 3 retry)
+	const maxRetries = 3
+	retryKey := fmt.Sprintf("%s:%s:%d", fileID, chunkHash, chunkIndex)
+	retryCount := c.getChunkRetryCount(retryKey)
+	
+	// Chunk'ı reassembler'a ekle (hash doğrulama burada yapılıyor)
 	if err := c.fileReassembler.AddChunk(fileID, chunkIndex, chunkHash, chunkData); err != nil {
-		return fmt.Errorf("chunk eklenemedi: %w", err)
+		// Hash hatası durumunda retry mekanizması
+		if retryCount < maxRetries {
+			log.Printf("  ❌ Chunk hash hatası (retry %d/%d): %v", retryCount+1, maxRetries, err)
+			c.incrementChunkRetryCount(retryKey)
+			
+			// Chunk'ı tekrar talep et
+			if err := c.retryChunkRequest(ctx, peerID, chunkHash, fileID, chunkIndex, totalChunks, fileName); err != nil {
+				log.Printf("  ⚠️ Chunk retry hatası: %v", err)
+				return fmt.Errorf("chunk retry başarısız: %w", err)
+			}
+			
+			log.Printf("  🔄 Chunk retry talep edildi: %s (retry %d/%d)", chunkHash[:8], retryCount+1, maxRetries)
+			return nil // Retry talep edildi, şimdilik hata döndürme
+		} else {
+			log.Printf("  ❌ Chunk hash hatası: max retry sayısına ulaşıldı (%d), hata: %v", maxRetries, err)
+			return fmt.Errorf("chunk hash doğrulama başarısız (max retry): %w", err)
+		}
 	}
+	
+	// Başarılı - retry sayacını sıfırla
+	c.clearChunkRetryCount(retryKey)
 	
 	// Tüm chunk'lar geldi mi kontrol et
 	if c.fileReassembler.IsFileComplete(fileID) {
@@ -678,13 +708,65 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 			log.Printf("  ⚠️ File entity bulunamadı, dosya bilgileri güncellenemedi")
 		}
 		
-		log.Printf("  💾 Dosya kaydedildi: %s", outputPath)
-		
-		// Cleanup
-		c.fileReassembler.CleanupFile(fileID)
+	log.Printf("  💾 Dosya kaydedildi: %s", outputPath)
+	
+	// Cleanup
+	c.fileReassembler.CleanupFile(fileID)
+}
+
+return nil
+}
+
+// getChunkRetryCount chunk retry sayısını döner
+func (c *Container) getChunkRetryCount(retryKey string) int {
+	c.retryMu.RLock()
+	defer c.retryMu.RUnlock()
+	return c.chunkRetryCount[retryKey]
+}
+
+// incrementChunkRetryCount chunk retry sayısını artırır
+func (c *Container) incrementChunkRetryCount(retryKey string) {
+	c.retryMu.Lock()
+	defer c.retryMu.Unlock()
+	c.chunkRetryCount[retryKey]++
+}
+
+// clearChunkRetryCount chunk retry sayısını sıfırlar
+func (c *Container) clearChunkRetryCount(retryKey string) {
+	c.retryMu.Lock()
+	defer c.retryMu.Unlock()
+	delete(c.chunkRetryCount, retryKey)
+}
+
+// retryChunkRequest chunk'ı tekrar talep eder (retry mekanizması)
+func (c *Container) retryChunkRequest(ctx context.Context, peerID, chunkHash, fileID string, chunkIndex, totalChunks int, fileName string) error {
+	log.Printf("  🔄 Chunk retry başlatılıyor: %s (file: %s, index: %d)", chunkHash[:8], fileID[:8], chunkIndex)
+	
+	// Bağlantıyı al
+	conn, exists := c.transportProvider.GetConnection(peerID)
+	if !exists {
+		return fmt.Errorf("peer bağlı değil: %s", peerID)
 	}
 	
-	return nil
+	// Kısa bir süre bekle (retry rate limiting)
+	time.Sleep(100 * time.Millisecond)
+	
+	// Chunk'ı tekrar talep et (pull-based)
+	if tcpConn, ok := conn.(interface {
+		RequestChunk(ctx context.Context, chunkHash string) ([]byte, error)
+	}); ok {
+		// Chunk'ı talep et
+		retryChunkData, err := tcpConn.RequestChunk(ctx, chunkHash)
+		if err != nil {
+			return fmt.Errorf("chunk retry talebi başarısız: %w", err)
+		}
+		
+		// Tekrar handleIncomingChunk çağır (recursive retry)
+		log.Printf("  ✅ Chunk retry alındı, tekrar doğrulanıyor: %s", chunkHash[:8])
+		return c.handleIncomingChunk(ctx, peerID, fileID, chunkHash, retryChunkData, chunkIndex, totalChunks, fileName)
+	}
+	
+	return fmt.Errorf("retry desteği yok (connection type: %T)", conn)
 }
 
 

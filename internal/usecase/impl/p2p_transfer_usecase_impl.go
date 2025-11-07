@@ -2,10 +2,12 @@ package impl
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"path/filepath"
-
+	
 	"github.com/aether/sync/internal/domain/repository"
 	"github.com/aether/sync/internal/domain/transport"
 	"github.com/aether/sync/internal/domain/usecase"
@@ -121,6 +123,26 @@ func (uc *P2PTransferUseCaseImpl) SyncFileWithPeer(ctx context.Context, peerID, 
 		chunkData, err := uc.chunkingUseCase.GetChunkData(ctx, fc.ChunkHash)
 		if err != nil {
 			return fmt.Errorf("chunk verisi alınamadı [%d]: %w", i, err)
+		}
+		
+		// Göndermeden önce hash doğrulaması yap (güvenlik için - chunk bozulmuş olabilir)
+		// Hash kontrolü: gönderilen chunk'ın hash'i beklenen hash ile eşleşmeli
+		actualHash := sha256.Sum256(chunkData)
+		actualHashStr := hex.EncodeToString(actualHash[:])
+		if actualHashStr != fc.ChunkHash {
+			log.Printf("  ⚠️ Chunk hash uyuşmazlığı [%d]: expected=%s, got=%s - chunk tekrar yükleniyor...", i, fc.ChunkHash[:8], actualHashStr[:8])
+			// Chunk'ı tekrar yükle (belki disk'te corrupt veya cache sorunu)
+			chunkData, err = uc.chunkingUseCase.GetChunkData(ctx, fc.ChunkHash)
+			if err != nil {
+				return fmt.Errorf("chunk verisi tekrar alınamadı [%d]: %w", i, err)
+			}
+			// Tekrar doğrula
+			actualHash = sha256.Sum256(chunkData)
+			actualHashStr = hex.EncodeToString(actualHash[:])
+			if actualHashStr != fc.ChunkHash {
+				return fmt.Errorf("chunk hash doğrulama başarısız [%d]: expected=%s, got=%s", i, fc.ChunkHash[:8], actualHashStr[:8])
+			}
+			log.Printf("  ✅ Chunk hash doğrulandı (retry sonrası): %s", fc.ChunkHash[:8])
 		}
 		
 		// Chunk'ı file bilgisiyle gönder
