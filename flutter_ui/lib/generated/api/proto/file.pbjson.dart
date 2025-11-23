@@ -1,13 +1,14 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: api/proto/file.proto
-//
-// @dart = 2.12
+// Generated from api/proto/file.proto.
 
-// ignore_for_file: annotate_overrides, camel_case_types
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// @dart = 3.3
+
+// ignore_for_file: annotate_overrides, camel_case_types, comment_references
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, unused_import
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
@@ -21,12 +22,33 @@ const File$json = {
     {'1': 'folder_id', '3': 2, '4': 1, '5': 9, '10': 'folderId'},
     {'1': 'relative_path', '3': 3, '4': 1, '5': 9, '10': 'relativePath'},
     {'1': 'size', '3': 4, '4': 1, '5': 3, '10': 'size'},
-    {'1': 'mod_time', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'modTime'},
+    {
+      '1': 'mod_time',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'modTime'
+    },
     {'1': 'global_hash', '3': 6, '4': 1, '5': 9, '10': 'globalHash'},
     {'1': 'chunk_count', '3': 7, '4': 1, '5': 5, '10': 'chunkCount'},
     {'1': 'is_deleted', '3': 8, '4': 1, '5': 8, '10': 'isDeleted'},
-    {'1': 'created_at', '3': 9, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
-    {'1': 'updated_at', '3': 10, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'updatedAt'},
+    {
+      '1': 'created_at',
+      '3': 9,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'createdAt'
+    },
+    {
+      '1': 'updated_at',
+      '3': 10,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'updatedAt'
+    },
   ],
 };
 
@@ -48,7 +70,13 @@ const Chunk$json = {
     {'1': 'file_id', '3': 2, '4': 1, '5': 9, '10': 'fileId'},
     {'1': 'offset', '3': 3, '4': 1, '5': 3, '10': 'offset'},
     {'1': 'length', '3': 4, '4': 1, '5': 3, '10': 'length'},
-    {'1': 'device_availability', '3': 5, '4': 3, '5': 9, '10': 'deviceAvailability'},
+    {
+      '1': 'device_availability',
+      '3': 5,
+      '4': 3,
+      '5': 9,
+      '10': 'deviceAvailability'
+    },
   ],
 };
 
@@ -69,8 +97,21 @@ const FileVersion$json = {
     {'1': 'original_path', '3': 5, '4': 1, '5': 9, '10': 'originalPath'},
     {'1': 'size', '3': 6, '4': 1, '5': 3, '10': 'size'},
     {'1': 'hash', '3': 7, '4': 1, '5': 9, '10': 'hash'},
-    {'1': 'created_at', '3': 8, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
-    {'1': 'created_by_peer_id', '3': 9, '4': 1, '5': 9, '10': 'createdByPeerId'},
+    {
+      '1': 'created_at',
+      '3': 8,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'createdAt'
+    },
+    {
+      '1': 'created_by_peer_id',
+      '3': 9,
+      '4': 1,
+      '5': 9,
+      '10': 'createdByPeerId'
+    },
   ],
 };
 
@@ -92,15 +133,22 @@ const GetFileRequest$json = {
 };
 
 /// Descriptor for `GetFileRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getFileRequestDescriptor = $convert.base64Decode(
-    'Cg5HZXRGaWxlUmVxdWVzdBIOCgJpZBgBIAEoCVICaWQ=');
+final $typed_data.Uint8List getFileRequestDescriptor =
+    $convert.base64Decode('Cg5HZXRGaWxlUmVxdWVzdBIOCgJpZBgBIAEoCVICaWQ=');
 
 @$core.Deprecated('Use listFilesRequestDescriptor instead')
 const ListFilesRequest$json = {
   '1': 'ListFilesRequest',
   '2': [
     {'1': 'folder_id', '3': 1, '4': 1, '5': 9, '10': 'folderId'},
-    {'1': 'pagination', '3': 2, '4': 1, '5': 11, '6': '.aether.api.PaginationRequest', '10': 'pagination'},
+    {
+      '1': 'pagination',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.PaginationRequest',
+      '10': 'pagination'
+    },
   ],
 };
 
@@ -113,8 +161,22 @@ final $typed_data.Uint8List listFilesRequestDescriptor = $convert.base64Decode(
 const ListFilesResponse$json = {
   '1': 'ListFilesResponse',
   '2': [
-    {'1': 'files', '3': 1, '4': 3, '5': 11, '6': '.aether.api.File', '10': 'files'},
-    {'1': 'pagination', '3': 2, '4': 1, '5': 11, '6': '.aether.api.PaginationResponse', '10': 'pagination'},
+    {
+      '1': 'files',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.aether.api.File',
+      '10': 'files'
+    },
+    {
+      '1': 'pagination',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.PaginationResponse',
+      '10': 'pagination'
+    },
   ],
 };
 
@@ -133,20 +195,49 @@ const GetFileInfoRequest$json = {
 };
 
 /// Descriptor for `GetFileInfoRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getFileInfoRequestDescriptor = $convert.base64Decode(
-    'ChJHZXRGaWxlSW5mb1JlcXVlc3QSFwoHZmlsZV9pZBgBIAEoCVIGZmlsZUlk');
+final $typed_data.Uint8List getFileInfoRequestDescriptor =
+    $convert.base64Decode(
+        'ChJHZXRGaWxlSW5mb1JlcXVlc3QSFwoHZmlsZV9pZBgBIAEoCVIGZmlsZUlk');
 
 @$core.Deprecated('Use fileInfoResponseDescriptor instead')
 const FileInfoResponse$json = {
   '1': 'FileInfoResponse',
   '2': [
-    {'1': 'status', '3': 1, '4': 1, '5': 11, '6': '.aether.api.Status', '10': 'status'},
-    {'1': 'file', '3': 2, '4': 1, '5': 11, '6': '.aether.api.File', '10': 'file'},
-    {'1': 'chunks', '3': 3, '4': 3, '5': 11, '6': '.aether.api.Chunk', '10': 'chunks'},
+    {
+      '1': 'status',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.Status',
+      '10': 'status'
+    },
+    {
+      '1': 'file',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.File',
+      '10': 'file'
+    },
+    {
+      '1': 'chunks',
+      '3': 3,
+      '4': 3,
+      '5': 11,
+      '6': '.aether.api.Chunk',
+      '10': 'chunks'
+    },
     {'1': 'available_peers', '3': 4, '4': 3, '5': 9, '10': 'availablePeers'},
     {'1': 'version_count', '3': 5, '4': 1, '5': 5, '10': 'versionCount'},
     {'1': 'sync_percentage', '3': 6, '4': 1, '5': 2, '10': 'syncPercentage'},
-    {'1': 'last_sync_time', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'lastSyncTime'},
+    {
+      '1': 'last_sync_time',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'lastSyncTime'
+    },
   ],
 };
 
@@ -180,15 +271,30 @@ const GetFileVersionsRequest$json = {
 };
 
 /// Descriptor for `GetFileVersionsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getFileVersionsRequestDescriptor = $convert.base64Decode(
-    'ChZHZXRGaWxlVmVyc2lvbnNSZXF1ZXN0EhcKB2ZpbGVfaWQYASABKAlSBmZpbGVJZA==');
+final $typed_data.Uint8List getFileVersionsRequestDescriptor =
+    $convert.base64Decode(
+        'ChZHZXRGaWxlVmVyc2lvbnNSZXF1ZXN0EhcKB2ZpbGVfaWQYASABKAlSBmZpbGVJZA==');
 
 @$core.Deprecated('Use fileVersionsResponseDescriptor instead')
 const FileVersionsResponse$json = {
   '1': 'FileVersionsResponse',
   '2': [
-    {'1': 'status', '3': 1, '4': 1, '5': 11, '6': '.aether.api.Status', '10': 'status'},
-    {'1': 'versions', '3': 2, '4': 3, '5': 11, '6': '.aether.api.FileVersion', '10': 'versions'},
+    {
+      '1': 'status',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.Status',
+      '10': 'status'
+    },
+    {
+      '1': 'versions',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.aether.api.FileVersion',
+      '10': 'versions'
+    },
   ],
 };
 
@@ -216,8 +322,22 @@ final $typed_data.Uint8List restoreFileRequestDescriptor = $convert.base64Decode
 const FileResponse$json = {
   '1': 'FileResponse',
   '2': [
-    {'1': 'status', '3': 1, '4': 1, '5': 11, '6': '.aether.api.Status', '10': 'status'},
-    {'1': 'file', '3': 2, '4': 1, '5': 11, '6': '.aether.api.File', '10': 'file'},
+    {
+      '1': 'status',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.Status',
+      '10': 'status'
+    },
+    {
+      '1': 'file',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.File',
+      '10': 'file'
+    },
   ],
 };
 
@@ -225,4 +345,3 @@ const FileResponse$json = {
 final $typed_data.Uint8List fileResponseDescriptor = $convert.base64Decode(
     'CgxGaWxlUmVzcG9uc2USKgoGc3RhdHVzGAEgASgLMhIuYWV0aGVyLmFwaS5TdGF0dXNSBnN0YX'
     'R1cxIkCgRmaWxlGAIgASgLMhAuYWV0aGVyLmFwaS5GaWxlUgRmaWxl');
-

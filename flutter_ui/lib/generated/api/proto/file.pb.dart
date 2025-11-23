@@ -1,882 +1,1118 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: api/proto/file.proto
-//
-// @dart = 2.12
+// Generated from api/proto/file.proto.
 
-// ignore_for_file: annotate_overrides, camel_case_types
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// @dart = 3.3
+
+// ignore_for_file: annotate_overrides, camel_case_types, comment_references
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names
 
 import 'dart:core' as $core;
 
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../google/protobuf/timestamp.pb.dart' as $7;
+import '../../google/protobuf/timestamp.pb.dart' as $2;
 import 'common.pb.dart' as $1;
 
-class File extends $pb.GeneratedMessage {
-  factory File() => create();
-  File._() : super();
-  factory File.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory File.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'File', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+class File extends $pb.GeneratedMessage {
+  factory File({
+    $core.String? id,
+    $core.String? folderId,
+    $core.String? relativePath,
+    $fixnum.Int64? size,
+    $2.Timestamp? modTime,
+    $core.String? globalHash,
+    $core.int? chunkCount,
+    $core.bool? isDeleted,
+    $2.Timestamp? createdAt,
+    $2.Timestamp? updatedAt,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (folderId != null) result.folderId = folderId;
+    if (relativePath != null) result.relativePath = relativePath;
+    if (size != null) result.size = size;
+    if (modTime != null) result.modTime = modTime;
+    if (globalHash != null) result.globalHash = globalHash;
+    if (chunkCount != null) result.chunkCount = chunkCount;
+    if (isDeleted != null) result.isDeleted = isDeleted;
+    if (createdAt != null) result.createdAt = createdAt;
+    if (updatedAt != null) result.updatedAt = updatedAt;
+    return result;
+  }
+
+  File._();
+
+  factory File.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory File.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'File',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'folderId')
     ..aOS(3, _omitFieldNames ? '' : 'relativePath')
     ..aInt64(4, _omitFieldNames ? '' : 'size')
-    ..aOM<$7.Timestamp>(5, _omitFieldNames ? '' : 'modTime', subBuilder: $7.Timestamp.create)
+    ..aOM<$2.Timestamp>(5, _omitFieldNames ? '' : 'modTime',
+        subBuilder: $2.Timestamp.create)
     ..aOS(6, _omitFieldNames ? '' : 'globalHash')
-    ..a<$core.int>(7, _omitFieldNames ? '' : 'chunkCount', $pb.PbFieldType.O3)
+    ..aI(7, _omitFieldNames ? '' : 'chunkCount')
     ..aOB(8, _omitFieldNames ? '' : 'isDeleted')
-    ..aOM<$7.Timestamp>(9, _omitFieldNames ? '' : 'createdAt', subBuilder: $7.Timestamp.create)
-    ..aOM<$7.Timestamp>(10, _omitFieldNames ? '' : 'updatedAt', subBuilder: $7.Timestamp.create)
-    ..hasRequiredFields = false
-  ;
+    ..aOM<$2.Timestamp>(9, _omitFieldNames ? '' : 'createdAt',
+        subBuilder: $2.Timestamp.create)
+    ..aOM<$2.Timestamp>(10, _omitFieldNames ? '' : 'updatedAt',
+        subBuilder: $2.Timestamp.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  File clone() => File()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  File copyWith(void Function(File) updates) => super.copyWith((message) => updates(message as File)) as File;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  File clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  File copyWith(void Function(File) updates) =>
+      super.copyWith((message) => updates(message as File)) as File;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static File create() => File._();
+  @$core.override
   File createEmptyInstance() => create();
-  static $pb.PbList<File> createRepeated() => $pb.PbList<File>();
   @$core.pragma('dart2js:noInline')
-  static File getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<File>(create);
+  static File getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<File>(create);
   static File? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get id => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($core.String v) { $_setString(0, v); }
+  set id($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearId() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get folderId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set folderId($core.String v) { $_setString(1, v); }
+  set folderId($core.String value) => $_setString(1, value);
   @$pb.TagNumber(2)
   $core.bool hasFolderId() => $_has(1);
   @$pb.TagNumber(2)
-  void clearFolderId() => clearField(2);
+  void clearFolderId() => $_clearField(2);
 
   @$pb.TagNumber(3)
   $core.String get relativePath => $_getSZ(2);
   @$pb.TagNumber(3)
-  set relativePath($core.String v) { $_setString(2, v); }
+  set relativePath($core.String value) => $_setString(2, value);
   @$pb.TagNumber(3)
   $core.bool hasRelativePath() => $_has(2);
   @$pb.TagNumber(3)
-  void clearRelativePath() => clearField(3);
+  void clearRelativePath() => $_clearField(3);
 
   @$pb.TagNumber(4)
   $fixnum.Int64 get size => $_getI64(3);
   @$pb.TagNumber(4)
-  set size($fixnum.Int64 v) { $_setInt64(3, v); }
+  set size($fixnum.Int64 value) => $_setInt64(3, value);
   @$pb.TagNumber(4)
   $core.bool hasSize() => $_has(3);
   @$pb.TagNumber(4)
-  void clearSize() => clearField(4);
+  void clearSize() => $_clearField(4);
 
   @$pb.TagNumber(5)
-  $7.Timestamp get modTime => $_getN(4);
+  $2.Timestamp get modTime => $_getN(4);
   @$pb.TagNumber(5)
-  set modTime($7.Timestamp v) { setField(5, v); }
+  set modTime($2.Timestamp value) => $_setField(5, value);
   @$pb.TagNumber(5)
   $core.bool hasModTime() => $_has(4);
   @$pb.TagNumber(5)
-  void clearModTime() => clearField(5);
+  void clearModTime() => $_clearField(5);
   @$pb.TagNumber(5)
-  $7.Timestamp ensureModTime() => $_ensure(4);
+  $2.Timestamp ensureModTime() => $_ensure(4);
 
   @$pb.TagNumber(6)
   $core.String get globalHash => $_getSZ(5);
   @$pb.TagNumber(6)
-  set globalHash($core.String v) { $_setString(5, v); }
+  set globalHash($core.String value) => $_setString(5, value);
   @$pb.TagNumber(6)
   $core.bool hasGlobalHash() => $_has(5);
   @$pb.TagNumber(6)
-  void clearGlobalHash() => clearField(6);
+  void clearGlobalHash() => $_clearField(6);
 
   @$pb.TagNumber(7)
   $core.int get chunkCount => $_getIZ(6);
   @$pb.TagNumber(7)
-  set chunkCount($core.int v) { $_setSignedInt32(6, v); }
+  set chunkCount($core.int value) => $_setSignedInt32(6, value);
   @$pb.TagNumber(7)
   $core.bool hasChunkCount() => $_has(6);
   @$pb.TagNumber(7)
-  void clearChunkCount() => clearField(7);
+  void clearChunkCount() => $_clearField(7);
 
   @$pb.TagNumber(8)
   $core.bool get isDeleted => $_getBF(7);
   @$pb.TagNumber(8)
-  set isDeleted($core.bool v) { $_setBool(7, v); }
+  set isDeleted($core.bool value) => $_setBool(7, value);
   @$pb.TagNumber(8)
   $core.bool hasIsDeleted() => $_has(7);
   @$pb.TagNumber(8)
-  void clearIsDeleted() => clearField(8);
+  void clearIsDeleted() => $_clearField(8);
 
   @$pb.TagNumber(9)
-  $7.Timestamp get createdAt => $_getN(8);
+  $2.Timestamp get createdAt => $_getN(8);
   @$pb.TagNumber(9)
-  set createdAt($7.Timestamp v) { setField(9, v); }
+  set createdAt($2.Timestamp value) => $_setField(9, value);
   @$pb.TagNumber(9)
   $core.bool hasCreatedAt() => $_has(8);
   @$pb.TagNumber(9)
-  void clearCreatedAt() => clearField(9);
+  void clearCreatedAt() => $_clearField(9);
   @$pb.TagNumber(9)
-  $7.Timestamp ensureCreatedAt() => $_ensure(8);
+  $2.Timestamp ensureCreatedAt() => $_ensure(8);
 
   @$pb.TagNumber(10)
-  $7.Timestamp get updatedAt => $_getN(9);
+  $2.Timestamp get updatedAt => $_getN(9);
   @$pb.TagNumber(10)
-  set updatedAt($7.Timestamp v) { setField(10, v); }
+  set updatedAt($2.Timestamp value) => $_setField(10, value);
   @$pb.TagNumber(10)
   $core.bool hasUpdatedAt() => $_has(9);
   @$pb.TagNumber(10)
-  void clearUpdatedAt() => clearField(10);
+  void clearUpdatedAt() => $_clearField(10);
   @$pb.TagNumber(10)
-  $7.Timestamp ensureUpdatedAt() => $_ensure(9);
+  $2.Timestamp ensureUpdatedAt() => $_ensure(9);
 }
 
 class Chunk extends $pb.GeneratedMessage {
-  factory Chunk() => create();
-  Chunk._() : super();
-  factory Chunk.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory Chunk.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory Chunk({
+    $core.String? id,
+    $core.String? fileId,
+    $fixnum.Int64? offset,
+    $fixnum.Int64? length,
+    $core.Iterable<$core.String>? deviceAvailability,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (fileId != null) result.fileId = fileId;
+    if (offset != null) result.offset = offset;
+    if (length != null) result.length = length;
+    if (deviceAvailability != null)
+      result.deviceAvailability.addAll(deviceAvailability);
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Chunk', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+  Chunk._();
+
+  factory Chunk.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory Chunk.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'Chunk',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'fileId')
     ..aInt64(3, _omitFieldNames ? '' : 'offset')
     ..aInt64(4, _omitFieldNames ? '' : 'length')
     ..pPS(5, _omitFieldNames ? '' : 'deviceAvailability')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  Chunk clone() => Chunk()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  Chunk copyWith(void Function(Chunk) updates) => super.copyWith((message) => updates(message as Chunk)) as Chunk;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Chunk clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Chunk copyWith(void Function(Chunk) updates) =>
+      super.copyWith((message) => updates(message as Chunk)) as Chunk;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static Chunk create() => Chunk._();
+  @$core.override
   Chunk createEmptyInstance() => create();
-  static $pb.PbList<Chunk> createRepeated() => $pb.PbList<Chunk>();
   @$core.pragma('dart2js:noInline')
-  static Chunk getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Chunk>(create);
+  static Chunk getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Chunk>(create);
   static Chunk? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get id => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($core.String v) { $_setString(0, v); }
+  set id($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearId() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get fileId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set fileId($core.String v) { $_setString(1, v); }
+  set fileId($core.String value) => $_setString(1, value);
   @$pb.TagNumber(2)
   $core.bool hasFileId() => $_has(1);
   @$pb.TagNumber(2)
-  void clearFileId() => clearField(2);
+  void clearFileId() => $_clearField(2);
 
   @$pb.TagNumber(3)
   $fixnum.Int64 get offset => $_getI64(2);
   @$pb.TagNumber(3)
-  set offset($fixnum.Int64 v) { $_setInt64(2, v); }
+  set offset($fixnum.Int64 value) => $_setInt64(2, value);
   @$pb.TagNumber(3)
   $core.bool hasOffset() => $_has(2);
   @$pb.TagNumber(3)
-  void clearOffset() => clearField(3);
+  void clearOffset() => $_clearField(3);
 
   @$pb.TagNumber(4)
   $fixnum.Int64 get length => $_getI64(3);
   @$pb.TagNumber(4)
-  set length($fixnum.Int64 v) { $_setInt64(3, v); }
+  set length($fixnum.Int64 value) => $_setInt64(3, value);
   @$pb.TagNumber(4)
   $core.bool hasLength() => $_has(3);
   @$pb.TagNumber(4)
-  void clearLength() => clearField(4);
+  void clearLength() => $_clearField(4);
 
   @$pb.TagNumber(5)
-  $core.List<$core.String> get deviceAvailability => $_getList(4);
+  $pb.PbList<$core.String> get deviceAvailability => $_getList(4);
 }
 
 class FileVersion extends $pb.GeneratedMessage {
-  factory FileVersion() => create();
-  FileVersion._() : super();
-  factory FileVersion.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory FileVersion.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory FileVersion({
+    $core.String? id,
+    $core.String? fileId,
+    $core.int? versionNumber,
+    $core.String? backupPath,
+    $core.String? originalPath,
+    $fixnum.Int64? size,
+    $core.String? hash,
+    $2.Timestamp? createdAt,
+    $core.String? createdByPeerId,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (fileId != null) result.fileId = fileId;
+    if (versionNumber != null) result.versionNumber = versionNumber;
+    if (backupPath != null) result.backupPath = backupPath;
+    if (originalPath != null) result.originalPath = originalPath;
+    if (size != null) result.size = size;
+    if (hash != null) result.hash = hash;
+    if (createdAt != null) result.createdAt = createdAt;
+    if (createdByPeerId != null) result.createdByPeerId = createdByPeerId;
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'FileVersion', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+  FileVersion._();
+
+  factory FileVersion.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory FileVersion.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'FileVersion',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'fileId')
-    ..a<$core.int>(3, _omitFieldNames ? '' : 'versionNumber', $pb.PbFieldType.O3)
+    ..aI(3, _omitFieldNames ? '' : 'versionNumber')
     ..aOS(4, _omitFieldNames ? '' : 'backupPath')
     ..aOS(5, _omitFieldNames ? '' : 'originalPath')
     ..aInt64(6, _omitFieldNames ? '' : 'size')
     ..aOS(7, _omitFieldNames ? '' : 'hash')
-    ..aOM<$7.Timestamp>(8, _omitFieldNames ? '' : 'createdAt', subBuilder: $7.Timestamp.create)
+    ..aOM<$2.Timestamp>(8, _omitFieldNames ? '' : 'createdAt',
+        subBuilder: $2.Timestamp.create)
     ..aOS(9, _omitFieldNames ? '' : 'createdByPeerId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  FileVersion clone() => FileVersion()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  FileVersion copyWith(void Function(FileVersion) updates) => super.copyWith((message) => updates(message as FileVersion)) as FileVersion;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  FileVersion clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  FileVersion copyWith(void Function(FileVersion) updates) =>
+      super.copyWith((message) => updates(message as FileVersion))
+          as FileVersion;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static FileVersion create() => FileVersion._();
+  @$core.override
   FileVersion createEmptyInstance() => create();
-  static $pb.PbList<FileVersion> createRepeated() => $pb.PbList<FileVersion>();
   @$core.pragma('dart2js:noInline')
-  static FileVersion getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<FileVersion>(create);
+  static FileVersion getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<FileVersion>(create);
   static FileVersion? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get id => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($core.String v) { $_setString(0, v); }
+  set id($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearId() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get fileId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set fileId($core.String v) { $_setString(1, v); }
+  set fileId($core.String value) => $_setString(1, value);
   @$pb.TagNumber(2)
   $core.bool hasFileId() => $_has(1);
   @$pb.TagNumber(2)
-  void clearFileId() => clearField(2);
+  void clearFileId() => $_clearField(2);
 
   @$pb.TagNumber(3)
   $core.int get versionNumber => $_getIZ(2);
   @$pb.TagNumber(3)
-  set versionNumber($core.int v) { $_setSignedInt32(2, v); }
+  set versionNumber($core.int value) => $_setSignedInt32(2, value);
   @$pb.TagNumber(3)
   $core.bool hasVersionNumber() => $_has(2);
   @$pb.TagNumber(3)
-  void clearVersionNumber() => clearField(3);
+  void clearVersionNumber() => $_clearField(3);
 
   @$pb.TagNumber(4)
   $core.String get backupPath => $_getSZ(3);
   @$pb.TagNumber(4)
-  set backupPath($core.String v) { $_setString(3, v); }
+  set backupPath($core.String value) => $_setString(3, value);
   @$pb.TagNumber(4)
   $core.bool hasBackupPath() => $_has(3);
   @$pb.TagNumber(4)
-  void clearBackupPath() => clearField(4);
+  void clearBackupPath() => $_clearField(4);
 
   @$pb.TagNumber(5)
   $core.String get originalPath => $_getSZ(4);
   @$pb.TagNumber(5)
-  set originalPath($core.String v) { $_setString(4, v); }
+  set originalPath($core.String value) => $_setString(4, value);
   @$pb.TagNumber(5)
   $core.bool hasOriginalPath() => $_has(4);
   @$pb.TagNumber(5)
-  void clearOriginalPath() => clearField(5);
+  void clearOriginalPath() => $_clearField(5);
 
   @$pb.TagNumber(6)
   $fixnum.Int64 get size => $_getI64(5);
   @$pb.TagNumber(6)
-  set size($fixnum.Int64 v) { $_setInt64(5, v); }
+  set size($fixnum.Int64 value) => $_setInt64(5, value);
   @$pb.TagNumber(6)
   $core.bool hasSize() => $_has(5);
   @$pb.TagNumber(6)
-  void clearSize() => clearField(6);
+  void clearSize() => $_clearField(6);
 
   @$pb.TagNumber(7)
   $core.String get hash => $_getSZ(6);
   @$pb.TagNumber(7)
-  set hash($core.String v) { $_setString(6, v); }
+  set hash($core.String value) => $_setString(6, value);
   @$pb.TagNumber(7)
   $core.bool hasHash() => $_has(6);
   @$pb.TagNumber(7)
-  void clearHash() => clearField(7);
+  void clearHash() => $_clearField(7);
 
   @$pb.TagNumber(8)
-  $7.Timestamp get createdAt => $_getN(7);
+  $2.Timestamp get createdAt => $_getN(7);
   @$pb.TagNumber(8)
-  set createdAt($7.Timestamp v) { setField(8, v); }
+  set createdAt($2.Timestamp value) => $_setField(8, value);
   @$pb.TagNumber(8)
   $core.bool hasCreatedAt() => $_has(7);
   @$pb.TagNumber(8)
-  void clearCreatedAt() => clearField(8);
+  void clearCreatedAt() => $_clearField(8);
   @$pb.TagNumber(8)
-  $7.Timestamp ensureCreatedAt() => $_ensure(7);
+  $2.Timestamp ensureCreatedAt() => $_ensure(7);
 
   @$pb.TagNumber(9)
   $core.String get createdByPeerId => $_getSZ(8);
   @$pb.TagNumber(9)
-  set createdByPeerId($core.String v) { $_setString(8, v); }
+  set createdByPeerId($core.String value) => $_setString(8, value);
   @$pb.TagNumber(9)
   $core.bool hasCreatedByPeerId() => $_has(8);
   @$pb.TagNumber(9)
-  void clearCreatedByPeerId() => clearField(9);
+  void clearCreatedByPeerId() => $_clearField(9);
 }
 
 class GetFileRequest extends $pb.GeneratedMessage {
-  factory GetFileRequest() => create();
-  GetFileRequest._() : super();
-  factory GetFileRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetFileRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory GetFileRequest({
+    $core.String? id,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetFileRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+  GetFileRequest._();
+
+  factory GetFileRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetFileRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetFileRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  GetFileRequest clone() => GetFileRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GetFileRequest copyWith(void Function(GetFileRequest) updates) => super.copyWith((message) => updates(message as GetFileRequest)) as GetFileRequest;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetFileRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetFileRequest copyWith(void Function(GetFileRequest) updates) =>
+      super.copyWith((message) => updates(message as GetFileRequest))
+          as GetFileRequest;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static GetFileRequest create() => GetFileRequest._();
+  @$core.override
   GetFileRequest createEmptyInstance() => create();
-  static $pb.PbList<GetFileRequest> createRepeated() => $pb.PbList<GetFileRequest>();
   @$core.pragma('dart2js:noInline')
-  static GetFileRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetFileRequest>(create);
+  static GetFileRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetFileRequest>(create);
   static GetFileRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get id => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($core.String v) { $_setString(0, v); }
+  set id($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearId() => $_clearField(1);
 }
 
 class ListFilesRequest extends $pb.GeneratedMessage {
-  factory ListFilesRequest() => create();
-  ListFilesRequest._() : super();
-  factory ListFilesRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ListFilesRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ListFilesRequest({
+    $core.String? folderId,
+    $1.PaginationRequest? pagination,
+  }) {
+    final result = create();
+    if (folderId != null) result.folderId = folderId;
+    if (pagination != null) result.pagination = pagination;
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListFilesRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+  ListFilesRequest._();
+
+  factory ListFilesRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ListFilesRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ListFilesRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'folderId')
-    ..aOM<$1.PaginationRequest>(2, _omitFieldNames ? '' : 'pagination', subBuilder: $1.PaginationRequest.create)
-    ..hasRequiredFields = false
-  ;
+    ..aOM<$1.PaginationRequest>(2, _omitFieldNames ? '' : 'pagination',
+        subBuilder: $1.PaginationRequest.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ListFilesRequest clone() => ListFilesRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ListFilesRequest copyWith(void Function(ListFilesRequest) updates) => super.copyWith((message) => updates(message as ListFilesRequest)) as ListFilesRequest;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListFilesRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListFilesRequest copyWith(void Function(ListFilesRequest) updates) =>
+      super.copyWith((message) => updates(message as ListFilesRequest))
+          as ListFilesRequest;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static ListFilesRequest create() => ListFilesRequest._();
+  @$core.override
   ListFilesRequest createEmptyInstance() => create();
-  static $pb.PbList<ListFilesRequest> createRepeated() => $pb.PbList<ListFilesRequest>();
   @$core.pragma('dart2js:noInline')
-  static ListFilesRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListFilesRequest>(create);
+  static ListFilesRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListFilesRequest>(create);
   static ListFilesRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get folderId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set folderId($core.String v) { $_setString(0, v); }
+  set folderId($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasFolderId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearFolderId() => clearField(1);
+  void clearFolderId() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $1.PaginationRequest get pagination => $_getN(1);
   @$pb.TagNumber(2)
-  set pagination($1.PaginationRequest v) { setField(2, v); }
+  set pagination($1.PaginationRequest value) => $_setField(2, value);
   @$pb.TagNumber(2)
   $core.bool hasPagination() => $_has(1);
   @$pb.TagNumber(2)
-  void clearPagination() => clearField(2);
+  void clearPagination() => $_clearField(2);
   @$pb.TagNumber(2)
   $1.PaginationRequest ensurePagination() => $_ensure(1);
 }
 
 class ListFilesResponse extends $pb.GeneratedMessage {
-  factory ListFilesResponse() => create();
-  ListFilesResponse._() : super();
-  factory ListFilesResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ListFilesResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ListFilesResponse({
+    $core.Iterable<File>? files,
+    $1.PaginationResponse? pagination,
+  }) {
+    final result = create();
+    if (files != null) result.files.addAll(files);
+    if (pagination != null) result.pagination = pagination;
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListFilesResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
-    ..pc<File>(1, _omitFieldNames ? '' : 'files', $pb.PbFieldType.PM, subBuilder: File.create)
-    ..aOM<$1.PaginationResponse>(2, _omitFieldNames ? '' : 'pagination', subBuilder: $1.PaginationResponse.create)
-    ..hasRequiredFields = false
-  ;
+  ListFilesResponse._();
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ListFilesResponse clone() => ListFilesResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ListFilesResponse copyWith(void Function(ListFilesResponse) updates) => super.copyWith((message) => updates(message as ListFilesResponse)) as ListFilesResponse;
+  factory ListFilesResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ListFilesResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
 
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ListFilesResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
+    ..pPM<File>(1, _omitFieldNames ? '' : 'files', subBuilder: File.create)
+    ..aOM<$1.PaginationResponse>(2, _omitFieldNames ? '' : 'pagination',
+        subBuilder: $1.PaginationResponse.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListFilesResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListFilesResponse copyWith(void Function(ListFilesResponse) updates) =>
+      super.copyWith((message) => updates(message as ListFilesResponse))
+          as ListFilesResponse;
+
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static ListFilesResponse create() => ListFilesResponse._();
+  @$core.override
   ListFilesResponse createEmptyInstance() => create();
-  static $pb.PbList<ListFilesResponse> createRepeated() => $pb.PbList<ListFilesResponse>();
   @$core.pragma('dart2js:noInline')
-  static ListFilesResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListFilesResponse>(create);
+  static ListFilesResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListFilesResponse>(create);
   static ListFilesResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.List<File> get files => $_getList(0);
+  $pb.PbList<File> get files => $_getList(0);
 
   @$pb.TagNumber(2)
   $1.PaginationResponse get pagination => $_getN(1);
   @$pb.TagNumber(2)
-  set pagination($1.PaginationResponse v) { setField(2, v); }
+  set pagination($1.PaginationResponse value) => $_setField(2, value);
   @$pb.TagNumber(2)
   $core.bool hasPagination() => $_has(1);
   @$pb.TagNumber(2)
-  void clearPagination() => clearField(2);
+  void clearPagination() => $_clearField(2);
   @$pb.TagNumber(2)
   $1.PaginationResponse ensurePagination() => $_ensure(1);
 }
 
 class GetFileInfoRequest extends $pb.GeneratedMessage {
-  factory GetFileInfoRequest() => create();
-  GetFileInfoRequest._() : super();
-  factory GetFileInfoRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetFileInfoRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory GetFileInfoRequest({
+    $core.String? fileId,
+  }) {
+    final result = create();
+    if (fileId != null) result.fileId = fileId;
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetFileInfoRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+  GetFileInfoRequest._();
+
+  factory GetFileInfoRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetFileInfoRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetFileInfoRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'fileId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  GetFileInfoRequest clone() => GetFileInfoRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GetFileInfoRequest copyWith(void Function(GetFileInfoRequest) updates) => super.copyWith((message) => updates(message as GetFileInfoRequest)) as GetFileInfoRequest;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetFileInfoRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetFileInfoRequest copyWith(void Function(GetFileInfoRequest) updates) =>
+      super.copyWith((message) => updates(message as GetFileInfoRequest))
+          as GetFileInfoRequest;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static GetFileInfoRequest create() => GetFileInfoRequest._();
+  @$core.override
   GetFileInfoRequest createEmptyInstance() => create();
-  static $pb.PbList<GetFileInfoRequest> createRepeated() => $pb.PbList<GetFileInfoRequest>();
   @$core.pragma('dart2js:noInline')
-  static GetFileInfoRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetFileInfoRequest>(create);
+  static GetFileInfoRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetFileInfoRequest>(create);
   static GetFileInfoRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get fileId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set fileId($core.String v) { $_setString(0, v); }
+  set fileId($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasFileId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearFileId() => clearField(1);
+  void clearFileId() => $_clearField(1);
 }
 
 class FileInfoResponse extends $pb.GeneratedMessage {
-  factory FileInfoResponse() => create();
-  FileInfoResponse._() : super();
-  factory FileInfoResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory FileInfoResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory FileInfoResponse({
+    $1.Status? status,
+    File? file,
+    $core.Iterable<Chunk>? chunks,
+    $core.Iterable<$core.String>? availablePeers,
+    $core.int? versionCount,
+    $core.double? syncPercentage,
+    $2.Timestamp? lastSyncTime,
+  }) {
+    final result = create();
+    if (status != null) result.status = status;
+    if (file != null) result.file = file;
+    if (chunks != null) result.chunks.addAll(chunks);
+    if (availablePeers != null) result.availablePeers.addAll(availablePeers);
+    if (versionCount != null) result.versionCount = versionCount;
+    if (syncPercentage != null) result.syncPercentage = syncPercentage;
+    if (lastSyncTime != null) result.lastSyncTime = lastSyncTime;
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'FileInfoResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOM<$1.Status>(1, _omitFieldNames ? '' : 'status', subBuilder: $1.Status.create)
+  FileInfoResponse._();
+
+  factory FileInfoResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory FileInfoResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'FileInfoResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
+    ..aOM<$1.Status>(1, _omitFieldNames ? '' : 'status',
+        subBuilder: $1.Status.create)
     ..aOM<File>(2, _omitFieldNames ? '' : 'file', subBuilder: File.create)
-    ..pc<Chunk>(3, _omitFieldNames ? '' : 'chunks', $pb.PbFieldType.PM, subBuilder: Chunk.create)
+    ..pPM<Chunk>(3, _omitFieldNames ? '' : 'chunks', subBuilder: Chunk.create)
     ..pPS(4, _omitFieldNames ? '' : 'availablePeers')
-    ..a<$core.int>(5, _omitFieldNames ? '' : 'versionCount', $pb.PbFieldType.O3)
-    ..a<$core.double>(6, _omitFieldNames ? '' : 'syncPercentage', $pb.PbFieldType.OF)
-    ..aOM<$7.Timestamp>(7, _omitFieldNames ? '' : 'lastSyncTime', subBuilder: $7.Timestamp.create)
-    ..hasRequiredFields = false
-  ;
+    ..aI(5, _omitFieldNames ? '' : 'versionCount')
+    ..aD(6, _omitFieldNames ? '' : 'syncPercentage',
+        fieldType: $pb.PbFieldType.OF)
+    ..aOM<$2.Timestamp>(7, _omitFieldNames ? '' : 'lastSyncTime',
+        subBuilder: $2.Timestamp.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  FileInfoResponse clone() => FileInfoResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  FileInfoResponse copyWith(void Function(FileInfoResponse) updates) => super.copyWith((message) => updates(message as FileInfoResponse)) as FileInfoResponse;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  FileInfoResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  FileInfoResponse copyWith(void Function(FileInfoResponse) updates) =>
+      super.copyWith((message) => updates(message as FileInfoResponse))
+          as FileInfoResponse;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static FileInfoResponse create() => FileInfoResponse._();
+  @$core.override
   FileInfoResponse createEmptyInstance() => create();
-  static $pb.PbList<FileInfoResponse> createRepeated() => $pb.PbList<FileInfoResponse>();
   @$core.pragma('dart2js:noInline')
-  static FileInfoResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<FileInfoResponse>(create);
+  static FileInfoResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<FileInfoResponse>(create);
   static FileInfoResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $1.Status get status => $_getN(0);
   @$pb.TagNumber(1)
-  set status($1.Status v) { setField(1, v); }
+  set status($1.Status value) => $_setField(1, value);
   @$pb.TagNumber(1)
   $core.bool hasStatus() => $_has(0);
   @$pb.TagNumber(1)
-  void clearStatus() => clearField(1);
+  void clearStatus() => $_clearField(1);
   @$pb.TagNumber(1)
   $1.Status ensureStatus() => $_ensure(0);
 
   @$pb.TagNumber(2)
   File get file => $_getN(1);
   @$pb.TagNumber(2)
-  set file(File v) { setField(2, v); }
+  set file(File value) => $_setField(2, value);
   @$pb.TagNumber(2)
   $core.bool hasFile() => $_has(1);
   @$pb.TagNumber(2)
-  void clearFile() => clearField(2);
+  void clearFile() => $_clearField(2);
   @$pb.TagNumber(2)
   File ensureFile() => $_ensure(1);
 
   @$pb.TagNumber(3)
-  $core.List<Chunk> get chunks => $_getList(2);
+  $pb.PbList<Chunk> get chunks => $_getList(2);
 
   @$pb.TagNumber(4)
-  $core.List<$core.String> get availablePeers => $_getList(3);
+  $pb.PbList<$core.String> get availablePeers => $_getList(3);
 
   @$pb.TagNumber(5)
   $core.int get versionCount => $_getIZ(4);
   @$pb.TagNumber(5)
-  set versionCount($core.int v) { $_setSignedInt32(4, v); }
+  set versionCount($core.int value) => $_setSignedInt32(4, value);
   @$pb.TagNumber(5)
   $core.bool hasVersionCount() => $_has(4);
   @$pb.TagNumber(5)
-  void clearVersionCount() => clearField(5);
+  void clearVersionCount() => $_clearField(5);
 
   @$pb.TagNumber(6)
   $core.double get syncPercentage => $_getN(5);
   @$pb.TagNumber(6)
-  set syncPercentage($core.double v) { $_setFloat(5, v); }
+  set syncPercentage($core.double value) => $_setFloat(5, value);
   @$pb.TagNumber(6)
   $core.bool hasSyncPercentage() => $_has(5);
   @$pb.TagNumber(6)
-  void clearSyncPercentage() => clearField(6);
+  void clearSyncPercentage() => $_clearField(6);
 
   @$pb.TagNumber(7)
-  $7.Timestamp get lastSyncTime => $_getN(6);
+  $2.Timestamp get lastSyncTime => $_getN(6);
   @$pb.TagNumber(7)
-  set lastSyncTime($7.Timestamp v) { setField(7, v); }
+  set lastSyncTime($2.Timestamp value) => $_setField(7, value);
   @$pb.TagNumber(7)
   $core.bool hasLastSyncTime() => $_has(6);
   @$pb.TagNumber(7)
-  void clearLastSyncTime() => clearField(7);
+  void clearLastSyncTime() => $_clearField(7);
   @$pb.TagNumber(7)
-  $7.Timestamp ensureLastSyncTime() => $_ensure(6);
+  $2.Timestamp ensureLastSyncTime() => $_ensure(6);
 }
 
 class DeleteFileRequest extends $pb.GeneratedMessage {
-  factory DeleteFileRequest() => create();
-  DeleteFileRequest._() : super();
-  factory DeleteFileRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory DeleteFileRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory DeleteFileRequest({
+    $core.String? fileId,
+  }) {
+    final result = create();
+    if (fileId != null) result.fileId = fileId;
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DeleteFileRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+  DeleteFileRequest._();
+
+  factory DeleteFileRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory DeleteFileRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DeleteFileRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'fileId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  DeleteFileRequest clone() => DeleteFileRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  DeleteFileRequest copyWith(void Function(DeleteFileRequest) updates) => super.copyWith((message) => updates(message as DeleteFileRequest)) as DeleteFileRequest;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeleteFileRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeleteFileRequest copyWith(void Function(DeleteFileRequest) updates) =>
+      super.copyWith((message) => updates(message as DeleteFileRequest))
+          as DeleteFileRequest;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static DeleteFileRequest create() => DeleteFileRequest._();
+  @$core.override
   DeleteFileRequest createEmptyInstance() => create();
-  static $pb.PbList<DeleteFileRequest> createRepeated() => $pb.PbList<DeleteFileRequest>();
   @$core.pragma('dart2js:noInline')
-  static DeleteFileRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DeleteFileRequest>(create);
+  static DeleteFileRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DeleteFileRequest>(create);
   static DeleteFileRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get fileId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set fileId($core.String v) { $_setString(0, v); }
+  set fileId($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasFileId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearFileId() => clearField(1);
+  void clearFileId() => $_clearField(1);
 }
 
 class GetFileVersionsRequest extends $pb.GeneratedMessage {
-  factory GetFileVersionsRequest() => create();
-  GetFileVersionsRequest._() : super();
-  factory GetFileVersionsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetFileVersionsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory GetFileVersionsRequest({
+    $core.String? fileId,
+  }) {
+    final result = create();
+    if (fileId != null) result.fileId = fileId;
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetFileVersionsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+  GetFileVersionsRequest._();
+
+  factory GetFileVersionsRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetFileVersionsRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetFileVersionsRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'fileId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  GetFileVersionsRequest clone() => GetFileVersionsRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GetFileVersionsRequest copyWith(void Function(GetFileVersionsRequest) updates) => super.copyWith((message) => updates(message as GetFileVersionsRequest)) as GetFileVersionsRequest;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetFileVersionsRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetFileVersionsRequest copyWith(
+          void Function(GetFileVersionsRequest) updates) =>
+      super.copyWith((message) => updates(message as GetFileVersionsRequest))
+          as GetFileVersionsRequest;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static GetFileVersionsRequest create() => GetFileVersionsRequest._();
+  @$core.override
   GetFileVersionsRequest createEmptyInstance() => create();
-  static $pb.PbList<GetFileVersionsRequest> createRepeated() => $pb.PbList<GetFileVersionsRequest>();
   @$core.pragma('dart2js:noInline')
-  static GetFileVersionsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetFileVersionsRequest>(create);
+  static GetFileVersionsRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetFileVersionsRequest>(create);
   static GetFileVersionsRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get fileId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set fileId($core.String v) { $_setString(0, v); }
+  set fileId($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasFileId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearFileId() => clearField(1);
+  void clearFileId() => $_clearField(1);
 }
 
 class FileVersionsResponse extends $pb.GeneratedMessage {
-  factory FileVersionsResponse() => create();
-  FileVersionsResponse._() : super();
-  factory FileVersionsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory FileVersionsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory FileVersionsResponse({
+    $1.Status? status,
+    $core.Iterable<FileVersion>? versions,
+  }) {
+    final result = create();
+    if (status != null) result.status = status;
+    if (versions != null) result.versions.addAll(versions);
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'FileVersionsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOM<$1.Status>(1, _omitFieldNames ? '' : 'status', subBuilder: $1.Status.create)
-    ..pc<FileVersion>(2, _omitFieldNames ? '' : 'versions', $pb.PbFieldType.PM, subBuilder: FileVersion.create)
-    ..hasRequiredFields = false
-  ;
+  FileVersionsResponse._();
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  FileVersionsResponse clone() => FileVersionsResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  FileVersionsResponse copyWith(void Function(FileVersionsResponse) updates) => super.copyWith((message) => updates(message as FileVersionsResponse)) as FileVersionsResponse;
+  factory FileVersionsResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory FileVersionsResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
 
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'FileVersionsResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
+    ..aOM<$1.Status>(1, _omitFieldNames ? '' : 'status',
+        subBuilder: $1.Status.create)
+    ..pPM<FileVersion>(2, _omitFieldNames ? '' : 'versions',
+        subBuilder: FileVersion.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  FileVersionsResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  FileVersionsResponse copyWith(void Function(FileVersionsResponse) updates) =>
+      super.copyWith((message) => updates(message as FileVersionsResponse))
+          as FileVersionsResponse;
+
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static FileVersionsResponse create() => FileVersionsResponse._();
+  @$core.override
   FileVersionsResponse createEmptyInstance() => create();
-  static $pb.PbList<FileVersionsResponse> createRepeated() => $pb.PbList<FileVersionsResponse>();
   @$core.pragma('dart2js:noInline')
-  static FileVersionsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<FileVersionsResponse>(create);
+  static FileVersionsResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<FileVersionsResponse>(create);
   static FileVersionsResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $1.Status get status => $_getN(0);
   @$pb.TagNumber(1)
-  set status($1.Status v) { setField(1, v); }
+  set status($1.Status value) => $_setField(1, value);
   @$pb.TagNumber(1)
   $core.bool hasStatus() => $_has(0);
   @$pb.TagNumber(1)
-  void clearStatus() => clearField(1);
+  void clearStatus() => $_clearField(1);
   @$pb.TagNumber(1)
   $1.Status ensureStatus() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  $core.List<FileVersion> get versions => $_getList(1);
+  $pb.PbList<FileVersion> get versions => $_getList(1);
 }
 
 class RestoreFileRequest extends $pb.GeneratedMessage {
-  factory RestoreFileRequest() => create();
-  RestoreFileRequest._() : super();
-  factory RestoreFileRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory RestoreFileRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory RestoreFileRequest({
+    $core.String? fileId,
+    $core.String? versionId,
+  }) {
+    final result = create();
+    if (fileId != null) result.fileId = fileId;
+    if (versionId != null) result.versionId = versionId;
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RestoreFileRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+  RestoreFileRequest._();
+
+  factory RestoreFileRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RestoreFileRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RestoreFileRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'fileId')
     ..aOS(2, _omitFieldNames ? '' : 'versionId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  RestoreFileRequest clone() => RestoreFileRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  RestoreFileRequest copyWith(void Function(RestoreFileRequest) updates) => super.copyWith((message) => updates(message as RestoreFileRequest)) as RestoreFileRequest;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RestoreFileRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RestoreFileRequest copyWith(void Function(RestoreFileRequest) updates) =>
+      super.copyWith((message) => updates(message as RestoreFileRequest))
+          as RestoreFileRequest;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static RestoreFileRequest create() => RestoreFileRequest._();
+  @$core.override
   RestoreFileRequest createEmptyInstance() => create();
-  static $pb.PbList<RestoreFileRequest> createRepeated() => $pb.PbList<RestoreFileRequest>();
   @$core.pragma('dart2js:noInline')
-  static RestoreFileRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RestoreFileRequest>(create);
+  static RestoreFileRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RestoreFileRequest>(create);
   static RestoreFileRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get fileId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set fileId($core.String v) { $_setString(0, v); }
+  set fileId($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasFileId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearFileId() => clearField(1);
+  void clearFileId() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get versionId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set versionId($core.String v) { $_setString(1, v); }
+  set versionId($core.String value) => $_setString(1, value);
   @$pb.TagNumber(2)
   $core.bool hasVersionId() => $_has(1);
   @$pb.TagNumber(2)
-  void clearVersionId() => clearField(2);
+  void clearVersionId() => $_clearField(2);
 }
 
 class FileResponse extends $pb.GeneratedMessage {
-  factory FileResponse() => create();
-  FileResponse._() : super();
-  factory FileResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory FileResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory FileResponse({
+    $1.Status? status,
+    File? file,
+  }) {
+    final result = create();
+    if (status != null) result.status = status;
+    if (file != null) result.file = file;
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'FileResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOM<$1.Status>(1, _omitFieldNames ? '' : 'status', subBuilder: $1.Status.create)
+  FileResponse._();
+
+  factory FileResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory FileResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'FileResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
+    ..aOM<$1.Status>(1, _omitFieldNames ? '' : 'status',
+        subBuilder: $1.Status.create)
     ..aOM<File>(2, _omitFieldNames ? '' : 'file', subBuilder: File.create)
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  FileResponse clone() => FileResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  FileResponse copyWith(void Function(FileResponse) updates) => super.copyWith((message) => updates(message as FileResponse)) as FileResponse;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  FileResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  FileResponse copyWith(void Function(FileResponse) updates) =>
+      super.copyWith((message) => updates(message as FileResponse))
+          as FileResponse;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static FileResponse create() => FileResponse._();
+  @$core.override
   FileResponse createEmptyInstance() => create();
-  static $pb.PbList<FileResponse> createRepeated() => $pb.PbList<FileResponse>();
   @$core.pragma('dart2js:noInline')
-  static FileResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<FileResponse>(create);
+  static FileResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<FileResponse>(create);
   static FileResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $1.Status get status => $_getN(0);
   @$pb.TagNumber(1)
-  set status($1.Status v) { setField(1, v); }
+  set status($1.Status value) => $_setField(1, value);
   @$pb.TagNumber(1)
   $core.bool hasStatus() => $_has(0);
   @$pb.TagNumber(1)
-  void clearStatus() => clearField(1);
+  void clearStatus() => $_clearField(1);
   @$pb.TagNumber(1)
   $1.Status ensureStatus() => $_ensure(0);
 
   @$pb.TagNumber(2)
   File get file => $_getN(1);
   @$pb.TagNumber(2)
-  set file(File v) { setField(2, v); }
+  set file(File value) => $_setField(2, value);
   @$pb.TagNumber(2)
   $core.bool hasFile() => $_has(1);
   @$pb.TagNumber(2)
-  void clearFile() => clearField(2);
+  void clearFile() => $_clearField(2);
   @$pb.TagNumber(2)
   File ensureFile() => $_ensure(1);
 }
 
-
-const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
-const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');
+const $core.bool _omitFieldNames =
+    $core.bool.fromEnvironment('protobuf.omit_field_names');
+const $core.bool _omitMessageNames =
+    $core.bool.fromEnvironment('protobuf.omit_message_names');

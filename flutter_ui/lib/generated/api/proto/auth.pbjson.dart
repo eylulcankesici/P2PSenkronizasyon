@@ -1,13 +1,14 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: api/proto/auth.proto
-//
-// @dart = 2.12
+// Generated from api/proto/auth.proto.
 
-// ignore_for_file: annotate_overrides, camel_case_types
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// @dart = 3.3
+
+// ignore_for_file: annotate_overrides, camel_case_types, comment_references
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, unused_import
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
@@ -19,10 +20,31 @@ const User$json = {
   '2': [
     {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
     {'1': 'profile_name', '3': 2, '4': 1, '5': 9, '10': 'profileName'},
-    {'1': 'role', '3': 3, '4': 1, '5': 14, '6': '.aether.api.UserRole', '10': 'role'},
+    {
+      '1': 'role',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.aether.api.UserRole',
+      '10': 'role'
+    },
     {'1': 'is_active', '3': 4, '4': 1, '5': 8, '10': 'isActive'},
-    {'1': 'created_at', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
-    {'1': 'updated_at', '3': 6, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'updatedAt'},
+    {
+      '1': 'created_at',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'createdAt'
+    },
+    {
+      '1': 'updated_at',
+      '3': 6,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'updatedAt'
+    },
   ],
 };
 
@@ -40,7 +62,14 @@ const RegisterRequest$json = {
   '2': [
     {'1': 'profile_name', '3': 1, '4': 1, '5': 9, '10': 'profileName'},
     {'1': 'password', '3': 2, '4': 1, '5': 9, '10': 'password'},
-    {'1': 'role', '3': 3, '4': 1, '5': 14, '6': '.aether.api.UserRole', '10': 'role'},
+    {
+      '1': 'role',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.aether.api.UserRole',
+      '10': 'role'
+    },
   ],
 };
 
@@ -54,8 +83,22 @@ final $typed_data.Uint8List registerRequestDescriptor = $convert.base64Decode(
 const RegisterResponse$json = {
   '1': 'RegisterResponse',
   '2': [
-    {'1': 'status', '3': 1, '4': 1, '5': 11, '6': '.aether.api.Status', '10': 'status'},
-    {'1': 'user', '3': 2, '4': 1, '5': 11, '6': '.aether.api.User', '10': 'user'},
+    {
+      '1': 'status',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.Status',
+      '10': 'status'
+    },
+    {
+      '1': 'user',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.User',
+      '10': 'user'
+    },
   ],
 };
 
@@ -82,10 +125,31 @@ final $typed_data.Uint8List loginRequestDescriptor = $convert.base64Decode(
 const LoginResponse$json = {
   '1': 'LoginResponse',
   '2': [
-    {'1': 'status', '3': 1, '4': 1, '5': 11, '6': '.aether.api.Status', '10': 'status'},
+    {
+      '1': 'status',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.Status',
+      '10': 'status'
+    },
     {'1': 'token', '3': 2, '4': 1, '5': 9, '10': 'token'},
-    {'1': 'user', '3': 3, '4': 1, '5': 11, '6': '.aether.api.User', '10': 'user'},
-    {'1': 'expires_at', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'expiresAt'},
+    {
+      '1': 'user',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.User',
+      '10': 'user'
+    },
+    {
+      '1': 'expires_at',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'expiresAt'
+    },
   ],
 };
 
@@ -105,8 +169,8 @@ const LogoutRequest$json = {
 };
 
 /// Descriptor for `LogoutRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List logoutRequestDescriptor = $convert.base64Decode(
-    'Cg1Mb2dvdXRSZXF1ZXN0EhQKBXRva2VuGAEgASgJUgV0b2tlbg==');
+final $typed_data.Uint8List logoutRequestDescriptor = $convert
+    .base64Decode('Cg1Mb2dvdXRSZXF1ZXN0EhQKBXRva2VuGAEgASgJUgV0b2tlbg==');
 
 @$core.Deprecated('Use validateTokenRequestDescriptor instead')
 const ValidateTokenRequest$json = {
@@ -117,16 +181,31 @@ const ValidateTokenRequest$json = {
 };
 
 /// Descriptor for `ValidateTokenRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List validateTokenRequestDescriptor = $convert.base64Decode(
-    'ChRWYWxpZGF0ZVRva2VuUmVxdWVzdBIUCgV0b2tlbhgBIAEoCVIFdG9rZW4=');
+final $typed_data.Uint8List validateTokenRequestDescriptor =
+    $convert.base64Decode(
+        'ChRWYWxpZGF0ZVRva2VuUmVxdWVzdBIUCgV0b2tlbhgBIAEoCVIFdG9rZW4=');
 
 @$core.Deprecated('Use validateTokenResponseDescriptor instead')
 const ValidateTokenResponse$json = {
   '1': 'ValidateTokenResponse',
   '2': [
-    {'1': 'status', '3': 1, '4': 1, '5': 11, '6': '.aether.api.Status', '10': 'status'},
+    {
+      '1': 'status',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.Status',
+      '10': 'status'
+    },
     {'1': 'is_valid', '3': 2, '4': 1, '5': 8, '10': 'isValid'},
-    {'1': 'user', '3': 3, '4': 1, '5': 11, '6': '.aether.api.User', '10': 'user'},
+    {
+      '1': 'user',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.User',
+      '10': 'user'
+    },
   ],
 };
 
@@ -151,4 +230,3 @@ final $typed_data.Uint8List changePasswordRequestDescriptor = $convert.base64Dec
     'ChVDaGFuZ2VQYXNzd29yZFJlcXVlc3QSFwoHdXNlcl9pZBgBIAEoCVIGdXNlcklkEiEKDG9sZF'
     '9wYXNzd29yZBgCIAEoCVILb2xkUGFzc3dvcmQSIQoMbmV3X3Bhc3N3b3JkGAMgASgJUgtuZXdQ'
     'YXNzd29yZA==');
-

@@ -33,8 +33,8 @@ foreach ($file in $protoFiles) {
     if (Test-Path $protoPath) {
         Write-Host "Generating: $file" -ForegroundColor Yellow
         
-        # Include path ekle
-        $includeArgs = "-I. -Iapi/proto"
+        # Include path ekle (third_party dizini için)
+        $includeArgs = "-I. -Ithird_party -Iapi/proto"
         
         $cmd = "protoc --dart_out=grpc:$outputDir $includeArgs $protoPath"
         Invoke-Expression $cmd

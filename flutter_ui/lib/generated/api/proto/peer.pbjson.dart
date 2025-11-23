@@ -1,13 +1,14 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: api/proto/peer.proto
-//
-// @dart = 2.12
+// Generated from api/proto/peer.proto.
 
-// ignore_for_file: annotate_overrides, camel_case_types
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// @dart = 3.3
+
+// ignore_for_file: annotate_overrides, camel_case_types, comment_references
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, unused_import
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
@@ -21,11 +22,39 @@ const Peer$json = {
     {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
     {'1': 'known_addresses', '3': 3, '4': 3, '5': 9, '10': 'knownAddresses'},
     {'1': 'is_trusted', '3': 4, '4': 1, '5': 8, '10': 'isTrusted'},
-    {'1': 'last_seen', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'lastSeen'},
-    {'1': 'status', '3': 6, '4': 1, '5': 14, '6': '.aether.api.PeerStatus', '10': 'status'},
+    {
+      '1': 'last_seen',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'lastSeen'
+    },
+    {
+      '1': 'status',
+      '3': 6,
+      '4': 1,
+      '5': 14,
+      '6': '.aether.api.PeerStatus',
+      '10': 'status'
+    },
     {'1': 'public_key', '3': 7, '4': 1, '5': 9, '10': 'publicKey'},
-    {'1': 'created_at', '3': 8, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
-    {'1': 'updated_at', '3': 9, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'updatedAt'},
+    {
+      '1': 'created_at',
+      '3': 8,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'createdAt'
+    },
+    {
+      '1': 'updated_at',
+      '3': 9,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'updatedAt'
+    },
   ],
 };
 
@@ -48,15 +77,30 @@ const DiscoverPeersRequest$json = {
 };
 
 /// Descriptor for `DiscoverPeersRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List discoverPeersRequestDescriptor = $convert.base64Decode(
-    'ChREaXNjb3ZlclBlZXJzUmVxdWVzdBIZCghsYW5fb25seRgBIAEoCFIHbGFuT25seQ==');
+final $typed_data.Uint8List discoverPeersRequestDescriptor =
+    $convert.base64Decode(
+        'ChREaXNjb3ZlclBlZXJzUmVxdWVzdBIZCghsYW5fb25seRgBIAEoCFIHbGFuT25seQ==');
 
 @$core.Deprecated('Use discoverPeersResponseDescriptor instead')
 const DiscoverPeersResponse$json = {
   '1': 'DiscoverPeersResponse',
   '2': [
-    {'1': 'status', '3': 1, '4': 1, '5': 11, '6': '.aether.api.Status', '10': 'status'},
-    {'1': 'peers', '3': 2, '4': 3, '5': 11, '6': '.aether.api.Peer', '10': 'peers'},
+    {
+      '1': 'status',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.Status',
+      '10': 'status'
+    },
+    {
+      '1': 'peers',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.aether.api.Peer',
+      '10': 'peers'
+    },
   ],
 };
 
@@ -74,8 +118,9 @@ const ConnectToPeerRequest$json = {
 };
 
 /// Descriptor for `ConnectToPeerRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List connectToPeerRequestDescriptor = $convert.base64Decode(
-    'ChRDb25uZWN0VG9QZWVyUmVxdWVzdBIXCgdwZWVyX2lkGAEgASgJUgZwZWVySWQ=');
+final $typed_data.Uint8List connectToPeerRequestDescriptor =
+    $convert.base64Decode(
+        'ChRDb25uZWN0VG9QZWVyUmVxdWVzdBIXCgdwZWVyX2lkGAEgASgJUgZwZWVySWQ=');
 
 @$core.Deprecated('Use disconnectFromPeerRequestDescriptor instead')
 const DisconnectFromPeerRequest$json = {
@@ -86,8 +131,9 @@ const DisconnectFromPeerRequest$json = {
 };
 
 /// Descriptor for `DisconnectFromPeerRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List disconnectFromPeerRequestDescriptor = $convert.base64Decode(
-    'ChlEaXNjb25uZWN0RnJvbVBlZXJSZXF1ZXN0EhcKB3BlZXJfaWQYASABKAlSBnBlZXJJZA==');
+final $typed_data.Uint8List disconnectFromPeerRequestDescriptor =
+    $convert.base64Decode(
+        'ChlEaXNjb25uZWN0RnJvbVBlZXJSZXF1ZXN0EhcKB3BlZXJfaWQYASABKAlSBnBlZXJJZA==');
 
 @$core.Deprecated('Use listPeersRequestDescriptor instead')
 const ListPeersRequest$json = {
@@ -95,7 +141,14 @@ const ListPeersRequest$json = {
   '2': [
     {'1': 'online_only', '3': 1, '4': 1, '5': 8, '10': 'onlineOnly'},
     {'1': 'trusted_only', '3': 2, '4': 1, '5': 8, '10': 'trustedOnly'},
-    {'1': 'pagination', '3': 3, '4': 1, '5': 11, '6': '.aether.api.PaginationRequest', '10': 'pagination'},
+    {
+      '1': 'pagination',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.PaginationRequest',
+      '10': 'pagination'
+    },
   ],
 };
 
@@ -109,8 +162,22 @@ final $typed_data.Uint8List listPeersRequestDescriptor = $convert.base64Decode(
 const ListPeersResponse$json = {
   '1': 'ListPeersResponse',
   '2': [
-    {'1': 'peers', '3': 1, '4': 3, '5': 11, '6': '.aether.api.Peer', '10': 'peers'},
-    {'1': 'pagination', '3': 2, '4': 1, '5': 11, '6': '.aether.api.PaginationResponse', '10': 'pagination'},
+    {
+      '1': 'peers',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.aether.api.Peer',
+      '10': 'peers'
+    },
+    {
+      '1': 'pagination',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.PaginationResponse',
+      '10': 'pagination'
+    },
   ],
 };
 
@@ -129,19 +196,41 @@ const GetPeerInfoRequest$json = {
 };
 
 /// Descriptor for `GetPeerInfoRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getPeerInfoRequestDescriptor = $convert.base64Decode(
-    'ChJHZXRQZWVySW5mb1JlcXVlc3QSFwoHcGVlcl9pZBgBIAEoCVIGcGVlcklk');
+final $typed_data.Uint8List getPeerInfoRequestDescriptor =
+    $convert.base64Decode(
+        'ChJHZXRQZWVySW5mb1JlcXVlc3QSFwoHcGVlcl9pZBgBIAEoCVIGcGVlcklk');
 
 @$core.Deprecated('Use peerInfoResponseDescriptor instead')
 const PeerInfoResponse$json = {
   '1': 'PeerInfoResponse',
   '2': [
-    {'1': 'status', '3': 1, '4': 1, '5': 11, '6': '.aether.api.Status', '10': 'status'},
-    {'1': 'peer', '3': 2, '4': 1, '5': 11, '6': '.aether.api.Peer', '10': 'peer'},
+    {
+      '1': 'status',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.Status',
+      '10': 'status'
+    },
+    {
+      '1': 'peer',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.Peer',
+      '10': 'peer'
+    },
     {'1': 'shared_folders', '3': 3, '4': 3, '5': 9, '10': 'sharedFolders'},
     {'1': 'shared_files', '3': 4, '4': 1, '5': 5, '10': 'sharedFiles'},
     {'1': 'total_chunks', '3': 5, '4': 1, '5': 5, '10': 'totalChunks'},
-    {'1': 'last_activity', '3': 6, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'lastActivity'},
+    {
+      '1': 'last_activity',
+      '3': 6,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'lastActivity'
+    },
     {'1': 'connection_type', '3': 7, '4': 1, '5': 9, '10': 'connectionType'},
     {'1': 'latency_ms', '3': 8, '4': 1, '5': 3, '10': 'latencyMs'},
   ],
@@ -178,8 +267,9 @@ const UntrustPeerRequest$json = {
 };
 
 /// Descriptor for `UntrustPeerRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List untrustPeerRequestDescriptor = $convert.base64Decode(
-    'ChJVbnRydXN0UGVlclJlcXVlc3QSFwoHcGVlcl9pZBgBIAEoCVIGcGVlcklk');
+final $typed_data.Uint8List untrustPeerRequestDescriptor =
+    $convert.base64Decode(
+        'ChJVbnRydXN0UGVlclJlcXVlc3QSFwoHcGVlcl9pZBgBIAEoCVIGcGVlcklk');
 
 @$core.Deprecated('Use removePeerRequestDescriptor instead')
 const RemovePeerRequest$json = {
@@ -199,23 +289,38 @@ const GetPendingConnectionsRequest$json = {
 };
 
 /// Descriptor for `GetPendingConnectionsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getPendingConnectionsRequestDescriptor = $convert.base64Decode(
-    'ChxHZXRQZW5kaW5nQ29ubmVjdGlvbnNSZXF1ZXN0');
+final $typed_data.Uint8List getPendingConnectionsRequestDescriptor =
+    $convert.base64Decode('ChxHZXRQZW5kaW5nQ29ubmVjdGlvbnNSZXF1ZXN0');
 
 @$core.Deprecated('Use getPendingConnectionsResponseDescriptor instead')
 const GetPendingConnectionsResponse$json = {
   '1': 'GetPendingConnectionsResponse',
   '2': [
-    {'1': 'status', '3': 1, '4': 1, '5': 11, '6': '.aether.api.Status', '10': 'status'},
-    {'1': 'pending_connections', '3': 2, '4': 3, '5': 11, '6': '.aether.api.PendingConnection', '10': 'pendingConnections'},
+    {
+      '1': 'status',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.Status',
+      '10': 'status'
+    },
+    {
+      '1': 'pending_connections',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.aether.api.PendingConnection',
+      '10': 'pendingConnections'
+    },
   ],
 };
 
 /// Descriptor for `GetPendingConnectionsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getPendingConnectionsResponseDescriptor = $convert.base64Decode(
-    'Ch1HZXRQZW5kaW5nQ29ubmVjdGlvbnNSZXNwb25zZRIqCgZzdGF0dXMYASABKAsyEi5hZXRoZX'
-    'IuYXBpLlN0YXR1c1IGc3RhdHVzEk4KE3BlbmRpbmdfY29ubmVjdGlvbnMYAiADKAsyHS5hZXRo'
-    'ZXIuYXBpLlBlbmRpbmdDb25uZWN0aW9uUhJwZW5kaW5nQ29ubmVjdGlvbnM=');
+final $typed_data.Uint8List getPendingConnectionsResponseDescriptor =
+    $convert.base64Decode(
+        'Ch1HZXRQZW5kaW5nQ29ubmVjdGlvbnNSZXNwb25zZRIqCgZzdGF0dXMYASABKAsyEi5hZXRoZX'
+        'IuYXBpLlN0YXR1c1IGc3RhdHVzEk4KE3BlbmRpbmdfY29ubmVjdGlvbnMYAiADKAsyHS5hZXRo'
+        'ZXIuYXBpLlBlbmRpbmdDb25uZWN0aW9uUhJwZW5kaW5nQ29ubmVjdGlvbnM=');
 
 @$core.Deprecated('Use pendingConnectionDescriptor instead')
 const PendingConnection$json = {
@@ -241,8 +346,9 @@ const AcceptConnectionRequest$json = {
 };
 
 /// Descriptor for `AcceptConnectionRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List acceptConnectionRequestDescriptor = $convert.base64Decode(
-    'ChdBY2NlcHRDb25uZWN0aW9uUmVxdWVzdBIbCglkZXZpY2VfaWQYASABKAlSCGRldmljZUlk');
+final $typed_data.Uint8List acceptConnectionRequestDescriptor =
+    $convert.base64Decode(
+        'ChdBY2NlcHRDb25uZWN0aW9uUmVxdWVzdBIbCglkZXZpY2VfaWQYASABKAlSCGRldmljZUlk');
 
 @$core.Deprecated('Use rejectConnectionRequestDescriptor instead')
 const RejectConnectionRequest$json = {
@@ -254,9 +360,10 @@ const RejectConnectionRequest$json = {
 };
 
 /// Descriptor for `RejectConnectionRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List rejectConnectionRequestDescriptor = $convert.base64Decode(
-    'ChdSZWplY3RDb25uZWN0aW9uUmVxdWVzdBIbCglkZXZpY2VfaWQYASABKAlSCGRldmljZUlkEh'
-    'YKBnJlYXNvbhgCIAEoCVIGcmVhc29u');
+final $typed_data.Uint8List rejectConnectionRequestDescriptor =
+    $convert.base64Decode(
+        'ChdSZWplY3RDb25uZWN0aW9uUmVxdWVzdBIbCglkZXZpY2VfaWQYASABKAlSCGRldmljZUlkEh'
+        'YKBnJlYXNvbhgCIAEoCVIGcmVhc29u');
 
 @$core.Deprecated('Use connectionRequestDescriptor instead')
 const ConnectionRequest$json = {
@@ -287,4 +394,3 @@ const ConnectionResponse$json = {
 final $typed_data.Uint8List connectionResponseDescriptor = $convert.base64Decode(
     'ChJDb25uZWN0aW9uUmVzcG9uc2USGgoIYWNjZXB0ZWQYASABKAhSCGFjY2VwdGVkEhgKB21lc3'
     'NhZ2UYAiABKAlSB21lc3NhZ2USGwoJZGV2aWNlX2lkGAMgASgJUghkZXZpY2VJZA==');
-

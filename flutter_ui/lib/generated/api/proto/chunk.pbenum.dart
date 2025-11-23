@@ -1,6 +1,6 @@
 // This is a generated file - do not edit.
 //
-// Generated from api/proto/folder.proto.
+// Generated from api/proto/chunk.proto.
 
 // @dart = 3.3
 

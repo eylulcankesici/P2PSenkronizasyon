@@ -1,644 +1,820 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: api/proto/folder.proto
-//
-// @dart = 2.12
+// Generated from api/proto/folder.proto.
 
-// ignore_for_file: annotate_overrides, camel_case_types
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// @dart = 3.3
+
+// ignore_for_file: annotate_overrides, camel_case_types, comment_references
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names
 
 import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../google/protobuf/timestamp.pb.dart' as $7;
+import '../../google/protobuf/timestamp.pb.dart' as $2;
 import 'common.pb.dart' as $1;
-import 'common.pbenum.dart' as $1;
+
+export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 class Folder extends $pb.GeneratedMessage {
-  factory Folder() => create();
-  Folder._() : super();
-  factory Folder.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory Folder.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory Folder({
+    $core.String? id,
+    $core.String? localPath,
+    $1.SyncMode? syncMode,
+    $2.Timestamp? lastScanTime,
+    $core.bool? isActive,
+    $2.Timestamp? createdAt,
+    $2.Timestamp? updatedAt,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (localPath != null) result.localPath = localPath;
+    if (syncMode != null) result.syncMode = syncMode;
+    if (lastScanTime != null) result.lastScanTime = lastScanTime;
+    if (isActive != null) result.isActive = isActive;
+    if (createdAt != null) result.createdAt = createdAt;
+    if (updatedAt != null) result.updatedAt = updatedAt;
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Folder', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+  Folder._();
+
+  factory Folder.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory Folder.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'Folder',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'localPath')
-    ..e<$1.SyncMode>(3, _omitFieldNames ? '' : 'syncMode', $pb.PbFieldType.OE, defaultOrMaker: $1.SyncMode.SYNC_MODE_UNSPECIFIED, valueOf: $1.SyncMode.valueOf, enumValues: $1.SyncMode.values)
-    ..aOM<$7.Timestamp>(4, _omitFieldNames ? '' : 'lastScanTime', subBuilder: $7.Timestamp.create)
+    ..aE<$1.SyncMode>(3, _omitFieldNames ? '' : 'syncMode',
+        enumValues: $1.SyncMode.values)
+    ..aOM<$2.Timestamp>(4, _omitFieldNames ? '' : 'lastScanTime',
+        subBuilder: $2.Timestamp.create)
     ..aOB(5, _omitFieldNames ? '' : 'isActive')
-    ..aOM<$7.Timestamp>(6, _omitFieldNames ? '' : 'createdAt', subBuilder: $7.Timestamp.create)
-    ..aOM<$7.Timestamp>(7, _omitFieldNames ? '' : 'updatedAt', subBuilder: $7.Timestamp.create)
-    ..hasRequiredFields = false
-  ;
+    ..aOM<$2.Timestamp>(6, _omitFieldNames ? '' : 'createdAt',
+        subBuilder: $2.Timestamp.create)
+    ..aOM<$2.Timestamp>(7, _omitFieldNames ? '' : 'updatedAt',
+        subBuilder: $2.Timestamp.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  Folder clone() => Folder()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  Folder copyWith(void Function(Folder) updates) => super.copyWith((message) => updates(message as Folder)) as Folder;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Folder clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Folder copyWith(void Function(Folder) updates) =>
+      super.copyWith((message) => updates(message as Folder)) as Folder;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static Folder create() => Folder._();
+  @$core.override
   Folder createEmptyInstance() => create();
-  static $pb.PbList<Folder> createRepeated() => $pb.PbList<Folder>();
   @$core.pragma('dart2js:noInline')
-  static Folder getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Folder>(create);
+  static Folder getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Folder>(create);
   static Folder? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get id => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($core.String v) { $_setString(0, v); }
+  set id($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearId() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get localPath => $_getSZ(1);
   @$pb.TagNumber(2)
-  set localPath($core.String v) { $_setString(1, v); }
+  set localPath($core.String value) => $_setString(1, value);
   @$pb.TagNumber(2)
   $core.bool hasLocalPath() => $_has(1);
   @$pb.TagNumber(2)
-  void clearLocalPath() => clearField(2);
+  void clearLocalPath() => $_clearField(2);
 
   @$pb.TagNumber(3)
   $1.SyncMode get syncMode => $_getN(2);
   @$pb.TagNumber(3)
-  set syncMode($1.SyncMode v) { setField(3, v); }
+  set syncMode($1.SyncMode value) => $_setField(3, value);
   @$pb.TagNumber(3)
   $core.bool hasSyncMode() => $_has(2);
   @$pb.TagNumber(3)
-  void clearSyncMode() => clearField(3);
+  void clearSyncMode() => $_clearField(3);
 
   @$pb.TagNumber(4)
-  $7.Timestamp get lastScanTime => $_getN(3);
+  $2.Timestamp get lastScanTime => $_getN(3);
   @$pb.TagNumber(4)
-  set lastScanTime($7.Timestamp v) { setField(4, v); }
+  set lastScanTime($2.Timestamp value) => $_setField(4, value);
   @$pb.TagNumber(4)
   $core.bool hasLastScanTime() => $_has(3);
   @$pb.TagNumber(4)
-  void clearLastScanTime() => clearField(4);
+  void clearLastScanTime() => $_clearField(4);
   @$pb.TagNumber(4)
-  $7.Timestamp ensureLastScanTime() => $_ensure(3);
+  $2.Timestamp ensureLastScanTime() => $_ensure(3);
 
   @$pb.TagNumber(5)
   $core.bool get isActive => $_getBF(4);
   @$pb.TagNumber(5)
-  set isActive($core.bool v) { $_setBool(4, v); }
+  set isActive($core.bool value) => $_setBool(4, value);
   @$pb.TagNumber(5)
   $core.bool hasIsActive() => $_has(4);
   @$pb.TagNumber(5)
-  void clearIsActive() => clearField(5);
+  void clearIsActive() => $_clearField(5);
 
   @$pb.TagNumber(6)
-  $7.Timestamp get createdAt => $_getN(5);
+  $2.Timestamp get createdAt => $_getN(5);
   @$pb.TagNumber(6)
-  set createdAt($7.Timestamp v) { setField(6, v); }
+  set createdAt($2.Timestamp value) => $_setField(6, value);
   @$pb.TagNumber(6)
   $core.bool hasCreatedAt() => $_has(5);
   @$pb.TagNumber(6)
-  void clearCreatedAt() => clearField(6);
+  void clearCreatedAt() => $_clearField(6);
   @$pb.TagNumber(6)
-  $7.Timestamp ensureCreatedAt() => $_ensure(5);
+  $2.Timestamp ensureCreatedAt() => $_ensure(5);
 
   @$pb.TagNumber(7)
-  $7.Timestamp get updatedAt => $_getN(6);
+  $2.Timestamp get updatedAt => $_getN(6);
   @$pb.TagNumber(7)
-  set updatedAt($7.Timestamp v) { setField(7, v); }
+  set updatedAt($2.Timestamp value) => $_setField(7, value);
   @$pb.TagNumber(7)
   $core.bool hasUpdatedAt() => $_has(6);
   @$pb.TagNumber(7)
-  void clearUpdatedAt() => clearField(7);
+  void clearUpdatedAt() => $_clearField(7);
   @$pb.TagNumber(7)
-  $7.Timestamp ensureUpdatedAt() => $_ensure(6);
+  $2.Timestamp ensureUpdatedAt() => $_ensure(6);
 }
 
 class CreateFolderRequest extends $pb.GeneratedMessage {
-  factory CreateFolderRequest() => create();
-  CreateFolderRequest._() : super();
-  factory CreateFolderRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory CreateFolderRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory CreateFolderRequest({
+    $core.String? localPath,
+    $1.SyncMode? syncMode,
+  }) {
+    final result = create();
+    if (localPath != null) result.localPath = localPath;
+    if (syncMode != null) result.syncMode = syncMode;
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateFolderRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+  CreateFolderRequest._();
+
+  factory CreateFolderRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory CreateFolderRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CreateFolderRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'localPath')
-    ..e<$1.SyncMode>(2, _omitFieldNames ? '' : 'syncMode', $pb.PbFieldType.OE, defaultOrMaker: $1.SyncMode.SYNC_MODE_UNSPECIFIED, valueOf: $1.SyncMode.valueOf, enumValues: $1.SyncMode.values)
-    ..hasRequiredFields = false
-  ;
+    ..aE<$1.SyncMode>(2, _omitFieldNames ? '' : 'syncMode',
+        enumValues: $1.SyncMode.values)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  CreateFolderRequest clone() => CreateFolderRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  CreateFolderRequest copyWith(void Function(CreateFolderRequest) updates) => super.copyWith((message) => updates(message as CreateFolderRequest)) as CreateFolderRequest;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CreateFolderRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CreateFolderRequest copyWith(void Function(CreateFolderRequest) updates) =>
+      super.copyWith((message) => updates(message as CreateFolderRequest))
+          as CreateFolderRequest;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static CreateFolderRequest create() => CreateFolderRequest._();
+  @$core.override
   CreateFolderRequest createEmptyInstance() => create();
-  static $pb.PbList<CreateFolderRequest> createRepeated() => $pb.PbList<CreateFolderRequest>();
   @$core.pragma('dart2js:noInline')
-  static CreateFolderRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateFolderRequest>(create);
+  static CreateFolderRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CreateFolderRequest>(create);
   static CreateFolderRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get localPath => $_getSZ(0);
   @$pb.TagNumber(1)
-  set localPath($core.String v) { $_setString(0, v); }
+  set localPath($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasLocalPath() => $_has(0);
   @$pb.TagNumber(1)
-  void clearLocalPath() => clearField(1);
+  void clearLocalPath() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $1.SyncMode get syncMode => $_getN(1);
   @$pb.TagNumber(2)
-  set syncMode($1.SyncMode v) { setField(2, v); }
+  set syncMode($1.SyncMode value) => $_setField(2, value);
   @$pb.TagNumber(2)
   $core.bool hasSyncMode() => $_has(1);
   @$pb.TagNumber(2)
-  void clearSyncMode() => clearField(2);
+  void clearSyncMode() => $_clearField(2);
 }
 
 class GetFolderRequest extends $pb.GeneratedMessage {
-  factory GetFolderRequest() => create();
-  GetFolderRequest._() : super();
-  factory GetFolderRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetFolderRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory GetFolderRequest({
+    $core.String? id,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetFolderRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+  GetFolderRequest._();
+
+  factory GetFolderRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetFolderRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetFolderRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  GetFolderRequest clone() => GetFolderRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GetFolderRequest copyWith(void Function(GetFolderRequest) updates) => super.copyWith((message) => updates(message as GetFolderRequest)) as GetFolderRequest;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetFolderRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetFolderRequest copyWith(void Function(GetFolderRequest) updates) =>
+      super.copyWith((message) => updates(message as GetFolderRequest))
+          as GetFolderRequest;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static GetFolderRequest create() => GetFolderRequest._();
+  @$core.override
   GetFolderRequest createEmptyInstance() => create();
-  static $pb.PbList<GetFolderRequest> createRepeated() => $pb.PbList<GetFolderRequest>();
   @$core.pragma('dart2js:noInline')
-  static GetFolderRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetFolderRequest>(create);
+  static GetFolderRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetFolderRequest>(create);
   static GetFolderRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get id => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($core.String v) { $_setString(0, v); }
+  set id($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearId() => $_clearField(1);
 }
 
 class ListFoldersRequest extends $pb.GeneratedMessage {
-  factory ListFoldersRequest() => create();
-  ListFoldersRequest._() : super();
-  factory ListFoldersRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ListFoldersRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ListFoldersRequest({
+    $core.bool? activeOnly,
+    $1.PaginationRequest? pagination,
+  }) {
+    final result = create();
+    if (activeOnly != null) result.activeOnly = activeOnly;
+    if (pagination != null) result.pagination = pagination;
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListFoldersRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+  ListFoldersRequest._();
+
+  factory ListFoldersRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ListFoldersRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ListFoldersRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
     ..aOB(1, _omitFieldNames ? '' : 'activeOnly')
-    ..aOM<$1.PaginationRequest>(2, _omitFieldNames ? '' : 'pagination', subBuilder: $1.PaginationRequest.create)
-    ..hasRequiredFields = false
-  ;
+    ..aOM<$1.PaginationRequest>(2, _omitFieldNames ? '' : 'pagination',
+        subBuilder: $1.PaginationRequest.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ListFoldersRequest clone() => ListFoldersRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ListFoldersRequest copyWith(void Function(ListFoldersRequest) updates) => super.copyWith((message) => updates(message as ListFoldersRequest)) as ListFoldersRequest;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListFoldersRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListFoldersRequest copyWith(void Function(ListFoldersRequest) updates) =>
+      super.copyWith((message) => updates(message as ListFoldersRequest))
+          as ListFoldersRequest;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static ListFoldersRequest create() => ListFoldersRequest._();
+  @$core.override
   ListFoldersRequest createEmptyInstance() => create();
-  static $pb.PbList<ListFoldersRequest> createRepeated() => $pb.PbList<ListFoldersRequest>();
   @$core.pragma('dart2js:noInline')
-  static ListFoldersRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListFoldersRequest>(create);
+  static ListFoldersRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListFoldersRequest>(create);
   static ListFoldersRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.bool get activeOnly => $_getBF(0);
   @$pb.TagNumber(1)
-  set activeOnly($core.bool v) { $_setBool(0, v); }
+  set activeOnly($core.bool value) => $_setBool(0, value);
   @$pb.TagNumber(1)
   $core.bool hasActiveOnly() => $_has(0);
   @$pb.TagNumber(1)
-  void clearActiveOnly() => clearField(1);
+  void clearActiveOnly() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $1.PaginationRequest get pagination => $_getN(1);
   @$pb.TagNumber(2)
-  set pagination($1.PaginationRequest v) { setField(2, v); }
+  set pagination($1.PaginationRequest value) => $_setField(2, value);
   @$pb.TagNumber(2)
   $core.bool hasPagination() => $_has(1);
   @$pb.TagNumber(2)
-  void clearPagination() => clearField(2);
+  void clearPagination() => $_clearField(2);
   @$pb.TagNumber(2)
   $1.PaginationRequest ensurePagination() => $_ensure(1);
 }
 
 class ListFoldersResponse extends $pb.GeneratedMessage {
-  factory ListFoldersResponse() => create();
-  ListFoldersResponse._() : super();
-  factory ListFoldersResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ListFoldersResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ListFoldersResponse({
+    $core.Iterable<Folder>? folders,
+    $1.PaginationResponse? pagination,
+  }) {
+    final result = create();
+    if (folders != null) result.folders.addAll(folders);
+    if (pagination != null) result.pagination = pagination;
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListFoldersResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
-    ..pc<Folder>(1, _omitFieldNames ? '' : 'folders', $pb.PbFieldType.PM, subBuilder: Folder.create)
-    ..aOM<$1.PaginationResponse>(2, _omitFieldNames ? '' : 'pagination', subBuilder: $1.PaginationResponse.create)
-    ..hasRequiredFields = false
-  ;
+  ListFoldersResponse._();
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ListFoldersResponse clone() => ListFoldersResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ListFoldersResponse copyWith(void Function(ListFoldersResponse) updates) => super.copyWith((message) => updates(message as ListFoldersResponse)) as ListFoldersResponse;
+  factory ListFoldersResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ListFoldersResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
 
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ListFoldersResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
+    ..pPM<Folder>(1, _omitFieldNames ? '' : 'folders',
+        subBuilder: Folder.create)
+    ..aOM<$1.PaginationResponse>(2, _omitFieldNames ? '' : 'pagination',
+        subBuilder: $1.PaginationResponse.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListFoldersResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListFoldersResponse copyWith(void Function(ListFoldersResponse) updates) =>
+      super.copyWith((message) => updates(message as ListFoldersResponse))
+          as ListFoldersResponse;
+
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static ListFoldersResponse create() => ListFoldersResponse._();
+  @$core.override
   ListFoldersResponse createEmptyInstance() => create();
-  static $pb.PbList<ListFoldersResponse> createRepeated() => $pb.PbList<ListFoldersResponse>();
   @$core.pragma('dart2js:noInline')
-  static ListFoldersResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListFoldersResponse>(create);
+  static ListFoldersResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListFoldersResponse>(create);
   static ListFoldersResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.List<Folder> get folders => $_getList(0);
+  $pb.PbList<Folder> get folders => $_getList(0);
 
   @$pb.TagNumber(2)
   $1.PaginationResponse get pagination => $_getN(1);
   @$pb.TagNumber(2)
-  set pagination($1.PaginationResponse v) { setField(2, v); }
+  set pagination($1.PaginationResponse value) => $_setField(2, value);
   @$pb.TagNumber(2)
   $core.bool hasPagination() => $_has(1);
   @$pb.TagNumber(2)
-  void clearPagination() => clearField(2);
+  void clearPagination() => $_clearField(2);
   @$pb.TagNumber(2)
   $1.PaginationResponse ensurePagination() => $_ensure(1);
 }
 
 class UpdateFolderRequest extends $pb.GeneratedMessage {
-  factory UpdateFolderRequest() => create();
-  UpdateFolderRequest._() : super();
-  factory UpdateFolderRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory UpdateFolderRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory UpdateFolderRequest({
+    $core.String? id,
+    $core.String? localPath,
+    $1.SyncMode? syncMode,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (localPath != null) result.localPath = localPath;
+    if (syncMode != null) result.syncMode = syncMode;
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UpdateFolderRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+  UpdateFolderRequest._();
+
+  factory UpdateFolderRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory UpdateFolderRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'UpdateFolderRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'localPath')
-    ..e<$1.SyncMode>(3, _omitFieldNames ? '' : 'syncMode', $pb.PbFieldType.OE, defaultOrMaker: $1.SyncMode.SYNC_MODE_UNSPECIFIED, valueOf: $1.SyncMode.valueOf, enumValues: $1.SyncMode.values)
-    ..hasRequiredFields = false
-  ;
+    ..aE<$1.SyncMode>(3, _omitFieldNames ? '' : 'syncMode',
+        enumValues: $1.SyncMode.values)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  UpdateFolderRequest clone() => UpdateFolderRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  UpdateFolderRequest copyWith(void Function(UpdateFolderRequest) updates) => super.copyWith((message) => updates(message as UpdateFolderRequest)) as UpdateFolderRequest;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UpdateFolderRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UpdateFolderRequest copyWith(void Function(UpdateFolderRequest) updates) =>
+      super.copyWith((message) => updates(message as UpdateFolderRequest))
+          as UpdateFolderRequest;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static UpdateFolderRequest create() => UpdateFolderRequest._();
+  @$core.override
   UpdateFolderRequest createEmptyInstance() => create();
-  static $pb.PbList<UpdateFolderRequest> createRepeated() => $pb.PbList<UpdateFolderRequest>();
   @$core.pragma('dart2js:noInline')
-  static UpdateFolderRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UpdateFolderRequest>(create);
+  static UpdateFolderRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<UpdateFolderRequest>(create);
   static UpdateFolderRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get id => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($core.String v) { $_setString(0, v); }
+  set id($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearId() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get localPath => $_getSZ(1);
   @$pb.TagNumber(2)
-  set localPath($core.String v) { $_setString(1, v); }
+  set localPath($core.String value) => $_setString(1, value);
   @$pb.TagNumber(2)
   $core.bool hasLocalPath() => $_has(1);
   @$pb.TagNumber(2)
-  void clearLocalPath() => clearField(2);
+  void clearLocalPath() => $_clearField(2);
 
   @$pb.TagNumber(3)
   $1.SyncMode get syncMode => $_getN(2);
   @$pb.TagNumber(3)
-  set syncMode($1.SyncMode v) { setField(3, v); }
+  set syncMode($1.SyncMode value) => $_setField(3, value);
   @$pb.TagNumber(3)
   $core.bool hasSyncMode() => $_has(2);
   @$pb.TagNumber(3)
-  void clearSyncMode() => clearField(3);
+  void clearSyncMode() => $_clearField(3);
 }
 
 class DeleteFolderRequest extends $pb.GeneratedMessage {
-  factory DeleteFolderRequest() => create();
-  DeleteFolderRequest._() : super();
-  factory DeleteFolderRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory DeleteFolderRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory DeleteFolderRequest({
+    $core.String? id,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DeleteFolderRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+  DeleteFolderRequest._();
+
+  factory DeleteFolderRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory DeleteFolderRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DeleteFolderRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  DeleteFolderRequest clone() => DeleteFolderRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  DeleteFolderRequest copyWith(void Function(DeleteFolderRequest) updates) => super.copyWith((message) => updates(message as DeleteFolderRequest)) as DeleteFolderRequest;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeleteFolderRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeleteFolderRequest copyWith(void Function(DeleteFolderRequest) updates) =>
+      super.copyWith((message) => updates(message as DeleteFolderRequest))
+          as DeleteFolderRequest;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static DeleteFolderRequest create() => DeleteFolderRequest._();
+  @$core.override
   DeleteFolderRequest createEmptyInstance() => create();
-  static $pb.PbList<DeleteFolderRequest> createRepeated() => $pb.PbList<DeleteFolderRequest>();
   @$core.pragma('dart2js:noInline')
-  static DeleteFolderRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DeleteFolderRequest>(create);
+  static DeleteFolderRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DeleteFolderRequest>(create);
   static DeleteFolderRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get id => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($core.String v) { $_setString(0, v); }
+  set id($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearId() => $_clearField(1);
 }
 
 class ToggleFolderActiveRequest extends $pb.GeneratedMessage {
-  factory ToggleFolderActiveRequest() => create();
-  ToggleFolderActiveRequest._() : super();
-  factory ToggleFolderActiveRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ToggleFolderActiveRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ToggleFolderActiveRequest({
+    $core.String? id,
+    $core.bool? isActive,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (isActive != null) result.isActive = isActive;
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ToggleFolderActiveRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+  ToggleFolderActiveRequest._();
+
+  factory ToggleFolderActiveRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ToggleFolderActiveRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ToggleFolderActiveRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOB(2, _omitFieldNames ? '' : 'isActive')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ToggleFolderActiveRequest clone() => ToggleFolderActiveRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ToggleFolderActiveRequest copyWith(void Function(ToggleFolderActiveRequest) updates) => super.copyWith((message) => updates(message as ToggleFolderActiveRequest)) as ToggleFolderActiveRequest;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ToggleFolderActiveRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ToggleFolderActiveRequest copyWith(
+          void Function(ToggleFolderActiveRequest) updates) =>
+      super.copyWith((message) => updates(message as ToggleFolderActiveRequest))
+          as ToggleFolderActiveRequest;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static ToggleFolderActiveRequest create() => ToggleFolderActiveRequest._();
+  @$core.override
   ToggleFolderActiveRequest createEmptyInstance() => create();
-  static $pb.PbList<ToggleFolderActiveRequest> createRepeated() => $pb.PbList<ToggleFolderActiveRequest>();
   @$core.pragma('dart2js:noInline')
-  static ToggleFolderActiveRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ToggleFolderActiveRequest>(create);
+  static ToggleFolderActiveRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ToggleFolderActiveRequest>(create);
   static ToggleFolderActiveRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get id => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($core.String v) { $_setString(0, v); }
+  set id($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearId() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.bool get isActive => $_getBF(1);
   @$pb.TagNumber(2)
-  set isActive($core.bool v) { $_setBool(1, v); }
+  set isActive($core.bool value) => $_setBool(1, value);
   @$pb.TagNumber(2)
   $core.bool hasIsActive() => $_has(1);
   @$pb.TagNumber(2)
-  void clearIsActive() => clearField(2);
+  void clearIsActive() => $_clearField(2);
 }
 
 class FolderResponse extends $pb.GeneratedMessage {
-  factory FolderResponse() => create();
-  FolderResponse._() : super();
-  factory FolderResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory FolderResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory FolderResponse({
+    $1.Status? status,
+    Folder? folder,
+  }) {
+    final result = create();
+    if (status != null) result.status = status;
+    if (folder != null) result.folder = folder;
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'FolderResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOM<$1.Status>(1, _omitFieldNames ? '' : 'status', subBuilder: $1.Status.create)
+  FolderResponse._();
+
+  factory FolderResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory FolderResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'FolderResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
+    ..aOM<$1.Status>(1, _omitFieldNames ? '' : 'status',
+        subBuilder: $1.Status.create)
     ..aOM<Folder>(2, _omitFieldNames ? '' : 'folder', subBuilder: Folder.create)
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  FolderResponse clone() => FolderResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  FolderResponse copyWith(void Function(FolderResponse) updates) => super.copyWith((message) => updates(message as FolderResponse)) as FolderResponse;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  FolderResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  FolderResponse copyWith(void Function(FolderResponse) updates) =>
+      super.copyWith((message) => updates(message as FolderResponse))
+          as FolderResponse;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static FolderResponse create() => FolderResponse._();
+  @$core.override
   FolderResponse createEmptyInstance() => create();
-  static $pb.PbList<FolderResponse> createRepeated() => $pb.PbList<FolderResponse>();
   @$core.pragma('dart2js:noInline')
-  static FolderResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<FolderResponse>(create);
+  static FolderResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<FolderResponse>(create);
   static FolderResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $1.Status get status => $_getN(0);
   @$pb.TagNumber(1)
-  set status($1.Status v) { setField(1, v); }
+  set status($1.Status value) => $_setField(1, value);
   @$pb.TagNumber(1)
   $core.bool hasStatus() => $_has(0);
   @$pb.TagNumber(1)
-  void clearStatus() => clearField(1);
+  void clearStatus() => $_clearField(1);
   @$pb.TagNumber(1)
   $1.Status ensureStatus() => $_ensure(0);
 
   @$pb.TagNumber(2)
   Folder get folder => $_getN(1);
   @$pb.TagNumber(2)
-  set folder(Folder v) { setField(2, v); }
+  set folder(Folder value) => $_setField(2, value);
   @$pb.TagNumber(2)
   $core.bool hasFolder() => $_has(1);
   @$pb.TagNumber(2)
-  void clearFolder() => clearField(2);
+  void clearFolder() => $_clearField(2);
   @$pb.TagNumber(2)
   Folder ensureFolder() => $_ensure(1);
 }
 
 class ScanFolderRequest extends $pb.GeneratedMessage {
-  factory ScanFolderRequest() => create();
-  ScanFolderRequest._() : super();
-  factory ScanFolderRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ScanFolderRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ScanFolderRequest({
+    $core.String? folderId,
+  }) {
+    final result = create();
+    if (folderId != null) result.folderId = folderId;
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ScanFolderRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
+  ScanFolderRequest._();
+
+  factory ScanFolderRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ScanFolderRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ScanFolderRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'folderId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ScanFolderRequest clone() => ScanFolderRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ScanFolderRequest copyWith(void Function(ScanFolderRequest) updates) => super.copyWith((message) => updates(message as ScanFolderRequest)) as ScanFolderRequest;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ScanFolderRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ScanFolderRequest copyWith(void Function(ScanFolderRequest) updates) =>
+      super.copyWith((message) => updates(message as ScanFolderRequest))
+          as ScanFolderRequest;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static ScanFolderRequest create() => ScanFolderRequest._();
+  @$core.override
   ScanFolderRequest createEmptyInstance() => create();
-  static $pb.PbList<ScanFolderRequest> createRepeated() => $pb.PbList<ScanFolderRequest>();
   @$core.pragma('dart2js:noInline')
-  static ScanFolderRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ScanFolderRequest>(create);
+  static ScanFolderRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ScanFolderRequest>(create);
   static ScanFolderRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get folderId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set folderId($core.String v) { $_setString(0, v); }
+  set folderId($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasFolderId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearFolderId() => clearField(1);
+  void clearFolderId() => $_clearField(1);
 }
 
 class ScanFolderResponse extends $pb.GeneratedMessage {
-  factory ScanFolderResponse() => create();
-  ScanFolderResponse._() : super();
-  factory ScanFolderResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ScanFolderResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ScanFolderResponse({
+    $1.Status? status,
+    $core.int? filesFound,
+    $core.int? filesSaved,
+  }) {
+    final result = create();
+    if (status != null) result.status = status;
+    if (filesFound != null) result.filesFound = filesFound;
+    if (filesSaved != null) result.filesSaved = filesSaved;
+    return result;
+  }
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ScanFolderResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'), createEmptyInstance: create)
-    ..aOM<$1.Status>(1, _omitFieldNames ? '' : 'status', subBuilder: $1.Status.create)
-    ..a<$core.int>(2, _omitFieldNames ? '' : 'filesFound', $pb.PbFieldType.O3)
-    ..a<$core.int>(3, _omitFieldNames ? '' : 'filesSaved', $pb.PbFieldType.O3)
-    ..hasRequiredFields = false
-  ;
+  ScanFolderResponse._();
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ScanFolderResponse clone() => ScanFolderResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ScanFolderResponse copyWith(void Function(ScanFolderResponse) updates) => super.copyWith((message) => updates(message as ScanFolderResponse)) as ScanFolderResponse;
+  factory ScanFolderResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ScanFolderResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
 
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ScanFolderResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
+    ..aOM<$1.Status>(1, _omitFieldNames ? '' : 'status',
+        subBuilder: $1.Status.create)
+    ..aI(2, _omitFieldNames ? '' : 'filesFound')
+    ..aI(3, _omitFieldNames ? '' : 'filesSaved')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ScanFolderResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ScanFolderResponse copyWith(void Function(ScanFolderResponse) updates) =>
+      super.copyWith((message) => updates(message as ScanFolderResponse))
+          as ScanFolderResponse;
+
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static ScanFolderResponse create() => ScanFolderResponse._();
+  @$core.override
   ScanFolderResponse createEmptyInstance() => create();
-  static $pb.PbList<ScanFolderResponse> createRepeated() => $pb.PbList<ScanFolderResponse>();
   @$core.pragma('dart2js:noInline')
-  static ScanFolderResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ScanFolderResponse>(create);
+  static ScanFolderResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ScanFolderResponse>(create);
   static ScanFolderResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $1.Status get status => $_getN(0);
   @$pb.TagNumber(1)
-  set status($1.Status v) { setField(1, v); }
+  set status($1.Status value) => $_setField(1, value);
   @$pb.TagNumber(1)
   $core.bool hasStatus() => $_has(0);
   @$pb.TagNumber(1)
-  void clearStatus() => clearField(1);
+  void clearStatus() => $_clearField(1);
   @$pb.TagNumber(1)
   $1.Status ensureStatus() => $_ensure(0);
 
   @$pb.TagNumber(2)
   $core.int get filesFound => $_getIZ(1);
   @$pb.TagNumber(2)
-  set filesFound($core.int v) { $_setSignedInt32(1, v); }
+  set filesFound($core.int value) => $_setSignedInt32(1, value);
   @$pb.TagNumber(2)
   $core.bool hasFilesFound() => $_has(1);
   @$pb.TagNumber(2)
-  void clearFilesFound() => clearField(2);
+  void clearFilesFound() => $_clearField(2);
 
   @$pb.TagNumber(3)
   $core.int get filesSaved => $_getIZ(2);
   @$pb.TagNumber(3)
-  set filesSaved($core.int v) { $_setSignedInt32(2, v); }
+  set filesSaved($core.int value) => $_setSignedInt32(2, value);
   @$pb.TagNumber(3)
   $core.bool hasFilesSaved() => $_has(2);
   @$pb.TagNumber(3)
-  void clearFilesSaved() => clearField(3);
+  void clearFilesSaved() => $_clearField(3);
 }
 
-
-const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
-const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');
+const $core.bool _omitFieldNames =
+    $core.bool.fromEnvironment('protobuf.omit_field_names');
+const $core.bool _omitMessageNames =
+    $core.bool.fromEnvironment('protobuf.omit_message_names');

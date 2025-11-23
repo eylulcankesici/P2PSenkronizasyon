@@ -20,8 +20,9 @@ dependencies:
   flutter_riverpod: ^2.4.9
   
   # gRPC
-  grpc: ^3.2.4
-  protobuf: ^3.1.0
+  grpc: ^5.0.0
+  protobuf: ^5.1.0
+  fixnum: ^1.1.1
   
   # Utils
   path: ^1.9.0

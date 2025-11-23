@@ -1,13 +1,14 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: api/proto/sync.proto
-//
-// @dart = 2.12
+// Generated from api/proto/sync.proto.
 
-// ignore_for_file: annotate_overrides, camel_case_types
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// @dart = 3.3
+
+// ignore_for_file: annotate_overrides, camel_case_types, comment_references
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, unused_import
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
@@ -31,8 +32,22 @@ final $typed_data.Uint8List syncFileRequestDescriptor = $convert.base64Decode(
 const SyncFileResponse$json = {
   '1': 'SyncFileResponse',
   '2': [
-    {'1': 'status', '3': 1, '4': 1, '5': 11, '6': '.aether.api.Status', '10': 'status'},
-    {'1': 'progress', '3': 2, '4': 1, '5': 11, '6': '.aether.api.SyncProgress', '10': 'progress'},
+    {
+      '1': 'status',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.Status',
+      '10': 'status'
+    },
+    {
+      '1': 'progress',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.SyncProgress',
+      '10': 'progress'
+    },
   ],
 };
 
@@ -41,6 +56,52 @@ final $typed_data.Uint8List syncFileResponseDescriptor = $convert.base64Decode(
     'ChBTeW5jRmlsZVJlc3BvbnNlEioKBnN0YXR1cxgBIAEoCzISLmFldGhlci5hcGkuU3RhdHVzUg'
     'ZzdGF0dXMSNAoIcHJvZ3Jlc3MYAiABKAsyGC5hZXRoZXIuYXBpLlN5bmNQcm9ncmVzc1IIcHJv'
     'Z3Jlc3M=');
+
+@$core.Deprecated('Use syncFolderRequestDescriptor instead')
+const SyncFolderRequest$json = {
+  '1': 'SyncFolderRequest',
+  '2': [
+    {'1': 'folder_id', '3': 1, '4': 1, '5': 9, '10': 'folderId'},
+    {'1': 'target_peer_ids', '3': 2, '4': 3, '5': 9, '10': 'targetPeerIds'},
+  ],
+};
+
+/// Descriptor for `SyncFolderRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List syncFolderRequestDescriptor = $convert.base64Decode(
+    'ChFTeW5jRm9sZGVyUmVxdWVzdBIbCglmb2xkZXJfaWQYASABKAlSCGZvbGRlcklkEiYKD3Rhcm'
+    'dldF9wZWVyX2lkcxgCIAMoCVINdGFyZ2V0UGVlcklkcw==');
+
+@$core.Deprecated('Use syncFolderResponseDescriptor instead')
+const SyncFolderResponse$json = {
+  '1': 'SyncFolderResponse',
+  '2': [
+    {
+      '1': 'status',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.Status',
+      '10': 'status'
+    },
+    {
+      '1': 'progress',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.SyncProgress',
+      '10': 'progress'
+    },
+    {'1': 'total_files', '3': 3, '4': 1, '5': 5, '10': 'totalFiles'},
+    {'1': 'synced_files', '3': 4, '4': 1, '5': 5, '10': 'syncedFiles'},
+  ],
+};
+
+/// Descriptor for `SyncFolderResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List syncFolderResponseDescriptor = $convert.base64Decode(
+    'ChJTeW5jRm9sZGVyUmVzcG9uc2USKgoGc3RhdHVzGAEgASgLMhIuYWV0aGVyLmFwaS5TdGF0dX'
+    'NSBnN0YXR1cxI0Cghwcm9ncmVzcxgCIAEoCzIYLmFldGhlci5hcGkuU3luY1Byb2dyZXNzUghw'
+    'cm9ncmVzcxIfCgt0b3RhbF9maWxlcxgDIAEoBVIKdG90YWxGaWxlcxIhCgxzeW5jZWRfZmlsZX'
+    'MYBCABKAVSC3N5bmNlZEZpbGVz');
 
 @$core.Deprecated('Use getSyncStatusRequestDescriptor instead')
 const GetSyncStatusRequest$json = {
@@ -51,15 +112,30 @@ const GetSyncStatusRequest$json = {
 };
 
 /// Descriptor for `GetSyncStatusRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getSyncStatusRequestDescriptor = $convert.base64Decode(
-    'ChRHZXRTeW5jU3RhdHVzUmVxdWVzdBIbCglmb2xkZXJfaWQYASABKAlSCGZvbGRlcklk');
+final $typed_data.Uint8List getSyncStatusRequestDescriptor =
+    $convert.base64Decode(
+        'ChRHZXRTeW5jU3RhdHVzUmVxdWVzdBIbCglmb2xkZXJfaWQYASABKAlSCGZvbGRlcklk');
 
 @$core.Deprecated('Use syncStatusResponseDescriptor instead')
 const SyncStatusResponse$json = {
   '1': 'SyncStatusResponse',
   '2': [
-    {'1': 'status', '3': 1, '4': 1, '5': 11, '6': '.aether.api.Status', '10': 'status'},
-    {'1': 'sync_status', '3': 2, '4': 1, '5': 11, '6': '.aether.api.SyncStatus', '10': 'syncStatus'},
+    {
+      '1': 'status',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.Status',
+      '10': 'status'
+    },
+    {
+      '1': 'sync_status',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.SyncStatus',
+      '10': 'syncStatus'
+    },
   ],
 };
 
@@ -79,9 +155,22 @@ const SyncStatus$json = {
     {'1': 'pending_files', '3': 4, '4': 1, '5': 5, '10': 'pendingFiles'},
     {'1': 'total_size', '3': 5, '4': 1, '5': 3, '10': 'totalSize'},
     {'1': 'synced_size', '3': 6, '4': 1, '5': 3, '10': 'syncedSize'},
-    {'1': 'last_sync_time', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'lastSyncTime'},
+    {
+      '1': 'last_sync_time',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'lastSyncTime'
+    },
     {'1': 'is_syncing', '3': 8, '4': 1, '5': 8, '10': 'isSyncing'},
-    {'1': 'current_operation', '3': 9, '4': 1, '5': 9, '10': 'currentOperation'},
+    {
+      '1': 'current_operation',
+      '3': 9,
+      '4': 1,
+      '5': 9,
+      '10': 'currentOperation'
+    },
   ],
 };
 
@@ -99,7 +188,13 @@ final $typed_data.Uint8List syncStatusDescriptor = $convert.base64Decode(
 const SyncProgress$json = {
   '1': 'SyncProgress',
   '2': [
-    {'1': 'bytes_transferred', '3': 1, '4': 1, '5': 3, '10': 'bytesTransferred'},
+    {
+      '1': 'bytes_transferred',
+      '3': 1,
+      '4': 1,
+      '5': 3,
+      '10': 'bytesTransferred'
+    },
     {'1': 'total_bytes', '3': 2, '4': 1, '5': 3, '10': 'totalBytes'},
     {'1': 'percentage', '3': 3, '4': 1, '5': 2, '10': 'percentage'},
     {'1': 'speed_bps', '3': 4, '4': 1, '5': 3, '10': 'speedBps'},
@@ -147,17 +242,32 @@ const WatchSyncEventsRequest$json = {
 };
 
 /// Descriptor for `WatchSyncEventsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List watchSyncEventsRequestDescriptor = $convert.base64Decode(
-    'ChZXYXRjaFN5bmNFdmVudHNSZXF1ZXN0EhsKCWZvbGRlcl9pZBgBIAEoCVIIZm9sZGVySWQ=');
+final $typed_data.Uint8List watchSyncEventsRequestDescriptor =
+    $convert.base64Decode(
+        'ChZXYXRjaFN5bmNFdmVudHNSZXF1ZXN0EhsKCWZvbGRlcl9pZBgBIAEoCVIIZm9sZGVySWQ=');
 
 @$core.Deprecated('Use syncEventDescriptor instead')
 const SyncEvent$json = {
   '1': 'SyncEvent',
   '2': [
-    {'1': 'event_type', '3': 1, '4': 1, '5': 14, '6': '.aether.api.SyncEvent.EventType', '10': 'eventType'},
+    {
+      '1': 'event_type',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.aether.api.SyncEvent.EventType',
+      '10': 'eventType'
+    },
     {'1': 'file_id', '3': 2, '4': 1, '5': 9, '10': 'fileId'},
     {'1': 'file_path', '3': 3, '4': 1, '5': 9, '10': 'filePath'},
-    {'1': 'timestamp', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'timestamp'},
+    {
+      '1': 'timestamp',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'timestamp'
+    },
     {'1': 'message', '3': 5, '4': 1, '5': 9, '10': 'message'},
   ],
   '4': [SyncEvent_EventType$json],
@@ -187,4 +297,3 @@ final $typed_data.Uint8List syncEventDescriptor = $convert.base64Decode(
     'RFRBABEhwKGEVWRU5UX1RZUEVfRklMRV9NT0RJRklFRBACEhsKF0VWRU5UX1RZUEVfRklMRV9E'
     'RUxFVEVEEAMSGwoXRVZFTlRfVFlQRV9TWU5DX1NUQVJURUQQBBIdChlFVkVOVF9UWVBFX1NZTk'
     'NfQ09NUExFVEVEEAUSGgoWRVZFTlRfVFlQRV9TWU5DX0ZBSUxFRBAG');
-

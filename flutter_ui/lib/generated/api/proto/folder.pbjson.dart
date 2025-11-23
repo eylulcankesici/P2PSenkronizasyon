@@ -1,13 +1,14 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: api/proto/folder.proto
-//
-// @dart = 2.12
+// Generated from api/proto/folder.proto.
 
-// ignore_for_file: annotate_overrides, camel_case_types
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// @dart = 3.3
+
+// ignore_for_file: annotate_overrides, camel_case_types, comment_references
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, unused_import
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
@@ -19,11 +20,39 @@ const Folder$json = {
   '2': [
     {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
     {'1': 'local_path', '3': 2, '4': 1, '5': 9, '10': 'localPath'},
-    {'1': 'sync_mode', '3': 3, '4': 1, '5': 14, '6': '.aether.api.SyncMode', '10': 'syncMode'},
-    {'1': 'last_scan_time', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'lastScanTime'},
+    {
+      '1': 'sync_mode',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.aether.api.SyncMode',
+      '10': 'syncMode'
+    },
+    {
+      '1': 'last_scan_time',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'lastScanTime'
+    },
     {'1': 'is_active', '3': 5, '4': 1, '5': 8, '10': 'isActive'},
-    {'1': 'created_at', '3': 6, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
-    {'1': 'updated_at', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'updatedAt'},
+    {
+      '1': 'created_at',
+      '3': 6,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'createdAt'
+    },
+    {
+      '1': 'updated_at',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'updatedAt'
+    },
   ],
 };
 
@@ -41,7 +70,14 @@ const CreateFolderRequest$json = {
   '1': 'CreateFolderRequest',
   '2': [
     {'1': 'local_path', '3': 1, '4': 1, '5': 9, '10': 'localPath'},
-    {'1': 'sync_mode', '3': 2, '4': 1, '5': 14, '6': '.aether.api.SyncMode', '10': 'syncMode'},
+    {
+      '1': 'sync_mode',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.aether.api.SyncMode',
+      '10': 'syncMode'
+    },
   ],
 };
 
@@ -59,15 +95,22 @@ const GetFolderRequest$json = {
 };
 
 /// Descriptor for `GetFolderRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getFolderRequestDescriptor = $convert.base64Decode(
-    'ChBHZXRGb2xkZXJSZXF1ZXN0Eg4KAmlkGAEgASgJUgJpZA==');
+final $typed_data.Uint8List getFolderRequestDescriptor =
+    $convert.base64Decode('ChBHZXRGb2xkZXJSZXF1ZXN0Eg4KAmlkGAEgASgJUgJpZA==');
 
 @$core.Deprecated('Use listFoldersRequestDescriptor instead')
 const ListFoldersRequest$json = {
   '1': 'ListFoldersRequest',
   '2': [
     {'1': 'active_only', '3': 1, '4': 1, '5': 8, '10': 'activeOnly'},
-    {'1': 'pagination', '3': 2, '4': 1, '5': 11, '6': '.aether.api.PaginationRequest', '10': 'pagination'},
+    {
+      '1': 'pagination',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.PaginationRequest',
+      '10': 'pagination'
+    },
   ],
 };
 
@@ -81,8 +124,22 @@ final $typed_data.Uint8List listFoldersRequestDescriptor = $convert.base64Decode
 const ListFoldersResponse$json = {
   '1': 'ListFoldersResponse',
   '2': [
-    {'1': 'folders', '3': 1, '4': 3, '5': 11, '6': '.aether.api.Folder', '10': 'folders'},
-    {'1': 'pagination', '3': 2, '4': 1, '5': 11, '6': '.aether.api.PaginationResponse', '10': 'pagination'},
+    {
+      '1': 'folders',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.aether.api.Folder',
+      '10': 'folders'
+    },
+    {
+      '1': 'pagination',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.PaginationResponse',
+      '10': 'pagination'
+    },
   ],
 };
 
@@ -98,7 +155,14 @@ const UpdateFolderRequest$json = {
   '2': [
     {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
     {'1': 'local_path', '3': 2, '4': 1, '5': 9, '10': 'localPath'},
-    {'1': 'sync_mode', '3': 3, '4': 1, '5': 14, '6': '.aether.api.SyncMode', '10': 'syncMode'},
+    {
+      '1': 'sync_mode',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.aether.api.SyncMode',
+      '10': 'syncMode'
+    },
   ],
 };
 
@@ -117,8 +181,8 @@ const DeleteFolderRequest$json = {
 };
 
 /// Descriptor for `DeleteFolderRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List deleteFolderRequestDescriptor = $convert.base64Decode(
-    'ChNEZWxldGVGb2xkZXJSZXF1ZXN0Eg4KAmlkGAEgASgJUgJpZA==');
+final $typed_data.Uint8List deleteFolderRequestDescriptor = $convert
+    .base64Decode('ChNEZWxldGVGb2xkZXJSZXF1ZXN0Eg4KAmlkGAEgASgJUgJpZA==');
 
 @$core.Deprecated('Use toggleFolderActiveRequestDescriptor instead')
 const ToggleFolderActiveRequest$json = {
@@ -130,16 +194,31 @@ const ToggleFolderActiveRequest$json = {
 };
 
 /// Descriptor for `ToggleFolderActiveRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List toggleFolderActiveRequestDescriptor = $convert.base64Decode(
-    'ChlUb2dnbGVGb2xkZXJBY3RpdmVSZXF1ZXN0Eg4KAmlkGAEgASgJUgJpZBIbCglpc19hY3Rpdm'
-    'UYAiABKAhSCGlzQWN0aXZl');
+final $typed_data.Uint8List toggleFolderActiveRequestDescriptor =
+    $convert.base64Decode(
+        'ChlUb2dnbGVGb2xkZXJBY3RpdmVSZXF1ZXN0Eg4KAmlkGAEgASgJUgJpZBIbCglpc19hY3Rpdm'
+        'UYAiABKAhSCGlzQWN0aXZl');
 
 @$core.Deprecated('Use folderResponseDescriptor instead')
 const FolderResponse$json = {
   '1': 'FolderResponse',
   '2': [
-    {'1': 'status', '3': 1, '4': 1, '5': 11, '6': '.aether.api.Status', '10': 'status'},
-    {'1': 'folder', '3': 2, '4': 1, '5': 11, '6': '.aether.api.Folder', '10': 'folder'},
+    {
+      '1': 'status',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.Status',
+      '10': 'status'
+    },
+    {
+      '1': 'folder',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.Folder',
+      '10': 'folder'
+    },
   ],
 };
 
@@ -164,7 +243,14 @@ final $typed_data.Uint8List scanFolderRequestDescriptor = $convert.base64Decode(
 const ScanFolderResponse$json = {
   '1': 'ScanFolderResponse',
   '2': [
-    {'1': 'status', '3': 1, '4': 1, '5': 11, '6': '.aether.api.Status', '10': 'status'},
+    {
+      '1': 'status',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.aether.api.Status',
+      '10': 'status'
+    },
     {'1': 'files_found', '3': 2, '4': 1, '5': 5, '10': 'filesFound'},
     {'1': 'files_saved', '3': 3, '4': 1, '5': 5, '10': 'filesSaved'},
   ],
@@ -175,4 +261,3 @@ final $typed_data.Uint8List scanFolderResponseDescriptor = $convert.base64Decode
     'ChJTY2FuRm9sZGVyUmVzcG9uc2USKgoGc3RhdHVzGAEgASgLMhIuYWV0aGVyLmFwaS5TdGF0dX'
     'NSBnN0YXR1cxIfCgtmaWxlc19mb3VuZBgCIAEoBVIKZmlsZXNGb3VuZBIfCgtmaWxlc19zYXZl'
     'ZBgDIAEoBVIKZmlsZXNTYXZlZA==');
-
