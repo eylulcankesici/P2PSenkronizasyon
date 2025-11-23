@@ -79,9 +79,23 @@ func (m *TransferManager) UpdateChunkProgress(fileID string, completedChunks int
 		return
 	}
 
-	// Transfer iptal edilmişse güncelleme yapma
+	// Transfer iptal edilmişse veya context iptal edilmişse güncelleme yapma
 	if transfer.State == pb.TransferState_TRANSFER_STATE_CANCELLED {
 		return
+	}
+	
+	// Context iptal edilmişse transfer'i iptal olarak işaretle
+	if transfer.ctx != nil {
+		select {
+		case <-transfer.ctx.Done():
+			// Context iptal edilmiş, transfer'i iptal olarak işaretle
+			transfer.State = pb.TransferState_TRANSFER_STATE_CANCELLED
+			now := time.Now()
+			transfer.EndTime = &now
+			return
+		default:
+			// Devam et
+		}
 	}
 
 	transfer.CompletedChunks = completedChunks

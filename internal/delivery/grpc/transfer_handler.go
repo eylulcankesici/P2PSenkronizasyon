@@ -103,10 +103,20 @@ func (h *TransferHandler) CancelTransfer(ctx context.Context, req *pb.CancelTran
 		}, nil
 	}
 
-	// Transfer'i iptal et
+	// Transfer'i iptal et (hem SEND hem RECEIVE için çalışır)
 	transferManager.CancelTransfer(req.FileId)
-
-	log.Printf("✅ Transfer iptal edildi: %s", req.FileId)
+	
+	// Yön bilgisini logla
+	directionStr := "SEND"
+	if transfer.Direction == pb.TransferDirection_TRANSFER_DIRECTION_RECEIVE {
+		directionStr = "RECEIVE"
+	}
+	
+	log.Printf("✅ Transfer iptal edildi: %s (direction: %s, peer: %s)", req.FileId, directionStr, transfer.PeerID[:8])
+	
+	// Eğer alıcı taraf iptal edildiyse, gönderen tarafa bildirim gönder
+	// (Şu anda chunk gönderimi context kontrolü ile duruyor, bu yeterli)
+	// İleride gönderen tarafa özel bir cancel notification mesajı gönderilebilir
 
 	return &pb.Status{
 		Success: true,
