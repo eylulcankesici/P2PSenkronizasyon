@@ -550,9 +550,19 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 		// Önceki transfer varsa explicit olarak temizle (CANCELLED, FAILED, ACTIVE hepsi)
 		existingTransfer, exists := c.transferManager.GetTransfer(fileID)
 		if exists {
-			log.Printf("  🔄 ÖNCEKİ TRANSFER BULUNDU (state: %v, direction: %v) - Temizleniyor: %s", existingTransfer.State, existingTransfer.Direction, fileID[:8])
-			// Transfer'in context'ini iptal et (eğer hala aktifse)
-			// StartTransfer zaten önceki transfer'i map'ten kaldıracak ve yeni context oluşturacak
+			log.Printf("  🔄 ÖNCEKİ TRANSFER BULUNDU (state: %v, direction: %v) - AGRESIF TEMİZLEME YAPILIYOR: %s", existingTransfer.State, existingTransfer.Direction, fileID[:8])
+			
+			// Transfer'i explicit olarak iptal et ve map'ten kaldır
+			c.transferManager.CancelTransfer(fileID)
+			log.Printf("  ✅ Önceki transfer iptal edildi ve map'ten kaldırıldı: %s", fileID[:8])
+			
+			// Önceki transfer'in goroutine'inin tamamen durması için bekle
+			log.Printf("  ⏳ Önceki transfer'in durması bekleniyor (200ms)...")
+			time.Sleep(200 * time.Millisecond)
+			log.Printf("  ✅ Bekleme tamamlandı: %s", fileID[:8])
+			
+			// Güvenlik kontrolü: Transfer hâlâ map'te varsa zorla kaldır
+			c.transferManager.ForceRemoveTransfer(fileID)
 		} else {
 			log.Printf("  ✓ Önceki transfer bulunamadı (yeni transfer): %s", fileID[:8])
 		}
@@ -980,9 +990,19 @@ func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID 
 	existingTransfer, exists := c.transferManager.GetTransfer(fileID)
 	if exists {
 		log.Printf("  🔄 ÖNCEKİ TRANSFER BULUNDU (state: %v, direction: %v) - Temizleniyor: %s", existingTransfer.State, existingTransfer.Direction, fileID[:8])
-		// Transfer'i explicit olarak iptal et (context'i de iptal eder)
+		
+		// Transfer'i explicit olarak iptal et (context'i de iptal eder ve map'ten kaldırır)
 		c.transferManager.CancelTransfer(fileID)
-		log.Printf("  ✅ Önceki transfer iptal edildi: %s", fileID[:8])
+		log.Printf("  ✅ Önceki transfer iptal edildi ve map'ten kaldırıldı: %s", fileID[:8])
+		
+		// Önceki transfer'in goroutine'inin tamamen durması için bekle
+		// SendChunkWithFileInfo blocking olduğu için context iptal edilse bile biraz zaman alabilir
+		log.Printf("  ⏳ Önceki transfer'in goroutine'inin durması bekleniyor (300ms)...")
+		time.Sleep(300 * time.Millisecond)
+		log.Printf("  ✅ Bekleme tamamlandı, yeni transfer başlatılabilir: %s", fileID[:8])
+		
+		// Güvenlik kontrolü: Transfer hâlâ map'te varsa zorla kaldır
+		c.transferManager.ForceRemoveTransfer(fileID)
 	} else {
 		log.Printf("  ✓ Önceki transfer bulunamadı (yeni transfer): %s", fileID[:8])
 	}
@@ -990,11 +1010,6 @@ func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID 
 	// FileReassembler'ı temizle (SEND direction için de - yeni transfer için hazırlık)
 	c.fileReassembler.CleanupFile(fileID)
 	log.Printf("  ✅ FileReassembler temizlendi (yeni transfer için hazır): %s", fileID[:8])
-	
-	// Önceki transfer'in context'inin tamamen temizlenmesi için kısa bir süre bekle
-	if exists {
-		time.Sleep(50 * time.Millisecond)
-	}
 	
 	// Dosya bilgisini al
 	file, err := c.fileRepo.GetByID(ctx, fileID)
@@ -1021,6 +1036,10 @@ func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID 
 	
 	log.Printf("  📦 %d chunk bulundu, transfer başlatılıyor: %s", len(fileChunks), fileID[:8])
 	
+	log.Printf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+	log.Printf("📊 StartTransfer ÇAĞRILIYOR")
+	log.Printf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+	
 	// Transfer durumunu başlat (SEND - dosya gönderiliyor)
 	// StartTransfer içinde önceki transfer temizlenir ve yeni transfer başlatılır
 	c.transferManager.StartTransfer(
@@ -1032,7 +1051,13 @@ func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID 
 		int32(len(fileChunks)),
 		file.Size,
 	)
-	log.Printf("  📊 YENİ TRANSFER BAŞLATILDI: %s (gönderiliyor, %d chunks, %d bytes) - Chunk'lar BAŞTAN gönderilecek", file.RelativePath, len(fileChunks), file.Size)
+	
+	log.Printf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+	log.Printf("✅ StartTransfer TAMAMLANDI")
+	log.Printf("      File: %s", file.RelativePath)
+	log.Printf("      Chunks: %d, Bytes: %d", len(fileChunks), file.Size)
+	log.Printf("      Chunk'lar BAŞTAN (index 0) gönderilecek")
+	log.Printf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	
 	// Transfer context'ini al (iptal kontrolü için)
 	// StartTransfer sonrası yeni transfer'in context'ini almalıyız

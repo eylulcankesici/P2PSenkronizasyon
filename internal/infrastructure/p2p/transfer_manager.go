@@ -51,24 +51,30 @@ func (m *TransferManager) StartTransfer(fileID, fileName, peerID, peerName strin
 	// Eğer önceki bir transfer varsa, durumuna göre temizle
 	// Yeni transfer başlatılırken her durumda (CANCELLED, FAILED, ACTIVE) eski transfer temizlenir
 	if existingTransfer, exists := m.transfers[fileID]; exists {
-		log.Printf("  🗑️ Önceki transfer temizleniyor (state: %v, direction: %v): %s", existingTransfer.State, existingTransfer.Direction, fileID)
+		log.Printf("  🗑️🗑️🗑️ ÖNCEKİ TRANSFER BULUNDU VE TEMİZLENİYOR")
+		log.Printf("      Old State: %v, Direction: %v, FileID: %s", existingTransfer.State, existingTransfer.Direction, fileID[:8])
 		
 		// Context'i iptal et (eğer hala aktifse)
 		if existingTransfer.cancel != nil {
 			existingTransfer.cancel()
-			log.Printf("  🛑 Önceki transfer context'i iptal edildi: %s", fileID)
+			log.Printf("      ✓ Context iptal edildi")
 		}
 		
 		// Transfer'i map'ten kaldır (yeni transfer başlatılacak)
 		// Her durumda (CANCELLED, FAILED, ACTIVE) temizle - aynı fileID ile yeni transfer başlatılıyor
 		delete(m.transfers, fileID)
-		log.Printf("  ✅ Önceki transfer map'ten kaldırıldı: %s", fileID)
+		log.Printf("      ✓ Map'ten kaldırıldı")
+		log.Printf("  ✅✅✅ ÖNCEKİ TRANSFER TAMAMEN TEMİZLENDİ: %s", fileID[:8])
+	} else {
+		log.Printf("  ✓ Önceki transfer bulunamadı (ilk transfer): %s", fileID[:8])
 	}
 
 	// Cancel context oluştur (yeni context - önceki context ile hiçbir ilişkisi yok)
 	ctx, cancel := context.WithCancel(context.Background())
 	
-	log.Printf("  🆕 Yeni transfer başlatılıyor: fileID=%s, fileName=%s, direction=%v, totalChunks=%d, totalBytes=%d", fileID[:8], fileName, direction, totalChunks, totalBytes)
+	log.Printf("  🆕🆕🆕 YENİ TRANSFER BAŞLATILIYOR")
+	log.Printf("      FileID: %s, FileName: %s", fileID[:8], fileName)
+	log.Printf("      Direction: %v, TotalChunks: %d, TotalBytes: %d", direction, totalChunks, totalBytes)
 
 	m.transfers[fileID] = &TransferInfo{
 		FileID:          fileID,
@@ -87,7 +93,7 @@ func (m *TransferManager) StartTransfer(fileID, fileName, peerID, peerName strin
 		cancel:          cancel,
 	}
 	
-	log.Printf("  ✅ Yeni transfer başlatıldı (ACTIVE state): %s", fileID[:8])
+	log.Printf("  ✅✅✅ YENİ TRANSFER MAP'E EKLENDİ (ACTIVE STATE): %s", fileID[:8])
 }
 
 // UpdateChunkProgress chunk progress'ini günceller
@@ -187,8 +193,21 @@ func (m *TransferManager) CancelTransfer(fileID string) {
 	transfer.State = pb.TransferState_TRANSFER_STATE_CANCELLED
 	transfer.lastUpdate = time.Now()
 	
-	// NOT: Transfer'i map'ten silmiyoruz çünkü UI'da gösterilmeye devam edilmesi gerekiyor
-	// Ancak yeni transfer başlatılırken StartTransfer içinde silinecek
+	// Transfer'i map'ten hemen kaldır (yeni transfer için yer aç)
+	// Goroutine'in durması için 300ms beklenecek (SyncFileWithPeerTracked içinde)
+	delete(m.transfers, fileID)
+	log.Printf("  🗑️ Transfer CANCELLED ve map'ten kaldırıldı: %s", fileID)
+}
+
+// ForceRemoveTransfer transfer'i zorla map'ten kaldırır (güvenlik için)
+func (m *TransferManager) ForceRemoveTransfer(fileID string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	
+	if _, exists := m.transfers[fileID]; exists {
+		delete(m.transfers, fileID)
+		log.Printf("  🗑️ Transfer zorla map'ten kaldırıldı: %s", fileID)
+	}
 }
 
 // GetTransfer transfer bilgisini getirir
