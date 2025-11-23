@@ -106,8 +106,22 @@ func (c *TCPConnection) SendChunk(ctx context.Context, chunkHash string, data []
 
 // SendChunkWithFileInfo chunk gönderir (push-based sync için file bilgisiyle)
 func (c *TCPConnection) SendChunkWithFileInfo(ctx context.Context, chunkHash string, data []byte, fileID string, chunkIndex, totalChunks int, fileName string) error {
+	// Context iptal kontrolü (göndermeden önce)
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+	
 	c.sendMu.Lock()
 	defer c.sendMu.Unlock()
+	
+	// Context iptal kontrolü (lock aldıktan sonra tekrar kontrol)
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
 	
 	// Chunk response mesajı encode et
 	frame, err := c.protocol.EncodeChunkResponseWithFileInfo(chunkHash, data, fileID, chunkIndex, totalChunks, fileName)
@@ -115,14 +129,36 @@ func (c *TCPConnection) SendChunkWithFileInfo(ctx context.Context, chunkHash str
 		return fmt.Errorf("chunk encode hatası: %w", err)
 	}
 	
+	// Context iptal kontrolü (frame göndermeden önce)
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+	
 	// Frame boyutunu gönder (4 bytes)
 	frameLen := uint32(len(frame))
 	if err := c.writeUint32(frameLen); err != nil {
+		// Context iptal edilmişse özel hata döndür
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		return fmt.Errorf("frame length yazılamadı: %w", err)
+	}
+	
+	// Context iptal kontrolü (frame verisi göndermeden önce)
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
 	}
 	
 	// Frame'i gönder
 	if _, err := c.conn.Write(frame); err != nil {
+		// Context iptal edilmişse özel hata döndür
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		return fmt.Errorf("frame yazılamadı: %w", err)
 	}
 	

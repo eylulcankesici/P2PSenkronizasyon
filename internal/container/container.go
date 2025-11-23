@@ -590,6 +590,16 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 		}
 	}
 	
+	// Transfer context'i varsa iptal kontrolü yap (progress güncellemeden önce)
+	if transferCtx, hasContext := c.transferManager.GetTransferContext(fileID); hasContext {
+		select {
+		case <-transferCtx.Done():
+			log.Printf("  🛑 Transfer iptal edildi, progress güncellemesi atlanıyor: %s (chunk %d/%d)", fileID[:8], chunkIndex+1, totalChunks)
+			return fmt.Errorf("transfer iptal edildi: %w", transferCtx.Err())
+		default:
+		}
+	}
+	
 	// Başarılı - retry sayacını sıfırla
 	c.clearChunkRetryCount(retryKey)
 	
@@ -883,6 +893,11 @@ func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID 
 		SyncFileWithPeerWithProgress(ctx context.Context, peerID, fileID string, progressCallback func(completedChunks, totalChunks int, transferredBytes int64)) error
 	}); ok {
 		err = useCaseImpl.SyncFileWithPeerWithProgress(transferCtx, peerID, fileID, func(completedChunks, totalChunks int, transferredBytes int64) {
+			// Context iptal kontrolü (progress güncellemeden önce)
+			if transferCtx != nil && transferCtx.Err() != nil {
+				log.Printf("  🛑 Transfer iptal edildi, progress güncellemesi atlanıyor: %s", fileID)
+				return // Progress güncellemesini atla
+			}
 			// Her chunk gönderildiğinde progress güncelle
 			c.transferManager.UpdateChunkProgress(fileID, int32(completedChunks), transferredBytes)
 		})

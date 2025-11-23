@@ -132,12 +132,33 @@ func (uc *P2PTransferUseCaseImpl) SyncFileWithPeerWithProgress(ctx context.Conte
 			// Devam et
 		}
 		
+		// Context iptal kontrolü (chunk verisi almadan önce)
+		select {
+		case <-ctx.Done():
+			log.Printf("  🛑 Transfer iptal edildi, chunk verisi alınmadan durduruluyor: %s (chunk %d/%d)", fileID, i+1, len(fileChunks))
+			return ctx.Err()
+		default:
+		}
+		
 		log.Printf("  📤 Chunk %d/%d gönderiliyor: %s", i+1, len(fileChunks), fc.ChunkHash[:8])
 		
 		// Chunk verisini al
 		chunkData, err := uc.chunkingUseCase.GetChunkData(ctx, fc.ChunkHash)
 		if err != nil {
+			// Context iptal edilmişse özel hata döndür
+			if ctx.Err() != nil {
+				log.Printf("  🛑 Transfer iptal edildi, chunk verisi alınamadı: %s", fileID)
+				return ctx.Err()
+			}
 			return fmt.Errorf("chunk verisi alınamadı [%d]: %w", i, err)
+		}
+		
+		// Context iptal kontrolü (hash doğrulamasından önce)
+		select {
+		case <-ctx.Done():
+			log.Printf("  🛑 Transfer iptal edildi, hash doğrulaması öncesi durduruluyor: %s (chunk %d/%d)", fileID, i+1, len(fileChunks))
+			return ctx.Err()
+		default:
 		}
 		
 		// Göndermeden önce hash doğrulaması yap (güvenlik için - chunk bozulmuş olabilir)
@@ -158,6 +179,22 @@ func (uc *P2PTransferUseCaseImpl) SyncFileWithPeerWithProgress(ctx context.Conte
 				return fmt.Errorf("chunk hash doğrulama başarısız [%d]: expected=%s, got=%s", i, fc.ChunkHash[:8], actualHashStr[:8])
 			}
 			log.Printf("  ✅ Chunk hash doğrulandı (retry sonrası): %s", fc.ChunkHash[:8])
+			
+			// Retry sonrası context kontrolü
+			select {
+			case <-ctx.Done():
+				log.Printf("  🛑 Transfer iptal edildi, retry sonrası durduruluyor: %s (chunk %d/%d)", fileID, i+1, len(fileChunks))
+				return ctx.Err()
+			default:
+			}
+		}
+		
+		// Context iptal kontrolü (chunk göndermeden önce)
+		select {
+		case <-ctx.Done():
+			log.Printf("  🛑 Transfer iptal edildi, chunk gönderimi başlamadan durduruluyor: %s (chunk %d/%d)", fileID, i+1, len(fileChunks))
+			return ctx.Err()
+		default:
 		}
 		
 		// Chunk'ı file bilgisiyle gönder
@@ -178,9 +215,22 @@ func (uc *P2PTransferUseCaseImpl) SyncFileWithPeerWithProgress(ctx context.Conte
 		} else {
 			// Fallback: normal SendChunk (file bilgisi olmadan)
 			if err := conn.SendChunk(ctx, fc.ChunkHash, chunkData); err != nil {
+				// Context iptal edilmişse özel hata döndür
+				if ctx.Err() != nil {
+					log.Printf("  🛑 Transfer iptal edildi, chunk gönderimi durduruluyor: %s (chunk %d/%d)", fileID, i+1, len(fileChunks))
+					return fmt.Errorf("transfer iptal edildi: %w", ctx.Err())
+				}
 				return fmt.Errorf("chunk gönderilemedi [%d]: %w", i, err)
 			}
 			chunkSentBytes = int64(len(chunkData))
+		}
+		
+		// Context iptal kontrolü (progress callback'ten önce)
+		select {
+		case <-ctx.Done():
+			log.Printf("  🛑 Transfer iptal edildi, progress callback öncesi durduruluyor: %s (chunk %d/%d)", fileID, i+1, len(fileChunks))
+			return ctx.Err()
+		default:
 		}
 		
 		// Progress callback'i çağır (eğer varsa)
