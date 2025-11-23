@@ -353,9 +353,10 @@ func (c *TCPConnection) messageLoop() {
 				return
 			}
 			
-			log.Printf("📦 Frame alındı: %d bytes (peer: %s)", frameLen, c.peerID[:8])
-			
-			// Frame'i oku
+		// Log kapatıldı - spam önleme (chunk mesajları için çok fazla log oluşuyor)
+		// Sadece gerekli durumlarda (hata vs.) log gösterilecek
+		
+		// Frame'i oku
 			frame := make([]byte, frameLen)
 			if _, err := io.ReadFull(c.conn, frame); err != nil {
 				// EOF veya bağlantı kapatıldığında normal bir durum
@@ -384,12 +385,15 @@ func (c *TCPConnection) messageLoop() {
 				continue
 			}
 			
+		// Sadece chunk olmayan mesajlar için log göster (spam önleme)
+		if messageType != MessageTypeChunkResponse && messageType != MessageTypeChunkRequest {
 			log.Printf("✅ Frame decode başarılı: type=0x%04x, payload=%d bytes (peer: %s)", messageType, len(payload), c.peerID[:8])
-			
-			// Mesaj tipine göre işle
-			if err := c.handleMessage(messageType, payload); err != nil {
-				log.Printf("⚠️ Mesaj işleme hatası (%s): %v", c.peerID[:8], err)
-			}
+		}
+		
+		// Mesaj tipine göre işle
+		if err := c.handleMessage(messageType, payload); err != nil {
+			log.Printf("⚠️ Mesaj işleme hatası (%s): %v", c.peerID[:8], err)
+		}
 		}
 	}
 }
@@ -481,8 +485,11 @@ func (c *TCPConnection) handleChunkResponse(payload []byte) error {
 		return fmt.Errorf("chunk response decode hatası: %w", err)
 	}
 	
-	log.Printf("📥 Chunk response alındı: %s (%d bytes), FileId: '%s', FileName: '%s', ChunkIndex: %d, TotalChunks: %d", 
-		resp.ChunkHash[:8], len(resp.ChunkData), resp.FileId, resp.FileName, resp.ChunkIndex, resp.TotalChunks)
+	// Log azaltıldı - sadece her 50 chunk'ta bir log (spam önleme)
+	if resp.ChunkIndex%50 == 0 || resp.ChunkIndex == 0 || resp.ChunkIndex == resp.TotalChunks-1 {
+		log.Printf("📥 Chunk response alındı: %s (%d bytes), FileId: '%s', FileName: '%s', ChunkIndex: %d, TotalChunks: %d", 
+			resp.ChunkHash[:8], len(resp.ChunkData), resp.FileId, resp.FileName, resp.ChunkIndex, resp.TotalChunks)
+	}
 	
 	// Eğer file_id varsa, push-based sync demektir
 	if resp.FileId != "" {
