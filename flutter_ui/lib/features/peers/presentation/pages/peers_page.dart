@@ -248,7 +248,9 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
                           .read(peerNotifierProvider.notifier)
                           .connectToPeer(peer.deviceId);
                       // Bağlı peer listesini yenile
-                      ref.invalidate(connectedPeersProvider);
+                      if (mounted) {
+                        ref.invalidate(connectedPeersProvider);
+                      }
                     },
                     icon: const Icon(LucideIcons.link, size: 16),
                     label: const Text('Bağlan'),
@@ -515,9 +517,11 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
                   .read(peerNotifierProvider.notifier)
                   .disconnectFromPeer(peer.deviceId);
               // Bağlı peer listesini yenile
-              ref.invalidate(connectedPeersProvider);
-              // Keşfedilen peer listesini de yenile
-              ref.invalidate(discoveredPeersProvider);
+              if (mounted) {
+                ref.invalidate(connectedPeersProvider);
+                // Keşfedilen peer listesini de yenile
+                ref.invalidate(discoveredPeersProvider);
+              }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Kes'),
