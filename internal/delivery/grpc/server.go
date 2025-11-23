@@ -101,6 +101,13 @@ func loggingInterceptor(
 	// Handler'ı çağır
 	resp, err := handler(ctx, req)
 	
+	// Polling çağrılarını loglardan hariç tut (spam önleme)
+	if info.FullMethod == "/aether.api.TransferService/ListTransfers" ||
+		info.FullMethod == "/aether.api.PeerService/GetPendingConnections" {
+		// Sessizce dön (log yok)
+		return resp, err
+	}
+	
 	// Log
 	duration := time.Since(start)
 	if err != nil {

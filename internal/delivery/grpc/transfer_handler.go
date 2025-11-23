@@ -22,8 +22,9 @@ func NewTransferHandler(cont *container.Container) *TransferHandler {
 
 // ListTransfers aktif transferleri listeler
 func (h *TransferHandler) ListTransfers(ctx context.Context, req *pb.ListTransfersRequest) (*pb.ListTransfersResponse, error) {
-	log.Printf("📋 Transferler listeleniyor: active_only=%v, completed_only=%v, failed_only=%v",
-		req.ActiveOnly, req.CompletedOnly, req.FailedOnly)
+	// Log kapatıldı (polling spam'i önlemek için)
+	// log.Printf("📋 Transferler listeleniyor: active_only=%v, completed_only=%v, failed_only=%v",
+	// 	req.ActiveOnly, req.CompletedOnly, req.FailedOnly)
 
 	// Transfer manager'dan transferleri al
 	transferManager := h.container.TransferManager()
@@ -35,7 +36,7 @@ func (h *TransferHandler) ListTransfers(ctx context.Context, req *pb.ListTransfe
 		pbTransfers = append(pbTransfers, transfer.ToProto())
 	}
 
-	log.Printf("✅ %d transfer bulundu", len(pbTransfers))
+	// log.Printf("✅ %d transfer bulundu", len(pbTransfers))
 
 	return &pb.ListTransfersResponse{
 		Status: &pb.Status{
