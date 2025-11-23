@@ -968,6 +968,19 @@ func (c *Container) retryChunkRequest(ctx context.Context, peerID, chunkHash, fi
 
 // SyncFileWithPeerTracked dosyayı peer'a gönderir ve transfer durumunu takip eder
 func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID string) error {
+	log.Printf("🔄 SyncFileWithPeerTracked başlatılıyor: fileID=%s, peerID=%s", fileID[:8], peerID[:8])
+	
+	// Önceki transfer varsa explicit olarak temizle (CANCELLED, FAILED, ACTIVE hepsi)
+	existingTransfer, exists := c.transferManager.GetTransfer(fileID)
+	if exists {
+		log.Printf("  🔄 Önceki transfer bulundu (state: %v, direction: %v), temizleniyor: %s", existingTransfer.State, existingTransfer.Direction, fileID[:8])
+		// Transfer'i explicit olarak iptal et (context'i de iptal eder)
+		c.transferManager.CancelTransfer(fileID)
+		log.Printf("  ✅ Önceki transfer iptal edildi: %s", fileID[:8])
+		// Önceki transfer'in context'inin tamamen temizlenmesi için kısa bir süre bekle
+		time.Sleep(100 * time.Millisecond)
+	}
+	
 	// Dosya bilgisini al
 	file, err := c.fileRepo.GetByID(ctx, fileID)
 	if err != nil {
@@ -991,7 +1004,10 @@ func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID 
 		return fmt.Errorf("dosyanın chunk'ı yok: %s", fileID)
 	}
 	
+	log.Printf("  📦 %d chunk bulundu, transfer başlatılıyor: %s", len(fileChunks), fileID[:8])
+	
 	// Transfer durumunu başlat (SEND - dosya gönderiliyor)
+	// StartTransfer içinde önceki transfer temizlenir ve yeni transfer başlatılır
 	c.transferManager.StartTransfer(
 		fileID,
 		file.RelativePath,
@@ -1001,7 +1017,7 @@ func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID 
 		int32(len(fileChunks)),
 		file.Size,
 	)
-	log.Printf("  📊 Transfer başlatıldı: %s (gönderiliyor, %d chunks, %d bytes)", file.RelativePath, len(fileChunks), file.Size)
+	log.Printf("  📊 YENİ TRANSFER BAŞLATILDI: %s (gönderiliyor, %d chunks, %d bytes) - Chunk'lar BAŞTAN gönderilecek", file.RelativePath, len(fileChunks), file.Size)
 	
 	// Transfer context'ini al (iptal kontrolü için)
 	transferCtx, hasContext := c.transferManager.GetTransferContext(fileID)

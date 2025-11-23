@@ -115,6 +115,8 @@ func (uc *P2PTransferUseCaseImpl) SyncFileWithPeerWithProgress(ctx context.Conte
 		return fmt.Errorf("dosyanın chunk'ı yok: %s", fileID)
 	}
 	
+	log.Printf("  📦 %d chunk bulundu, chunk'lar BAŞTAN (index 0) gönderilmeye başlanıyor: %s", len(fileChunks), fileID[:8])
+	
 	// Bağlantıyı al
 	conn, exists := uc.transportProvider.GetConnection(peerID)
 	if !exists {
@@ -122,6 +124,7 @@ func (uc *P2PTransferUseCaseImpl) SyncFileWithPeerWithProgress(ctx context.Conte
 	}
 	
 	// Her chunk'ı peer'a gönder (file_id, fileName ve index bilgisiyle)
+	// Chunk'lar sıralı olarak baştan gönderilir (chunk_index 0'dan başlar)
 	for i, fc := range fileChunks {
 		// Context iptal edilmiş mi kontrol et
 		select {
