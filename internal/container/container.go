@@ -550,6 +550,18 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 		log.Printf("  📊 Transfer başlatıldı: %s (alınıyor, %d chunks, %d bytes)", fileName, totalChunks, totalBytes)
 	}
 	
+	// Transfer context'i varsa iptal kontrolü yap (alıcı taraf için)
+	// Transfer başlatıldıktan sonra kontrol et
+	if transferCtx, hasContext := c.transferManager.GetTransferContext(fileID); hasContext {
+		select {
+		case <-transferCtx.Done():
+			log.Printf("  🛑 Transfer iptal edildi, chunk reddediliyor: %s (chunk %d/%d)", fileID[:8], chunkIndex+1, totalChunks)
+			return fmt.Errorf("transfer iptal edildi: %w", transferCtx.Err())
+		default:
+			// Devam et
+		}
+	}
+	
 	// Retry sayacını kontrol et (max 3 retry)
 	const maxRetries = 3
 	retryKey := fmt.Sprintf("%s:%s:%d", fileID, chunkHash, chunkIndex)
@@ -859,22 +871,34 @@ func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID 
 	)
 	log.Printf("  📊 Transfer başlatıldı: %s (gönderiliyor, %d chunks, %d bytes)", file.RelativePath, len(fileChunks), file.Size)
 	
+	// Transfer context'ini al (iptal kontrolü için)
+	transferCtx, hasContext := c.transferManager.GetTransferContext(fileID)
+	if !hasContext {
+		transferCtx = ctx // Fallback: gelen context'i kullan
+	}
+	
 	// Dosyayı peer'a gönder (progress callback ile)
 	// Type assertion ile SyncFileWithPeerWithProgress metoduna eriş
 	if useCaseImpl, ok := c.p2pTransferUseCase.(interface {
 		SyncFileWithPeerWithProgress(ctx context.Context, peerID, fileID string, progressCallback func(completedChunks, totalChunks int, transferredBytes int64)) error
 	}); ok {
-		err = useCaseImpl.SyncFileWithPeerWithProgress(ctx, peerID, fileID, func(completedChunks, totalChunks int, transferredBytes int64) {
+		err = useCaseImpl.SyncFileWithPeerWithProgress(transferCtx, peerID, fileID, func(completedChunks, totalChunks int, transferredBytes int64) {
 			// Her chunk gönderildiğinde progress güncelle
 			c.transferManager.UpdateChunkProgress(fileID, int32(completedChunks), transferredBytes)
 		})
 	} else {
 		// Fallback: progress callback olmadan
-		err = c.p2pTransferUseCase.SyncFileWithPeer(ctx, peerID, fileID)
+		err = c.p2pTransferUseCase.SyncFileWithPeer(transferCtx, peerID, fileID)
 	}
 	if err != nil {
-		// Transfer durumunu başarısız olarak işaretle
-		c.transferManager.FailTransfer(fileID, err)
+		// Context iptal edilmişse transfer'i iptal olarak işaretle
+		if err == context.Canceled || err == context.DeadlineExceeded {
+			log.Printf("  🛑 Transfer iptal edildi: %s", file.RelativePath)
+			// TransferManager.CancelTransfer zaten çağrılmış, burada sadece log
+		} else {
+			// Transfer durumunu başarısız olarak işaretle
+			c.transferManager.FailTransfer(fileID, err)
+		}
 		return err
 	}
 	

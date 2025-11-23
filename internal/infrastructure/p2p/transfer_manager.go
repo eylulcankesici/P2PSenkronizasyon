@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"context"
+	"log"
 	"sync"
 	"time"
 
@@ -31,6 +32,8 @@ type TransferInfo struct {
 	EndTime         *time.Time
 	Error           error
 	lastUpdate      time.Time
+	ctx             context.Context // Transfer context'i (iptal için)
+	cancel          context.CancelFunc // Cancel fonksiyonu
 }
 
 // NewTransferManager yeni transfer manager oluşturur
@@ -45,6 +48,9 @@ func (m *TransferManager) StartTransfer(fileID, fileName, peerID, peerName strin
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	// Cancel context oluştur
+	ctx, cancel := context.WithCancel(context.Background())
+
 	m.transfers[fileID] = &TransferInfo{
 		FileID:          fileID,
 		FileName:        fileName,
@@ -58,6 +64,8 @@ func (m *TransferManager) StartTransfer(fileID, fileName, peerID, peerName strin
 		TransferredBytes: 0,
 		StartTime:       time.Now(),
 		lastUpdate:      time.Now(),
+		ctx:             ctx,
+		cancel:          cancel,
 	}
 }
 
@@ -68,6 +76,11 @@ func (m *TransferManager) UpdateChunkProgress(fileID string, completedChunks int
 
 	transfer, exists := m.transfers[fileID]
 	if !exists {
+		return
+	}
+
+	// Transfer iptal edilmişse güncelleme yapma
+	if transfer.State == pb.TransferState_TRANSFER_STATE_CANCELLED {
 		return
 	}
 
@@ -128,6 +141,12 @@ func (m *TransferManager) CancelTransfer(fileID string) {
 		return
 	}
 
+	// Context'i iptal et (transfer döngüsü durur)
+	if transfer.cancel != nil {
+		transfer.cancel()
+		log.Printf("  🛑 Transfer context iptal edildi: %s", fileID)
+	}
+
 	now := time.Now()
 	transfer.EndTime = &now
 	transfer.State = pb.TransferState_TRANSFER_STATE_CANCELLED
@@ -141,6 +160,18 @@ func (m *TransferManager) GetTransfer(fileID string) (*TransferInfo, bool) {
 
 	transfer, exists := m.transfers[fileID]
 	return transfer, exists
+}
+
+// GetTransferContext transfer'in cancel context'ini döner
+func (m *TransferManager) GetTransferContext(fileID string) (context.Context, bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	transfer, exists := m.transfers[fileID]
+	if !exists || transfer.ctx == nil {
+		return nil, false
+	}
+	return transfer.ctx, true
 }
 
 // ListTransfers tüm transferleri listeler (filtre ile)

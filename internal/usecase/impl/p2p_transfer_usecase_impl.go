@@ -123,6 +123,15 @@ func (uc *P2PTransferUseCaseImpl) SyncFileWithPeerWithProgress(ctx context.Conte
 	
 	// Her chunk'ı peer'a gönder (file_id, fileName ve index bilgisiyle)
 	for i, fc := range fileChunks {
+		// Context iptal edilmiş mi kontrol et
+		select {
+		case <-ctx.Done():
+			log.Printf("  🛑 Transfer iptal edildi (context cancelled): %s", fileID)
+			return ctx.Err()
+		default:
+			// Devam et
+		}
+		
 		log.Printf("  📤 Chunk %d/%d gönderiliyor: %s", i+1, len(fileChunks), fc.ChunkHash[:8])
 		
 		// Chunk verisini al
