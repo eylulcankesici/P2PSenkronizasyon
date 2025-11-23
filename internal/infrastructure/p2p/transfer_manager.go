@@ -48,8 +48,9 @@ func (m *TransferManager) StartTransfer(fileID, fileName, peerID, peerName strin
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Eğer önceki bir transfer varsa ve CANCELLED/FAILED durumundaysa, temizle
+	// Eğer önceki bir transfer varsa, durumuna göre temizle
 	if existingTransfer, exists := m.transfers[fileID]; exists {
+		// CANCELLED veya FAILED transfer'leri temizle
 		if existingTransfer.State == pb.TransferState_TRANSFER_STATE_CANCELLED ||
 		   existingTransfer.State == pb.TransferState_TRANSFER_STATE_FAILED {
 			log.Printf("  🗑️ Önceki transfer temizleniyor (state: %v): %s", existingTransfer.State, fileID)
@@ -59,6 +60,22 @@ func (m *TransferManager) StartTransfer(fileID, fileName, peerID, peerName strin
 			}
 			// Transfer'i map'ten kaldır (yeni transfer başlatılacak)
 			delete(m.transfers, fileID)
+		} else if existingTransfer.State == pb.TransferState_TRANSFER_STATE_ACTIVE {
+			// Eğer önceki transfer hala ACTIVE ise ve yeni transfer başlatılıyorsa,
+			// bu muhtemelen gönderen taraf iptal edip yeniden başlatmıştır (RECEIVE direction için)
+			// veya aynı dosya tekrar gönderiliyor (SEND direction için)
+			// Her durumda, eski transfer'i temizleyip yeniyi başlat
+			if direction == pb.TransferDirection_TRANSFER_DIRECTION_RECEIVE {
+				log.Printf("  🗑️ Önceki ACTIVE transfer temizleniyor (yeni transfer başlatılıyor): %s (direction: RECEIVE)", fileID)
+				// Context'i iptal et (eğer hala aktifse)
+				if existingTransfer.cancel != nil {
+					existingTransfer.cancel()
+				}
+				// Transfer'i map'ten kaldır (yeni transfer başlatılacak)
+				delete(m.transfers, fileID)
+			}
+			// SEND direction için: Gönderen taraf yeni transfer başlatıyorsa, eski transfer'i override et
+			// (aynı dosya tekrar gönderilebilir)
 		}
 	}
 

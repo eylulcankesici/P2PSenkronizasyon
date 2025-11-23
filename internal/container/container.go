@@ -523,12 +523,21 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 	
 	// İlk chunk ise dosyayı initialize et ve transfer durumunu başlat
 	if chunkIndex == 0 {
-		// Eğer önceki bir transfer (CANCELLED veya FAILED) varsa, fileReassembler'ı temizle
-		// StartTransfer içinde de temizlik yapılıyor ama burada da kontrol ediyoruz
+		// Eğer önceki bir transfer varsa, durumuna göre temizlik yap
 		existingTransfer, exists := c.transferManager.GetTransfer(fileID)
-		if exists && (existingTransfer.State == pb.TransferState_TRANSFER_STATE_CANCELLED ||
-		   existingTransfer.State == pb.TransferState_TRANSFER_STATE_FAILED) {
-			log.Printf("  🔄 Önceki transfer temizleniyor (state: %v): %s", existingTransfer.State, fileID[:8])
+		if exists {
+			// Her durumda (CANCELLED, FAILED, ACTIVE) eski transfer'i temizle
+			// Yeni chunk geldiğine göre yeni transfer başlatılacak
+			log.Printf("  🔄 Önceki transfer temizleniyor (state: %v, direction: %v): %s", existingTransfer.State, existingTransfer.Direction, fileID[:8])
+			
+			// Eğer önceki transfer ACTIVE ise, muhtemelen gönderen taraf iptal edip yeniden başlatmıştır
+			// Transfer'i iptal et (context'i de iptal eder)
+			if existingTransfer.State == pb.TransferState_TRANSFER_STATE_ACTIVE &&
+			   existingTransfer.Direction == pb.TransferDirection_TRANSFER_DIRECTION_RECEIVE {
+				log.Printf("  🗑️ Önceki ACTIVE RECEIVE transfer iptal ediliyor: %s", fileID[:8])
+				c.transferManager.CancelTransfer(fileID)
+			}
+			
 			c.fileReassembler.CleanupFile(fileID)
 		}
 		
