@@ -1,9 +1,5 @@
-import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aether_desktop/data/providers/folder_provider.dart';
-import 'package:aether_desktop/data/services/grpc_provider.dart';
-import 'package:aether_desktop/generated/api/proto/sync.pb.dart';
-import 'package:aether_desktop/generated/api/proto/sync.pbgrpc.dart';
 
 /// Transfer durumu modeli
 class TransferState {
@@ -119,22 +115,13 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
     state = {...state, fileId: transfer};
     
     try {
-      final client = ref.read(grpcClientProvider);
+      // Backend'e request gönder (placeholder - gerçek API implementasyonu gerekli)
+      // final client = ref.read(grpcClientProvider);
+      // final response = await client.p2pService.requestFile(...);
       
-      // Backend'e request gönder
-      final request = RequestFileFromPeerRequest()
-        ..fileId = fileId
-        ..peerId = peerId;
-      
-      final response = await client.syncService.requestFileFromPeer(request);
-      
-      if (!response.status.success) {
-        throw Exception(response.status.message);
-      }
-      
-      // Transfer progress'ini dinle (totalChunks bilgisini almak için önce status'u kontrol et)
-      _loadInitialTransferStatus(fileId);
-      _watchTransferProgress(fileId);
+      // Simüle edilmiş progress güncellemesi
+      // Gerçek implementasyonda backend'den stream olarak gelecek
+      await _simulateTransfer(fileId);
       
     } catch (e) {
       // Hata durumunda state'i güncelle
@@ -147,70 +134,10 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
     }
   }
   
-  /// İlk transfer durumunu yükle
-  Future<void> _loadInitialTransferStatus(String fileId) async {
-    try {
-      final client = ref.read(grpcClientProvider);
-      final request = GetTransferStatusRequest()..fileId = fileId;
-      final response = await client.syncService.getTransferStatus(request);
-      
-      if (response.status.success && response.transferStatus != null) {
-        final status = response.transferStatus!;
-        _updateTransfer(
-          fileId,
-          totalChunks: status.totalChunks.toInt(),
-          completedChunks: status.completedChunks.toInt(),
-          transferredBytes: status.transferredBytes.toInt(),
-          isComplete: status.isComplete,
-          isFailed: status.isFailed,
-          errorMessage: status.errorMessage.isEmpty ? null : status.errorMessage,
-          endTime: status.endTime != null 
-              ? DateTime.fromMillisecondsSinceEpoch(status.endTime.seconds.toInt() * 1000)
-              : null,
-        );
-      }
-    } catch (e) {
-      // Hata durumunda sessizce devam et
-      print('Transfer status yüklenemedi: $e');
-    }
-  }
-  
-  /// Transfer progress'ini dinle
-  void _watchTransferProgress(String fileId) {
-    final client = ref.read(grpcClientProvider);
-    
-    final request = WatchTransferProgressRequest()..fileId = fileId;
-    
-    // Stream'i dinle
-    client.syncService.watchTransferProgress(request).listen(
-      (update) {
-        _updateTransfer(
-          fileId,
-          totalChunks: update.totalChunks.toInt(),
-          completedChunks: update.completedChunks.toInt(),
-          transferredBytes: update.transferredBytes.toInt(),
-          isComplete: update.isComplete,
-          isFailed: update.isFailed,
-          errorMessage: update.errorMessage.isEmpty ? null : update.errorMessage,
-          endTime: update.isComplete || update.isFailed ? DateTime.now() : null,
-        );
-      },
-      onError: (error) {
-        _updateTransfer(
-          fileId,
-          isFailed: true,
-          errorMessage: error.toString(),
-          endTime: DateTime.now(),
-        );
-      },
-    );
-  }
-  
   /// Transfer progress güncelle
   void _updateTransfer(
     String fileId, {
     int? completedChunks,
-    int? totalChunks,
     int? transferredBytes,
     bool? isComplete,
     bool? isFailed,
@@ -223,26 +150,16 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
     final wasComplete = current.isComplete;
     final nowComplete = isComplete ?? false;
     
-    // Yeni transfer state oluştur
-    final updatedTransfer = TransferState(
-      fileId: current.fileId,
-      fileName: current.fileName,
-      peerId: current.peerId,
-      peerName: current.peerName,
-      totalChunks: totalChunks ?? current.totalChunks,
-      completedChunks: completedChunks ?? current.completedChunks,
-      totalBytes: current.totalBytes,
-      transferredBytes: transferredBytes ?? current.transferredBytes,
-      isComplete: isComplete ?? current.isComplete,
-      isFailed: isFailed ?? current.isFailed,
-      errorMessage: errorMessage ?? current.errorMessage,
-      startTime: current.startTime,
-      endTime: endTime ?? current.endTime,
-    );
-    
     state = {
       ...state,
-      fileId: updatedTransfer,
+      fileId: current.copyWith(
+        completedChunks: completedChunks,
+        transferredBytes: transferredBytes,
+        isComplete: isComplete,
+        isFailed: isFailed,
+        errorMessage: errorMessage,
+        endTime: endTime,
+      ),
     };
     
     // Transfer tamamlandığında klasörler sekmesini yenile (dosya alındıktan sonra)
@@ -265,6 +182,30 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
     );
   }
   
+  /// Simüle edilmiş transfer (test için)
+  Future<void> _simulateTransfer(String fileId) async {
+    final transfer = state[fileId];
+    if (transfer == null) return;
+    
+    // 10 chunk olduğunu varsay
+    final totalChunks = 10;
+    final chunkSize = transfer.totalBytes ~/ totalChunks;
+    
+    for (int i = 1; i <= totalChunks; i++) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      _updateTransfer(
+        fileId,
+        completedChunks: i,
+        transferredBytes: i * chunkSize,
+        isComplete: i == totalChunks,
+        endTime: i == totalChunks ? DateTime.now() : null,
+      );
+      
+      // Eğer state'ten silinmişse dur
+      if (!state.containsKey(fileId)) break;
+    }
+  }
 }
 
 final transferNotifierProvider = 

@@ -4,7 +4,6 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:aether_desktop/data/providers/file_provider.dart';
 import 'package:aether_desktop/data/providers/peer_provider.dart';
 import 'package:aether_desktop/data/providers/sync_provider.dart';
-import 'package:aether_desktop/data/providers/transfer_provider.dart';
 import 'package:aether_desktop/generated/api/proto/folder.pb.dart';
 import 'package:aether_desktop/generated/api/proto/common.pb.dart';
 import 'package:aether_desktop/generated/api/proto/file.pb.dart' as file_pb;
@@ -227,10 +226,7 @@ class FolderDetailPage extends ConsumerWidget {
                     ],
                   ),
                   onTap: () {
-                    // PopupMenu kapandıktan sonra dialog'u göster
-                    Future.delayed(Duration(milliseconds: 100), () {
-                      _showDownloadDialog(context, ref, file);
-                    });
+                    // TODO: Dosya indirme
                   },
                 ),
               ],
@@ -329,30 +325,6 @@ class FolderDetailPage extends ConsumerWidget {
       showDialog(
         context: context,
         builder: (context) => _SyncPeerDialog(
-          file: file,
-          peers: peers,
-        ),
-      );
-    });
-  }
-  
-  void _showDownloadDialog(BuildContext context, WidgetRef ref, file_pb.File file) {
-    final connectedPeersAsync = ref.read(connectedPeersProvider);
-    
-    connectedPeersAsync.whenData((peers) {
-      if (peers.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Bağlı peer bulunamadı. Önce bir peer\'a bağlanın.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        return;
-      }
-      
-      showDialog(
-        context: context,
-        builder: (context) => _DownloadPeerDialog(
           file: file,
           peers: peers,
         ),
@@ -488,124 +460,6 @@ class _SyncPeerDialogState extends ConsumerState<_SyncPeerDialog> {
                   }
                 },
           child: Text('Senkronize Et'),
-        ),
-      ],
-    );
-  }
-
-  String _formatFileSize(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024) {
-      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-    }
-    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
-  }
-}
-
-class _DownloadPeerDialog extends ConsumerStatefulWidget {
-  final file_pb.File file;
-  final List<peer_pb.Peer> peers;
-
-  const _DownloadPeerDialog({
-    required this.file,
-    required this.peers,
-  });
-
-  @override
-  ConsumerState<_DownloadPeerDialog> createState() => _DownloadPeerDialogState();
-}
-
-class _DownloadPeerDialogState extends ConsumerState<_DownloadPeerDialog> {
-  String? _selectedPeerId;
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Row(
-        children: [
-          Icon(LucideIcons.download, size: 20),
-          SizedBox(width: 8),
-          Text('Dosyayı İndir'),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Dosya: ${widget.file.relativePath}',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 4),
-          Text(
-            'Boyut: ${_formatFileSize(widget.file.size.toInt())}',
-            style: TextStyle(fontSize: 12, color: Colors.grey),
-          ),
-          SizedBox(height: 16),
-          Text(
-            'Peer Seç:',
-            style: TextStyle(fontWeight: FontWeight.w500),
-          ),
-          SizedBox(height: 8),
-          ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: 300),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: widget.peers.map((peer) {
-                  final isSelected = _selectedPeerId == peer.deviceId;
-                  
-                  return RadioListTile<String>(
-                    title: Text(peer.name),
-                    subtitle: Text(peer.deviceId.substring(0, 8)),
-                    value: peer.deviceId,
-                    groupValue: _selectedPeerId,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedPeerId = value;
-                      });
-                    },
-                    dense: true,
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text('İptal'),
-        ),
-        FilledButton(
-          onPressed: _selectedPeerId == null
-              ? null
-              : () async {
-                  final peer = widget.peers.firstWhere(
-                    (p) => p.deviceId == _selectedPeerId,
-                  );
-                  
-                  await ref.read(transferNotifierProvider.notifier).requestFileFromPeer(
-                    peerId: peer.deviceId,
-                    peerName: peer.name,
-                    fileId: widget.file.id,
-                    fileName: widget.file.relativePath,
-                    totalBytes: widget.file.size.toInt(),
-                  );
-                  
-                  if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Dosya indirme başlatıldı'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                },
-          child: Text('İndir'),
         ),
       ],
     );
