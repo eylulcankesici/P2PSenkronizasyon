@@ -222,6 +222,9 @@ func (m *TransferManager) ListTransfers(ctx context.Context, activeOnly, complet
 			continue
 		}
 
+		// Eğer hiçbir filtre yoksa, tüm transferleri döndür (CANCELLED dahil)
+		// Flutter UI'da zaten isCancelled filtresi yapılıyor
+
 		result = append(result, transfer)
 	}
 

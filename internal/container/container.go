@@ -414,17 +414,24 @@ func (c *Container) initUseCases() error {
 			
 			// Transfer durumunu kontrol et (iptal edilmeden önce)
 			transfer, exists := c.transferManager.GetTransfer(fileID)
+			if !exists {
+				log.Printf("  ⚠️ Transfer bulunamadı (zaten temizlenmiş olabilir): %s", fileID[:8])
+				return
+			}
+			
+			// Transfer yönünü kaydet (iptal edilmeden önce)
+			direction := transfer.Direction
 			
 			// Transfer'i iptal et
 			c.transferManager.CancelTransfer(fileID)
 			
 			// RECEIVE direction transfer ise fileReassembler'ı da temizle
-			if exists && transfer.Direction == pb.TransferDirection_TRANSFER_DIRECTION_RECEIVE {
+			if direction == pb.TransferDirection_TRANSFER_DIRECTION_RECEIVE {
 				log.Printf("  🗑️ RECEIVE transfer iptal edildi, fileReassembler temizleniyor: %s", fileID[:8])
 				c.fileReassembler.CleanupFile(fileID)
 			}
 			
-			log.Printf("  ✅ Transfer iptal edildi ve temizlendi: %s", fileID[:8])
+			log.Printf("  ✅ Transfer iptal edildi ve temizlendi: %s (direction: %v)", fileID[:8], direction)
 		})
 		
 		log.Println("✓ Transfer cancel callback bağlandı")
