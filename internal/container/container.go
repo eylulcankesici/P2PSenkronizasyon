@@ -60,6 +60,10 @@ type Container struct {
 	
 	// Transfer manager (transfer durumu takibi için)
 	transferManager *p2p.TransferManager
+	
+	// Rejected chunks tracking (TCP buffer temizleme için)
+	// İptal edilen transfer'lardan kalan chunk'ları sayar
+	rejectedChunks sync.Map // fileID -> counter (int)
 }
 
 // NewContainer yeni bir container oluşturur
@@ -570,6 +574,15 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 			log.Printf("  ✓ Önceki transfer bulunamadı (yeni transfer): %s", fileID[:8])
 		}
 		
+		// Rejected chunks counter'ı temizle (yeni transfer başlıyor)
+		if val, ok := c.rejectedChunks.Load(fileID); ok {
+			count := val.(int)
+			if count > 0 {
+				log.Printf("  🗑️  %d eski chunk reddedildi, counter temizleniyor: %s", count, fileID[:8])
+			}
+			c.rejectedChunks.Delete(fileID)
+		}
+		
 		// FileReassembler'ı temizle (yeni transfer için - her durumda)
 		c.fileReassembler.CleanupFile(fileID)
 		log.Printf("  ✅ FileReassembler temizlendi: %s", fileID[:8])
@@ -653,6 +666,9 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 				// İlk chunk geldi ama transfer başlatılmamış - yeni transfer başlat
 				log.Printf("  🔄 Transfer bulunamadı ama ilk chunk geldi (chunk %d/%d), yeni transfer başlatılıyor: %s", chunkIndex+1, totalChunks, fileID[:8])
 				
+				// Rejected chunks counter'ı temizle (yeni transfer başlıyor)
+				c.rejectedChunks.Delete(fileID)
+				
 				// FileReassembler'ı temizle
 				c.fileReassembler.CleanupFile(fileID)
 				
@@ -696,9 +712,29 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 				log.Printf("  ✅ Yeni transfer başlatıldı (ilk chunk sonrası): %s", fileID[:8])
 				// Chunk işleme devam edecek
 			} else {
-				// İlk chunk değil ve transfer yok - bu durumda chunk'ı reddet
-				log.Printf("  ⚠️ Transfer bulunamadı (chunk %d/%d), transfer başlatılmamış - İlk chunk bekleniyor: %s", chunkIndex+1, totalChunks, fileID[:8])
-				return fmt.Errorf("transfer bulunamadı, ilk chunk bekleniyor: %s", fileID[:8])
+				// İlk chunk değil ve transfer yok - bu eski transfer'in TCP buffer'ındaki artık chunk olabilir
+				// Chunk'ı sessizce at ve buffer'ın temizlenmesini bekle (chunk 0 gelene kadar)
+				
+				// Reddedilen chunk'ları say
+				var count int
+				if val, ok := c.rejectedChunks.Load(fileID); ok {
+					count = val.(int)
+					count++
+					c.rejectedChunks.Store(fileID, count)
+					
+					// Sadece her 50 chunk'ta bir log (spam önleme)
+					if count%50 == 0 {
+						log.Printf("  ⚠️  %d eski chunk reddedildi (TCP buffer temizleniyor, chunk 0 bekleniyor): %s", count, fileID[:8])
+					}
+				} else {
+					count = 1
+					c.rejectedChunks.Store(fileID, count)
+					log.Printf("  ⚠️  Transfer bulunamadı, eski chunk'lar reddediliyor (chunk 0 bekleniyor): %s (chunk %d/%d)", fileID[:8], chunkIndex+1, totalChunks)
+				}
+				
+				// Chunk'ı sessizce at - goroutine return eder, messageLoop devam eder, TCP buffer temizlenir
+				// Bu sayede chunk 0 geldiğinde sistem hazır olur
+				return nil // Hata değil, sadece chunk atıldı
 			}
 		}
 	}
