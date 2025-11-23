@@ -209,6 +209,14 @@ func (m *TransferManager) GetTransferContext(fileID string) (context.Context, bo
 	if !exists || transfer.ctx == nil {
 		return nil, false
 	}
+	
+	// CANCELLED, FAILED veya COMPLETED transfer'ler için context döndürme
+	// Sadece ACTIVE transfer'ler için context döndür
+	if transfer.State != pb.TransferState_TRANSFER_STATE_ACTIVE {
+		log.Printf("  ⚠️ Transfer ACTIVE değil (state: %v), context döndürülmüyor: %s", transfer.State, fileID[:8])
+		return nil, false
+	}
+	
 	return transfer.ctx, true
 }
 

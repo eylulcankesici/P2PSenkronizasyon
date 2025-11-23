@@ -604,7 +604,10 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 			int32(totalChunks),
 			totalBytes,
 		)
-		log.Printf("  📊 Transfer başlatıldı: %s (alınıyor, %d chunks, %d bytes) - ACTIVE state ile başlatıldı", fileName, totalChunks, totalBytes)
+		log.Printf("  📊 YENİ TRANSFER BAŞLATILDI: %s (alınıyor, %d chunks, %d bytes) - ACTIVE state ile başlatıldı", fileName, totalChunks, totalBytes)
+		
+		// Yeni transfer'in context'inin hazır olduğundan emin ol
+		time.Sleep(10 * time.Millisecond)
 		
 		// İlk chunk için, transfer yeni başlatıldığı için CANCELLED kontrolü atlanmalı
 		// Doğrudan chunk işleme devam et
@@ -1032,9 +1035,27 @@ func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID 
 	log.Printf("  📊 YENİ TRANSFER BAŞLATILDI: %s (gönderiliyor, %d chunks, %d bytes) - Chunk'lar BAŞTAN gönderilecek", file.RelativePath, len(fileChunks), file.Size)
 	
 	// Transfer context'ini al (iptal kontrolü için)
+	// StartTransfer sonrası yeni transfer'in context'ini almalıyız
+	// Kısa bir süre bekle ki StartTransfer tamamlanmış olsun
+	time.Sleep(10 * time.Millisecond)
+	
 	transferCtx, hasContext := c.transferManager.GetTransferContext(fileID)
 	if !hasContext {
-		transferCtx = ctx // Fallback: gelen context'i kullan
+		log.Printf("  ⚠️ Transfer context bulunamadı, yeni context oluşturuluyor: %s", fileID[:8])
+		// Yeni bir context oluştur (fallback)
+		var cancel context.CancelFunc
+		transferCtx, cancel = context.WithCancel(context.Background())
+		_ = cancel // Cancel fonksiyonunu sakla (gerekirse kullanılabilir)
+	} else {
+		log.Printf("  ✅ Yeni transfer context'i alındı: %s", fileID[:8])
+	}
+	
+	// Context'in iptal edilmediğinden emin ol
+	if transferCtx != nil && transferCtx.Err() != nil {
+		log.Printf("  ⚠️ Transfer context iptal edilmiş, yeni context oluşturuluyor: %s", fileID[:8])
+		var cancel context.CancelFunc
+		transferCtx, cancel = context.WithCancel(context.Background())
+		_ = cancel
 	}
 	
 	// Dosyayı peer'a gönder (progress callback ile)
