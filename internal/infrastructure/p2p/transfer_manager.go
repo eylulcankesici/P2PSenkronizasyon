@@ -48,6 +48,20 @@ func (m *TransferManager) StartTransfer(fileID, fileName, peerID, peerName strin
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	// Eğer önceki bir transfer varsa ve CANCELLED/FAILED durumundaysa, temizle
+	if existingTransfer, exists := m.transfers[fileID]; exists {
+		if existingTransfer.State == pb.TransferState_TRANSFER_STATE_CANCELLED ||
+		   existingTransfer.State == pb.TransferState_TRANSFER_STATE_FAILED {
+			log.Printf("  🗑️ Önceki transfer temizleniyor (state: %v): %s", existingTransfer.State, fileID)
+			// Context'i iptal et (eğer hala aktifse)
+			if existingTransfer.cancel != nil {
+				existingTransfer.cancel()
+			}
+			// Transfer'i map'ten kaldır (yeni transfer başlatılacak)
+			delete(m.transfers, fileID)
+		}
+	}
+
 	// Cancel context oluştur
 	ctx, cancel := context.WithCancel(context.Background())
 
