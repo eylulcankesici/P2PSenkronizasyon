@@ -892,7 +892,8 @@ func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID 
 	}
 	if err != nil {
 		// Context iptal edilmişse transfer'i iptal olarak işaretle
-		if err == context.Canceled || err == context.DeadlineExceeded {
+		if err == context.Canceled || err == context.DeadlineExceeded || 
+		   (transferCtx != nil && transferCtx.Err() != nil) {
 			log.Printf("  🛑 Transfer iptal edildi: %s", file.RelativePath)
 			// TransferManager.CancelTransfer zaten çağrılmış, burada sadece log
 		} else {

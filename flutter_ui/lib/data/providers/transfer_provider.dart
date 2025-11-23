@@ -16,6 +16,7 @@ class TransferState {
   final int transferredBytes;
   final bool isComplete;
   final bool isFailed;
+  final bool isCancelled;
   final String? errorMessage;
   final DateTime startTime;
   final DateTime? endTime;
@@ -31,6 +32,7 @@ class TransferState {
     this.transferredBytes = 0,
     this.isComplete = false,
     this.isFailed = false,
+    this.isCancelled = false,
     this.errorMessage,
     DateTime? startTime,
     this.endTime,
@@ -60,6 +62,7 @@ class TransferState {
   }
   
   String get statusText {
+    if (isCancelled) return 'İptal edildi';
     if (isFailed) return 'Başarısız';
     if (isComplete) return 'Tamamlandı';
     return 'Transfer ediliyor...';
@@ -70,6 +73,7 @@ class TransferState {
     int? transferredBytes,
     bool? isComplete,
     bool? isFailed,
+    bool? isCancelled,
     String? errorMessage,
     DateTime? endTime,
   }) {
@@ -84,6 +88,7 @@ class TransferState {
       transferredBytes: transferredBytes ?? this.transferredBytes,
       isComplete: isComplete ?? this.isComplete,
       isFailed: isFailed ?? this.isFailed,
+      isCancelled: isCancelled ?? this.isCancelled,
       errorMessage: errorMessage ?? this.errorMessage,
       startTime: startTime,
       endTime: endTime ?? this.endTime,
@@ -138,6 +143,7 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
       transferredBytes: proto.transferredBytes.toInt(),
       isComplete: proto.state == pb.TransferState.TRANSFER_STATE_COMPLETED,
       isFailed: proto.state == pb.TransferState.TRANSFER_STATE_FAILED,
+      isCancelled: proto.state == pb.TransferState.TRANSFER_STATE_CANCELLED,
       errorMessage: proto.errorMessage.isEmpty ? null : proto.errorMessage,
       startTime: proto.startTime.toDateTime(),
       endTime: proto.hasEndTime() ? proto.endTime.toDateTime() : null,
@@ -252,7 +258,7 @@ final transferNotifierProvider =
 final activeTransfersProvider = Provider<List<TransferState>>((ref) {
   final transfers = ref.watch(transferNotifierProvider);
   return transfers.values
-      .where((t) => !t.isComplete && !t.isFailed)
+      .where((t) => !t.isComplete && !t.isFailed && !t.isCancelled)
       .toList()
     ..sort((a, b) => b.startTime.compareTo(a.startTime));
 });

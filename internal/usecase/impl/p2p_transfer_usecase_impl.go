@@ -167,6 +167,11 @@ func (uc *P2PTransferUseCaseImpl) SyncFileWithPeerWithProgress(ctx context.Conte
 		}); ok {
 			log.Printf("  📤 Chunk %d/%d gönderiliyor (fileID: %s, fileName: %s): %s", fc.ChunkIndex+1, len(fileChunks), fileID, file.RelativePath, fc.ChunkHash[:8])
 			if err := tcpConn.SendChunkWithFileInfo(ctx, fc.ChunkHash, chunkData, fileID, fc.ChunkIndex, len(fileChunks), file.RelativePath); err != nil {
+				// Context iptal edilmişse özel hata döndür
+				if ctx.Err() != nil {
+					log.Printf("  🛑 Transfer iptal edildi, chunk gönderimi durduruluyor: %s (chunk %d/%d)", fileID, i+1, len(fileChunks))
+					return fmt.Errorf("transfer iptal edildi: %w", ctx.Err())
+				}
 				return fmt.Errorf("chunk gönderilemedi [%d]: %w", i, err)
 			}
 			chunkSentBytes = int64(len(chunkData))

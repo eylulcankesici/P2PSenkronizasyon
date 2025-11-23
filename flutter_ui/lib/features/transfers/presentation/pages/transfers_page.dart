@@ -202,11 +202,32 @@ class _TransfersPageState extends ConsumerState<TransfersPage> with SingleTicker
                   ),
                 ),
                 // Action button
-                if (!transfer.isComplete && !transfer.isFailed)
+                if (!transfer.isComplete && !transfer.isFailed && !transfer.isCancelled)
                   IconButton(
                     icon: const Icon(LucideIcons.x, size: 20),
-                    onPressed: () {
-                      ref.read(transferNotifierProvider.notifier).removeTransfer(transfer.fileId);
+                    onPressed: () async {
+                      // Onay dialog göster
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Transferi İptal Et'),
+                          content: Text('${transfer.fileName} transferini iptal etmek istediğinizden emin misiniz?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: const Text('Hayır'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(true),
+                              child: const Text('Evet, İptal Et'),
+                            ),
+                          ],
+                        ),
+                      );
+                      
+                      if (confirmed == true) {
+                        await ref.read(transferNotifierProvider.notifier).cancelTransfer(transfer.fileId);
+                      }
                     },
                     tooltip: 'İptal',
                   ),
@@ -220,7 +241,7 @@ class _TransfersPageState extends ConsumerState<TransfersPage> with SingleTicker
                   ),
               ],
             ),
-            if (showProgress && !transfer.isComplete) ...[
+            if (showProgress && !transfer.isComplete && !transfer.isCancelled) ...[
               const SizedBox(height: 12),
               // Progress bar
               ClipRRect(
@@ -355,12 +376,14 @@ class _TransfersPageState extends ConsumerState<TransfersPage> with SingleTicker
   }
 
   Color _getStatusColor(TransferState transfer) {
+    if (transfer.isCancelled) return Colors.orange;
     if (transfer.isFailed) return Colors.red;
     if (transfer.isComplete) return Colors.green;
     return Colors.blue;
   }
 
   IconData _getStatusIcon(TransferState transfer) {
+    if (transfer.isCancelled) return LucideIcons.xCircle;
     if (transfer.isFailed) return LucideIcons.xCircle;
     if (transfer.isComplete) return LucideIcons.checkCircle;
     return LucideIcons.download;
