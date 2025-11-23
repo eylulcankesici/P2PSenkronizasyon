@@ -5,6 +5,7 @@ package aether.api;
 option go_package = "github.com/aether/sync/api/proto;proto";
 
 import "api/proto/common.proto";
+import "google/protobuf/timestamp.proto";
 
 // P2P data transfer servisi
 // Bu servis peer'lar arası direkt iletişim için kullanılır
@@ -20,6 +21,18 @@ service P2PDataService {
   
   // Ping (bağlantı testi)
   rpc Ping(PingRequest) returns (PingResponse);
+}
+
+// Transfer servisi - transfer durumunu yönetir
+service TransferService {
+  // Aktif transferleri listele
+  rpc ListTransfers(ListTransfersRequest) returns (ListTransfersResponse);
+  
+  // Belirli bir transfer durumunu al
+  rpc GetTransferStatus(GetTransferStatusRequest) returns (GetTransferStatusResponse);
+  
+  // Transfer'i iptal et
+  rpc CancelTransfer(CancelTransferRequest) returns (Status);
 }
 
 // Mesajlar
@@ -81,7 +94,64 @@ message PingResponse {
   int64 latency_ms = 3;
 }
 
+// Transfer durumu mesajları
 
+message ListTransfersRequest {
+  bool active_only = 1;  // Sadece aktif transferleri getir
+  bool completed_only = 2;  // Sadece tamamlanan transferleri getir
+  bool failed_only = 3;  // Sadece başarısız transferleri getir
+}
+
+message ListTransfersResponse {
+  Status status = 1;
+  repeated TransferInfo transfers = 2;
+}
+
+message GetTransferStatusRequest {
+  string file_id = 1;
+}
+
+message GetTransferStatusResponse {
+  Status status = 1;
+  TransferInfo transfer = 2;
+}
+
+message CancelTransferRequest {
+  string file_id = 1;
+}
+
+// Transfer bilgisi
+message TransferInfo {
+  string file_id = 1;
+  string file_name = 2;
+  string peer_id = 3;
+  string peer_name = 4;
+  TransferDirection direction = 5;  // GÖNDER veya AL
+  TransferState state = 6;  // AKTIF, TAMAMLANDI, BAŞARISIZ
+  int32 total_chunks = 7;
+  int32 completed_chunks = 8;
+  int64 total_bytes = 9;
+  int64 transferred_bytes = 10;
+  float progress_percentage = 11;  // 0-100
+  int64 speed_bps = 12;  // bytes per second
+  google.protobuf.Timestamp start_time = 13;
+  google.protobuf.Timestamp end_time = 14;
+  string error_message = 15;
+}
+
+enum TransferDirection {
+  TRANSFER_DIRECTION_UNSPECIFIED = 0;
+  TRANSFER_DIRECTION_SEND = 1;  // Gönderiyoruz
+  TRANSFER_DIRECTION_RECEIVE = 2;  // Alıyoruz
+}
+
+enum TransferState {
+  TRANSFER_STATE_UNSPECIFIED = 0;
+  TRANSFER_STATE_ACTIVE = 1;  // Devam ediyor
+  TRANSFER_STATE_COMPLETED = 2;  // Tamamlandı
+  TRANSFER_STATE_FAILED = 3;  // Başarısız
+  TRANSFER_STATE_CANCELLED = 4;  // İptal edildi
+}
 
 
 

@@ -29,12 +29,12 @@ func (dtm *DataTransferManager) TransferChunk(ctx context.Context, peerID string
 	}
 	
 	log.Printf("Chunk transfer ediliyor: %s -> %s (size: %d bytes)", 
-		chunk.ID[:8], peerID, len(data))
+		chunk.Hash[:8], peerID, len(data))
 	
 	// libp2p stream üzerinden chunk gönder
 	// Şimdilik placeholder
 	
-	log.Printf("✓ Chunk transfer edildi: %s", chunk.ID[:8])
+	log.Printf("✓ Chunk transfer edildi: %s", chunk.Hash[:8])
 	
 	return nil
 }
