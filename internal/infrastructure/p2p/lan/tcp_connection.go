@@ -146,20 +146,23 @@ func (c *TCPConnection) SendChunkWithFileInfo(ctx context.Context, chunkHash str
 		return fmt.Errorf("frame length yazılamadı: %w", err)
 	}
 	
-	// Context iptal kontrolü (frame verisi göndermeden önce)
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	default:
-	}
+	// ⚠️ FRAME LENGTH YAZILDIKTAN SONRA CONTEXT KONTROLÜ YAPMA!
+	// Frame'i mutlaka tamamla, yoksa TCP stream bozulur (yarım frame kalır)
 	
-	// Frame'i gönder
+	// Frame'i gönder (context kontrolü YOK - frame tamamlanmalı!)
 	if _, err := c.conn.Write(frame); err != nil {
 		// Context iptal edilmişse özel hata döndür
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
 		return fmt.Errorf("frame yazılamadı: %w", err)
+	}
+	
+	// ✅ Frame tamamlandı, şimdi context kontrolü güvenli
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
 	}
 	
 	return nil
