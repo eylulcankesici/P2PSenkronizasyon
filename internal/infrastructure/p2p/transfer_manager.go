@@ -186,6 +186,9 @@ func (m *TransferManager) CancelTransfer(fileID string) {
 	transfer.EndTime = &now
 	transfer.State = pb.TransferState_TRANSFER_STATE_CANCELLED
 	transfer.lastUpdate = time.Now()
+	
+	// NOT: Transfer'i map'ten silmiyoruz çünkü UI'da gösterilmeye devam edilmesi gerekiyor
+	// Ancak yeni transfer başlatılırken StartTransfer içinde silinecek
 }
 
 // GetTransfer transfer bilgisini getirir

@@ -542,15 +542,14 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 	
 	// İlk chunk ise dosyayı initialize et ve transfer durumunu başlat
 	if chunkIndex == 0 {
-		log.Printf("  🆕 İLK CHUNK GELDİ - Yeni transfer başlatılıyor: fileID=%s, fileName=%s, totalChunks=%d", fileID[:8], fileName, totalChunks)
+		log.Printf("  🆕🆕🆕 İLK CHUNK GELDİ - YENİ TRANSFER BAŞLATILIYOR: fileID=%s, fileName=%s, totalChunks=%d", fileID[:8], fileName, totalChunks)
 		
 		// Önceki transfer varsa explicit olarak temizle (CANCELLED, FAILED, ACTIVE hepsi)
 		existingTransfer, exists := c.transferManager.GetTransfer(fileID)
 		if exists {
 			log.Printf("  🔄 ÖNCEKİ TRANSFER BULUNDU (state: %v, direction: %v) - Temizleniyor: %s", existingTransfer.State, existingTransfer.Direction, fileID[:8])
-			// Transfer'i explicit olarak iptal et ve temizle (context'i de iptal eder)
-			c.transferManager.CancelTransfer(fileID)
-			log.Printf("  ✅ Önceki transfer iptal edildi ve temizlendi: %s", fileID[:8])
+			// Transfer'in context'ini iptal et (eğer hala aktifse)
+			// StartTransfer zaten önceki transfer'i map'ten kaldıracak ve yeni context oluşturacak
 		} else {
 			log.Printf("  ✓ Önceki transfer bulunamadı (yeni transfer): %s", fileID[:8])
 		}
@@ -626,10 +625,62 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 				}
 			}
 		} else {
-			// Transfer bulunamadı (beklenmeyen durum)
-			log.Printf("  ⚠️ Transfer bulunamadı (chunk %d/%d), transfer başlatılmamış: %s", chunkIndex+1, totalChunks, fileID[:8])
-			// İlk chunk gelmeden transfer başlatılamaz, bu durumda chunk'ı reddet
-			return fmt.Errorf("transfer bulunamadı, ilk chunk bekleniyor: %s", fileID[:8])
+			// Transfer bulunamadı - Bu, önceki transfer iptal edildikten sonra yeni transfer başlatılmamış demektir
+			// İlk chunk gelmemiş olabilir veya gönderen taraf chunk'ları sırasız gönderiyor olabilir
+			// Bu durumda, eğer chunkIndex != 0 ise, ilk chunk'ı beklemeliyiz
+			// Ama eğer chunkIndex == 0 ise, yeni transfer başlatmalıyız
+			
+			if chunkIndex == 0 {
+				// İlk chunk geldi ama transfer başlatılmamış - yeni transfer başlat
+				log.Printf("  🔄 Transfer bulunamadı ama ilk chunk geldi (chunk %d/%d), yeni transfer başlatılıyor: %s", chunkIndex+1, totalChunks, fileID[:8])
+				
+				// FileReassembler'ı temizle
+				c.fileReassembler.CleanupFile(fileID)
+				
+				// Dosyayı initialize et
+				if err := c.fileReassembler.InitializeFile(fileID, totalChunks, ""); err != nil {
+					log.Printf("  ⚠️ Dosya initialize hatası: %v, temizleme yapılıyor...", err)
+					c.fileReassembler.CleanupFile(fileID)
+					time.Sleep(50 * time.Millisecond)
+					if err := c.fileReassembler.InitializeFile(fileID, totalChunks, ""); err != nil {
+						log.Printf("  ❌ Dosya initialize edilemedi (2. deneme): %v", err)
+						return fmt.Errorf("dosya initialize edilemedi: %w", err)
+					}
+				}
+				
+				// Peer bilgisini al
+				peer, err := c.peerRepo.GetByID(ctx, peerID)
+				peerName := peerID[:8]
+				if err == nil && peer != nil {
+					peerName = peer.Name
+				}
+				
+				// Dosya bilgisini al (total bytes için)
+				file, err := c.fileRepo.GetByID(ctx, fileID)
+				totalBytes := int64(0)
+				if err == nil && file != nil {
+					totalBytes = file.Size
+				} else {
+					totalBytes = int64(len(chunkData) * totalChunks)
+				}
+				
+				// Transfer durumunu başlat
+				c.transferManager.StartTransfer(
+					fileID,
+					fileName,
+					peerID,
+					peerName,
+					pb.TransferDirection_TRANSFER_DIRECTION_RECEIVE,
+					int32(totalChunks),
+					totalBytes,
+				)
+				log.Printf("  ✅ Yeni transfer başlatıldı (ilk chunk sonrası): %s", fileID[:8])
+				// Chunk işleme devam edecek
+			} else {
+				// İlk chunk değil ve transfer yok - bu durumda chunk'ı reddet
+				log.Printf("  ⚠️ Transfer bulunamadı (chunk %d/%d), transfer başlatılmamış - İlk chunk bekleniyor: %s", chunkIndex+1, totalChunks, fileID[:8])
+				return fmt.Errorf("transfer bulunamadı, ilk chunk bekleniyor: %s", fileID[:8])
+			}
 		}
 	}
 	
