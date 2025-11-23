@@ -114,34 +114,36 @@ func (h *TransferHandler) CancelTransfer(ctx context.Context, req *pb.CancelTran
 	
 	log.Printf("✅ Transfer iptal edildi: %s (direction: %s, peer: %s)", req.FileId, directionStr, transfer.PeerID[:8])
 	
-	// Eğer alıcı taraf iptal edildiyse, gönderen tarafa bildirim gönder
+	// Her iki durumda da karşı tarafa bildirim gönder
+	var reason string
 	if transfer.Direction == pb.TransferDirection_TRANSFER_DIRECTION_RECEIVE {
+		reason = "Alıcı taraf tarafından iptal edildi"
 		log.Printf("  📤 Alıcı taraf iptal edildi, gönderen tarafa bildirim gönderiliyor (peer: %s, file: %s)...", transfer.PeerID[:8], req.FileId[:8])
+	} else {
+		reason = "Gönderen taraf tarafından iptal edildi"
+		log.Printf("  📤 Gönderen taraf iptal edildi, alıcı tarafa bildirim gönderiliyor (peer: %s, file: %s)...", transfer.PeerID[:8], req.FileId[:8])
+	}
+	
+	// Karşı tarafa transfer cancel bildirimi gönder
+	conn, exists := h.container.TransportProvider().GetConnection(transfer.PeerID)
+	if !exists {
+		log.Printf("  ❌ Peer bağlı değil, transfer iptal bildirimi gönderilemedi: %s", transfer.PeerID[:8])
+	} else {
+		log.Printf("  ✅ Peer bağlantısı bulundu: %s", transfer.PeerID[:8])
 		
-		// Gönderen tarafa transfer cancel bildirimi gönder
-		conn, exists := h.container.TransportProvider().GetConnection(transfer.PeerID)
-		if !exists {
-			log.Printf("  ❌ Peer bağlı değil, transfer iptal bildirimi gönderilemedi: %s", transfer.PeerID[:8])
+		// Type assertion ile SendTransferCancel metoduna eriş
+		if tcpConn, ok := conn.(interface {
+			SendTransferCancel(ctx context.Context, fileID, reason string) error
+		}); !ok {
+			log.Printf("  ❌ Connection type SendTransferCancel desteklemiyor: %T", conn)
 		} else {
-			log.Printf("  ✅ Peer bağlantısı bulundu: %s", transfer.PeerID[:8])
-			
-			// Type assertion ile SendTransferCancel metoduna eriş
-			if tcpConn, ok := conn.(interface {
-				SendTransferCancel(ctx context.Context, fileID, reason string) error
-			}); !ok {
-				log.Printf("  ❌ Connection type SendTransferCancel desteklemiyor: %T", conn)
+			log.Printf("  📨 Transfer cancel mesajı gönderiliyor...")
+			if err := tcpConn.SendTransferCancel(context.Background(), req.FileId, reason); err != nil {
+				log.Printf("  ❌ Transfer iptal bildirimi gönderilemedi (peer: %s): %v", transfer.PeerID[:8], err)
 			} else {
-				reason := "Alıcı taraf tarafından iptal edildi"
-				log.Printf("  📨 Transfer cancel mesajı gönderiliyor...")
-				if err := tcpConn.SendTransferCancel(context.Background(), req.FileId, reason); err != nil {
-					log.Printf("  ❌ Transfer iptal bildirimi gönderilemedi (peer: %s): %v", transfer.PeerID[:8], err)
-				} else {
-					log.Printf("  ✅ Transfer iptal bildirimi başarıyla gönderildi (peer: %s, file: %s)", transfer.PeerID[:8], req.FileId[:8])
-				}
+				log.Printf("  ✅ Transfer iptal bildirimi başarıyla gönderildi (peer: %s, file: %s)", transfer.PeerID[:8], req.FileId[:8])
 			}
 		}
-	} else {
-		log.Printf("  ℹ️ Gönderen taraf iptal edildi, bildirim göndermeye gerek yok (direction: SEND)")
 	}
 
 	return &pb.Status{

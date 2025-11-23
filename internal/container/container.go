@@ -408,11 +408,23 @@ func (c *Container) initUseCases() error {
 		
 		log.Println("✓ Chunk received callback bağlandı")
 		
-		// Transfer cancel callback'ini bağla (alıcı taraf iptal edildiğinde gönderen tarafa bildirim)
+		// Transfer cancel callback'ini bağla (karşı taraf iptal ettiğinde buraya gelir)
 		connMgr.SetOnTransferCancel(func(peerID, fileID string) {
 			log.Printf("🛑 Transfer iptal bildirimi alındı (peer: %s, file: %s), transfer iptal ediliyor...", peerID[:8], fileID[:8])
+			
+			// Transfer durumunu kontrol et (iptal edilmeden önce)
+			transfer, exists := c.transferManager.GetTransfer(fileID)
+			
+			// Transfer'i iptal et
 			c.transferManager.CancelTransfer(fileID)
-			log.Printf("  ✅ Transfer iptal edildi: %s", fileID[:8])
+			
+			// RECEIVE direction transfer ise fileReassembler'ı da temizle
+			if exists && transfer.Direction == pb.TransferDirection_TRANSFER_DIRECTION_RECEIVE {
+				log.Printf("  🗑️ RECEIVE transfer iptal edildi, fileReassembler temizleniyor: %s", fileID[:8])
+				c.fileReassembler.CleanupFile(fileID)
+			}
+			
+			log.Printf("  ✅ Transfer iptal edildi ve temizlendi: %s", fileID[:8])
 		})
 		
 		log.Println("✓ Transfer cancel callback bağlandı")
