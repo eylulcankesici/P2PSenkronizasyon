@@ -89,8 +89,8 @@ func (h *SyncHandler) SyncFile(ctx context.Context, req *pb.SyncFileRequest) (*p
 	for _, peerID := range req.TargetPeerIds {
 		log.Printf("  📤 Peer'a gönderiliyor: %s", peerID[:8])
 		
-		// P2P transfer use case ile senkronize et
-		err := h.container.P2PTransferUseCase().SyncFileWithPeer(ctx, peerID, req.FileId)
+		// Transfer durumunu takip ederek senkronize et
+		err := h.container.SyncFileWithPeerTracked(ctx, peerID, req.FileId)
 		if err != nil {
 			log.Printf("  ⚠️ Peer'a gönderim hatası (%s): %v", peerID[:8], err)
 			lastError = err
@@ -205,7 +205,8 @@ func (h *SyncHandler) SyncFolder(ctx context.Context, req *pb.SyncFolderRequest)
 		for _, peerID := range req.TargetPeerIds {
 			log.Printf("  📤 Dosya gönderiliyor: %s -> %s", file.RelativePath, peerID[:8])
 			
-			err := h.container.P2PTransferUseCase().SyncFileWithPeer(ctx, peerID, file.ID)
+			// Transfer durumunu takip ederek senkronize et
+			err := h.container.SyncFileWithPeerTracked(ctx, peerID, file.ID)
 			if err != nil {
 				log.Printf("  ⚠️ Dosya gönderilemedi (%s -> %s): %v", file.RelativePath, peerID[:8], err)
 				lastError = err

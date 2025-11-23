@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 	
+	pb "github.com/aether/sync/api/proto"
 	"github.com/aether/sync/internal/config"
 	"github.com/aether/sync/internal/domain/entity"
 	"github.com/aether/sync/internal/domain/repository"
@@ -225,6 +226,11 @@ func (c *Container) P2PTransferUseCase() usecase.P2PTransferUseCase {
 
 func (c *Container) TransportProvider() transport.TransportProvider {
 	return c.transportProvider
+}
+
+// TransferManager transfer manager'ı döner
+func (c *Container) TransferManager() *p2p.TransferManager {
+	return c.transferManager
 }
 
 // getOrCreateDeviceID kalıcı device ID'yi alır veya oluşturur
@@ -506,12 +512,42 @@ func (c *Container) initP2PTransport() error {
 func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName string) error {
 	log.Printf("📥 Incoming chunk: file=%s, chunk=%d/%d, hash=%s", fileID[:8], chunkIndex+1, totalChunks, chunkHash[:8])
 	
-	// İlk chunk ise dosyayı initialize et
+	// İlk chunk ise dosyayı initialize et ve transfer durumunu başlat
 	if chunkIndex == 0 {
 		if err := c.fileReassembler.InitializeFile(fileID, totalChunks, ""); err != nil {
 			log.Printf("  ⚠️ Dosya initialize hatası: %v", err)
 			// Devam et, belki zaten initialize edilmiş
 		}
+		
+		// Peer bilgisini al (peer name için)
+		peer, err := c.peerRepo.GetByID(ctx, peerID)
+		peerName := peerID[:8] // Fallback: peer ID'nin ilk 8 karakteri
+		if err == nil && peer != nil {
+			peerName = peer.Name
+		}
+		
+		// Dosya bilgisini al (total bytes için)
+		file, err := c.fileRepo.GetByID(ctx, fileID)
+		totalBytes := int64(0)
+		if err == nil && file != nil {
+			totalBytes = file.Size
+		} else {
+			// Dosya henüz yoksa, chunk boyutlarından tahmin et
+			// Varsayılan chunk boyutu * total chunks
+			totalBytes = int64(len(chunkData) * totalChunks)
+		}
+		
+		// Transfer durumunu başlat (RECEIVE - dosya alınıyor)
+		c.transferManager.StartTransfer(
+			fileID,
+			fileName,
+			peerID,
+			peerName,
+			pb.TransferDirection_TRANSFER_DIRECTION_RECEIVE,
+			int32(totalChunks),
+			totalBytes,
+		)
+		log.Printf("  📊 Transfer başlatıldı: %s (alınıyor, %d chunks, %d bytes)", fileName, totalChunks, totalBytes)
 	}
 	
 	// Retry sayacını kontrol et (max 3 retry)
@@ -536,12 +572,24 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 			return nil // Retry talep edildi, şimdilik hata döndürme
 		} else {
 			log.Printf("  ❌ Chunk hash hatası: max retry sayısına ulaşıldı (%d), hata: %v", maxRetries, err)
+			// Transfer durumunu başarısız olarak işaretle
+			c.transferManager.FailTransfer(fileID, fmt.Errorf("chunk hash doğrulama başarısız (max retry): %w", err))
 			return fmt.Errorf("chunk hash doğrulama başarısız (max retry): %w", err)
 		}
 	}
 	
 	// Başarılı - retry sayacını sıfırla
 	c.clearChunkRetryCount(retryKey)
+	
+	// Transfer progress güncelle (alma)
+	completedChunks := int32(c.fileReassembler.GetProgress(fileID) * float64(totalChunks) / 100.0)
+	if completedChunks == 0 && chunkIndex == 0 {
+		completedChunks = 1 // İlk chunk eklendi
+	} else {
+		completedChunks = int32(chunkIndex + 1)
+	}
+	transferredBytes := int64(len(chunkData)) * int64(completedChunks) // Tahmin: chunk boyutu * tamamlanan chunk sayısı
+	c.transferManager.UpdateChunkProgress(fileID, completedChunks, transferredBytes)
 	
 	// Tüm chunk'lar geldi mi kontrol et
 	if c.fileReassembler.IsFileComplete(fileID) {
@@ -772,6 +820,69 @@ func (c *Container) retryChunkRequest(ctx context.Context, peerID, chunkHash, fi
 	}
 	
 	return fmt.Errorf("retry desteği yok (connection type: %T)", conn)
+}
+
+// SyncFileWithPeerTracked dosyayı peer'a gönderir ve transfer durumunu takip eder
+func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID string) error {
+	// Dosya bilgisini al
+	file, err := c.fileRepo.GetByID(ctx, fileID)
+	if err != nil {
+		return fmt.Errorf("dosya bulunamadı: %w", err)
+	}
+	
+	// Peer bilgisini al
+	peer, err := c.peerRepo.GetByID(ctx, peerID)
+	peerName := peerID[:8] // Fallback
+	if err == nil && peer != nil {
+		peerName = peer.Name
+	}
+	
+	// Dosyanın chunk'larını al
+	fileChunks, err := c.chunkRepo.GetFileChunks(ctx, fileID)
+	if err != nil {
+		return fmt.Errorf("dosya chunk'ları alınamadı: %w", err)
+	}
+	
+	if len(fileChunks) == 0 {
+		return fmt.Errorf("dosyanın chunk'ı yok: %s", fileID)
+	}
+	
+	// Transfer durumunu başlat (SEND - dosya gönderiliyor)
+	c.transferManager.StartTransfer(
+		fileID,
+		file.RelativePath,
+		peerID,
+		peerName,
+		pb.TransferDirection_TRANSFER_DIRECTION_SEND,
+		int32(len(fileChunks)),
+		file.Size,
+	)
+	log.Printf("  📊 Transfer başlatıldı: %s (gönderiliyor, %d chunks, %d bytes)", file.RelativePath, len(fileChunks), file.Size)
+	
+	// Dosyayı peer'a gönder (progress callback ile)
+	// Type assertion ile SyncFileWithPeerWithProgress metoduna eriş
+	if useCaseImpl, ok := c.p2pTransferUseCase.(interface {
+		SyncFileWithPeerWithProgress(ctx context.Context, peerID, fileID string, progressCallback func(completedChunks, totalChunks int, transferredBytes int64)) error
+	}); ok {
+		err = useCaseImpl.SyncFileWithPeerWithProgress(ctx, peerID, fileID, func(completedChunks, totalChunks int, transferredBytes int64) {
+			// Her chunk gönderildiğinde progress güncelle
+			c.transferManager.UpdateChunkProgress(fileID, int32(completedChunks), transferredBytes)
+		})
+	} else {
+		// Fallback: progress callback olmadan
+		err = c.p2pTransferUseCase.SyncFileWithPeer(ctx, peerID, fileID)
+	}
+	if err != nil {
+		// Transfer durumunu başarısız olarak işaretle
+		c.transferManager.FailTransfer(fileID, err)
+		return err
+	}
+	
+	// Transfer durumunu tamamlandı olarak işaretle
+	c.transferManager.CompleteTransfer(fileID)
+	log.Printf("  ✅ Transfer tamamlandı: %s", file.RelativePath)
+	
+	return nil
 }
 
 

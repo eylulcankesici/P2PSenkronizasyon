@@ -4,6 +4,7 @@ import 'package:aether_desktop/generated/api/proto/auth.pbgrpc.dart';
 import 'package:aether_desktop/generated/api/proto/file.pbgrpc.dart';
 import 'package:aether_desktop/generated/api/proto/peer.pbgrpc.dart';
 import 'package:aether_desktop/generated/api/proto/sync.pbgrpc.dart';
+import 'package:aether_desktop/generated/api/proto/p2p.pbgrpc.dart';
 
 /// Aether gRPC Client
 /// Go backend ile iletişim kuran ana servis
@@ -16,6 +17,7 @@ class AetherGrpcClient {
   late FileServiceClient fileService;
   late PeerServiceClient peerService;
   late SyncServiceClient syncService;
+  late TransferServiceClient transferService;
   
   bool _isConnected = false;
   
@@ -39,6 +41,7 @@ class AetherGrpcClient {
       fileService = FileServiceClient(_channel);
       peerService = PeerServiceClient(_channel);
       syncService = SyncServiceClient(_channel);
+      transferService = TransferServiceClient(_channel);
       
       _isConnected = true;
       

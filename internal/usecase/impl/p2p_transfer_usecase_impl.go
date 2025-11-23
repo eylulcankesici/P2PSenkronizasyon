@@ -90,7 +90,13 @@ func (uc *P2PTransferUseCaseImpl) RequestChunkFromPeer(ctx context.Context, peer
 }
 
 // SyncFileWithPeer dosyayı peer ile senkronize eder
+// progressCallback her chunk gönderildiğinde çağrılır (opsiyonel)
 func (uc *P2PTransferUseCaseImpl) SyncFileWithPeer(ctx context.Context, peerID, fileID string) error {
+	return uc.SyncFileWithPeerWithProgress(ctx, peerID, fileID, nil)
+}
+
+// SyncFileWithPeerWithProgress dosyayı peer ile senkronize eder ve progress callback'i ile bildirim yapar
+func (uc *P2PTransferUseCaseImpl) SyncFileWithPeerWithProgress(ctx context.Context, peerID, fileID string, progressCallback func(completedChunks, totalChunks int, transferredBytes int64)) error {
 	log.Printf("🔄 Dosya senkronize ediliyor: %s <-> %s", fileID, peerID[:8])
 	
 	// Dosya bilgisini al (fileName için)
@@ -146,6 +152,7 @@ func (uc *P2PTransferUseCaseImpl) SyncFileWithPeer(ctx context.Context, peerID, 
 		}
 		
 		// Chunk'ı file bilgisiyle gönder
+		var chunkSentBytes int64
 		if tcpConn, ok := conn.(interface {
 			SendChunkWithFileInfo(ctx context.Context, chunkHash string, data []byte, fileID string, chunkIndex, totalChunks int, fileName string) error
 		}); ok {
@@ -153,11 +160,19 @@ func (uc *P2PTransferUseCaseImpl) SyncFileWithPeer(ctx context.Context, peerID, 
 			if err := tcpConn.SendChunkWithFileInfo(ctx, fc.ChunkHash, chunkData, fileID, fc.ChunkIndex, len(fileChunks), file.RelativePath); err != nil {
 				return fmt.Errorf("chunk gönderilemedi [%d]: %w", i, err)
 			}
+			chunkSentBytes = int64(len(chunkData))
 		} else {
 			// Fallback: normal SendChunk (file bilgisi olmadan)
 			if err := conn.SendChunk(ctx, fc.ChunkHash, chunkData); err != nil {
 				return fmt.Errorf("chunk gönderilemedi [%d]: %w", i, err)
 			}
+			chunkSentBytes = int64(len(chunkData))
+		}
+		
+		// Progress callback'i çağır (eğer varsa)
+		if progressCallback != nil {
+			transferredBytes := chunkSentBytes * int64(i+1) // Tahmin: her chunk gönderildi
+			progressCallback(i+1, len(fileChunks), transferredBytes)
 		}
 	}
 	

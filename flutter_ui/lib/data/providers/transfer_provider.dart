@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aether_desktop/data/providers/folder_provider.dart';
+import 'package:aether_desktop/data/services/grpc_provider.dart';
+import 'package:aether_desktop/generated/api/proto/p2p.pbgrpc.dart' as pb;
 
 /// Transfer durumu modeli
 class TransferState {
@@ -90,11 +93,79 @@ class TransferState {
 
 /// Aktif transferler notifier
 class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
-  TransferNotifier(this.ref) : super({});
+  TransferNotifier(this.ref) : super({}) {
+    // Backend'den transferleri yükle
+    _loadTransfers();
+    // Gerçek zamanlı güncelleme için polling başlat
+    _startPolling();
+  }
   
   final Ref ref;
+  Timer? _pollingTimer;
+  
+  /// Backend'den transferleri yükle
+  Future<void> _loadTransfers() async {
+    try {
+      final client = ref.read(grpcClientProvider);
+      if (!client.isConnected) return;
+      
+      final request = pb.ListTransfersRequest();
+      final response = await client.transferService.listTransfers(request);
+      
+      if (response.status.success) {
+        final transfers = <String, TransferState>{};
+        for (final transferProto in response.transfers) {
+          final transfer = _fromProto(transferProto);
+          transfers[transfer.fileId] = transfer;
+        }
+        state = transfers;
+      }
+    } catch (e) {
+      print('❌ Transferler yüklenemedi: $e');
+    }
+  }
+  
+  /// Proto mesajından TransferState oluştur
+  TransferState _fromProto(pb.TransferInfo proto) {
+    return TransferState(
+      fileId: proto.fileId,
+      fileName: proto.fileName,
+      peerId: proto.peerId,
+      peerName: proto.peerName,
+      totalChunks: proto.totalChunks.toInt(),
+      completedChunks: proto.completedChunks.toInt(),
+      totalBytes: proto.totalBytes,
+      transferredBytes: proto.transferredBytes,
+      isComplete: proto.state == pb.TransferState.TRANSFER_STATE_COMPLETED,
+      isFailed: proto.state == pb.TransferState.TRANSFER_STATE_FAILED,
+      errorMessage: proto.errorMessage.isEmpty ? null : proto.errorMessage,
+      startTime: proto.startTime.toDateTime(),
+      endTime: proto.hasEndTime() ? proto.endTime.toDateTime() : null,
+    );
+  }
+  
+  /// Gerçek zamanlı güncelleme için polling başlat
+  void _startPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+      _loadTransfers();
+    });
+    
+    // Provider dispose olduğunda timer'ı iptal et
+    ref.onDispose(() {
+      _pollingTimer?.cancel();
+    });
+  }
+  
+  /// Transfer'ları yeniden yükle
+  Future<void> refresh() async {
+    await _loadTransfers();
+  }
   
   /// Dosya transferi başlat
+  /// Not: Bu metod artık backend'den transfer durumunu otomatik olarak çeker
+  /// Transfer durumu backend'de otomatik olarak başlatılır (dosya gönderme/alma sırasında)
+  /// Bu metod sadece UI'da gösterim için kullanılır
   Future<void> requestFileFromPeer({
     required String peerId,
     required String peerName,
@@ -102,36 +173,9 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
     required String fileName,
     required int totalBytes,
   }) async {
-    // Transfer state'i oluştur
-    final transfer = TransferState(
-      fileId: fileId,
-      fileName: fileName,
-      peerId: peerId,
-      peerName: peerName,
-      totalBytes: totalBytes,
-    );
-    
-    // State'e ekle
-    state = {...state, fileId: transfer};
-    
-    try {
-      // Backend'e request gönder (placeholder - gerçek API implementasyonu gerekli)
-      // final client = ref.read(grpcClientProvider);
-      // final response = await client.p2pService.requestFile(...);
-      
-      // Simüle edilmiş progress güncellemesi
-      // Gerçek implementasyonda backend'den stream olarak gelecek
-      await _simulateTransfer(fileId);
-      
-    } catch (e) {
-      // Hata durumunda state'i güncelle
-      _updateTransfer(
-        fileId,
-        isFailed: true,
-        errorMessage: e.toString(),
-        endTime: DateTime.now(),
-      );
-    }
+    // Transfer durumunu backend'den yükle
+    // Transfer durumu dosya gönderme/alma sırasında otomatik olarak backend'de oluşturulur
+    await _loadTransfers();
   }
   
   /// Transfer progress güncelle
@@ -168,6 +212,22 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
     }
   }
   
+  /// Transfer'ı iptal et
+  Future<void> cancelTransfer(String fileId) async {
+    try {
+      final client = ref.read(grpcClientProvider);
+      if (!client.isConnected) return;
+      
+      final request = pb.CancelTransferRequest()..fileId = fileId;
+      await client.transferService.cancelTransfer(request);
+      
+      // Transfer'ları yeniden yükle
+      await _loadTransfers();
+    } catch (e) {
+      print('❌ Transfer iptal edilemedi: $e');
+    }
+  }
+  
   /// Transfer'ı sil (history'den kaldır)
   void removeTransfer(String fileId) {
     final newState = Map<String, TransferState>.from(state);
@@ -180,31 +240,6 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
     state = Map.fromEntries(
       state.entries.where((entry) => !entry.value.isComplete),
     );
-  }
-  
-  /// Simüle edilmiş transfer (test için)
-  Future<void> _simulateTransfer(String fileId) async {
-    final transfer = state[fileId];
-    if (transfer == null) return;
-    
-    // 10 chunk olduğunu varsay
-    final totalChunks = 10;
-    final chunkSize = transfer.totalBytes ~/ totalChunks;
-    
-    for (int i = 1; i <= totalChunks; i++) {
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      _updateTransfer(
-        fileId,
-        completedChunks: i,
-        transferredBytes: i * chunkSize,
-        isComplete: i == totalChunks,
-        endTime: i == totalChunks ? DateTime.now() : null,
-      );
-      
-      // Eğer state'ten silinmişse dur
-      if (!state.containsKey(fileId)) break;
-    }
   }
 }
 
