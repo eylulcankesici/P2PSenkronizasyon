@@ -24,6 +24,15 @@ service SyncService {
   
   // Real-time senkronizasyon olaylarını dinle (streaming)
   rpc WatchSyncEvents(WatchSyncEventsRequest) returns (stream SyncEvent);
+  
+  // Dosyayı peer'dan talep et (indirme)
+  rpc RequestFileFromPeer(RequestFileFromPeerRequest) returns (RequestFileFromPeerResponse);
+  
+  // Transfer durumunu getir
+  rpc GetTransferStatus(GetTransferStatusRequest) returns (TransferStatusResponse);
+  
+  // Transfer progress'ini dinle (streaming)
+  rpc WatchTransferProgress(WatchTransferProgressRequest) returns (stream TransferProgressUpdate);
 }
 
 // Mesajlar
@@ -107,6 +116,57 @@ message SyncEvent {
   string file_path = 3;
   google.protobuf.Timestamp timestamp = 4;
   string message = 5;
+}
+
+// Transfer mesajları
+message RequestFileFromPeerRequest {
+  string file_id = 1;
+  string peer_id = 2;
+}
+
+message RequestFileFromPeerResponse {
+  Status status = 1;
+  string transfer_id = 2;
+}
+
+message GetTransferStatusRequest {
+  string file_id = 1;
+}
+
+message TransferStatusResponse {
+  Status status = 1;
+  TransferStatus transfer_status = 2;
+}
+
+message TransferStatus {
+  string file_id = 1;
+  string file_name = 2;
+  string peer_id = 3;
+  string peer_name = 4;
+  int32 total_chunks = 5;
+  int32 completed_chunks = 6;
+  int64 total_bytes = 7;
+  int64 transferred_bytes = 8;
+  bool is_complete = 9;
+  bool is_failed = 10;
+  string error_message = 11;
+  google.protobuf.Timestamp start_time = 12;
+  google.protobuf.Timestamp end_time = 13;
+}
+
+message WatchTransferProgressRequest {
+  string file_id = 1;
+}
+
+message TransferProgressUpdate {
+  string file_id = 1;
+  int32 completed_chunks = 2;
+  int32 total_chunks = 3;
+  int64 transferred_bytes = 4;
+  int64 total_bytes = 5;
+  bool is_complete = 6;
+  bool is_failed = 7;
+  string error_message = 8;
 }
 
 

@@ -17,6 +17,7 @@ import (
 	"github.com/aether/sync/internal/domain/utils"
 	"github.com/aether/sync/internal/infrastructure/database/boltdb"
 	"github.com/aether/sync/internal/infrastructure/database/sqlite"
+	"github.com/aether/sync/internal/infrastructure/p2p"
 	"github.com/aether/sync/internal/infrastructure/p2p/lan"
 	usecaseImpl "github.com/aether/sync/internal/usecase/impl"
 	"github.com/aether/sync/pkg/chunking"
@@ -55,6 +56,9 @@ type Container struct {
 	// Retry tracking (chunk hash doğrulama için)
 	chunkRetryCount map[string]int
 	retryMu         sync.RWMutex
+	
+	// Transfer tracker
+	transferTracker *p2p.TransferTracker
 }
 
 // NewContainer yeni bir container oluşturur
@@ -62,6 +66,7 @@ func NewContainer(cfg *config.Config) (*Container, error) {
 	container := &Container{
 		config:          cfg,
 		chunkRetryCount: make(map[string]int),
+		transferTracker: p2p.NewTransferTracker(),
 	}
 	
 	// Database bağlantılarını kur
@@ -220,6 +225,10 @@ func (c *Container) P2PTransferUseCase() usecase.P2PTransferUseCase {
 
 func (c *Container) TransportProvider() transport.TransportProvider {
 	return c.transportProvider
+}
+
+func (c *Container) TransferTracker() *p2p.TransferTracker {
+	return c.transferTracker
 }
 
 // getOrCreateDeviceID kalıcı device ID'yi alır veya oluşturur
