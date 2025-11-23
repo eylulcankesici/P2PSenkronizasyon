@@ -35,6 +35,7 @@ const (
 	MessageTypeConnectionRequest = 0x0007
 	MessageTypeConnectionAccept = 0x0008
 	MessageTypeConnectionReject = 0x0009
+	MessageTypeTransferCancel   = 0x000A // Transfer iptal bildirimi
 	
 	// Frame sizes
 	HeaderSize = 16 // Magic(4) + Version(2) + Type(2) + Length(4) + CRC(4)
@@ -460,6 +461,40 @@ func (p *Protocol) EncodeConnectionReject(reason string) ([]byte, error) {
 	}
 	
 	return p.EncodeFrame(MessageTypeConnectionReject, payload)
+}
+
+// EncodeTransferCancel transfer iptal bildirimi oluşturur
+func (p *Protocol) EncodeTransferCancel(fileID, reason string) ([]byte, error) {
+	notif := &pb.TransferCancelNotification{
+		FileId: fileID,
+		Reason: reason,
+	}
+	
+	payload, err := proto.Marshal(notif)
+	if err != nil {
+		return nil, fmt.Errorf("protobuf marshal hatası: %w", err)
+	}
+	
+	return p.EncodeFrame(MessageTypeTransferCancel, payload)
+}
+
+// DecodeTransferCancel transfer iptal bildirimi parse eder
+func (p *Protocol) DecodeTransferCancel(data []byte) (string, string, error) {
+	messageType, payload, err := p.DecodeFrame(data)
+	if err != nil {
+		return "", "", err
+	}
+	
+	if messageType != MessageTypeTransferCancel {
+		return "", "", fmt.Errorf("beklenmeyen message type: 0x%04x", messageType)
+	}
+	
+	notif := &pb.TransferCancelNotification{}
+	if err := proto.Unmarshal(payload, notif); err != nil {
+		return "", "", fmt.Errorf("protobuf unmarshal hatası: %w", err)
+	}
+	
+	return notif.FileId, notif.Reason, nil
 }
 
 // DecodeConnectionReject connection reject mesajını parse eder

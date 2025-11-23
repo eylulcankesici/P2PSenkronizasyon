@@ -407,6 +407,15 @@ func (c *Container) initUseCases() error {
 		})
 		
 		log.Println("✓ Chunk received callback bağlandı")
+		
+		// Transfer cancel callback'ini bağla (alıcı taraf iptal edildiğinde gönderen tarafa bildirim)
+		connMgr.SetOnTransferCancel(func(peerID, fileID string) {
+			log.Printf("🛑 Transfer iptal bildirimi alındı (peer: %s, file: %s), transfer iptal ediliyor...", peerID[:8], fileID[:8])
+			c.transferManager.CancelTransfer(fileID)
+			log.Printf("  ✅ Transfer iptal edildi: %s", fileID[:8])
+		})
+		
+		log.Println("✓ Transfer cancel callback bağlandı")
 	}
 	
 	return nil

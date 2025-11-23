@@ -120,6 +120,12 @@ message CancelTransferRequest {
   string file_id = 1;
 }
 
+// Transfer iptal bildirimi (peer'dan peer'a)
+message TransferCancelNotification {
+  string file_id = 1;
+  string reason = 2;  // İptal nedeni (opsiyonel)
+}
+
 // Transfer bilgisi
 message TransferInfo {
   string file_id = 1;

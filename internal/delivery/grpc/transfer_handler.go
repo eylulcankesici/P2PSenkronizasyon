@@ -115,8 +115,27 @@ func (h *TransferHandler) CancelTransfer(ctx context.Context, req *pb.CancelTran
 	log.Printf("✅ Transfer iptal edildi: %s (direction: %s, peer: %s)", req.FileId, directionStr, transfer.PeerID[:8])
 	
 	// Eğer alıcı taraf iptal edildiyse, gönderen tarafa bildirim gönder
-	// (Şu anda chunk gönderimi context kontrolü ile duruyor, bu yeterli)
-	// İleride gönderen tarafa özel bir cancel notification mesajı gönderilebilir
+	if transfer.Direction == pb.TransferDirection_TRANSFER_DIRECTION_RECEIVE {
+		// Gönderen tarafa transfer cancel bildirimi gönder
+		conn, exists := h.container.TransportProvider().GetConnection(transfer.PeerID)
+		if exists {
+			// Type assertion ile SendTransferCancel metoduna eriş
+			if tcpConn, ok := conn.(interface {
+				SendTransferCancel(ctx context.Context, fileID, reason string) error
+			}); ok {
+				reason := "Alıcı taraf tarafından iptal edildi"
+				if err := tcpConn.SendTransferCancel(context.Background(), req.FileId, reason); err != nil {
+					log.Printf("  ⚠️ Transfer iptal bildirimi gönderilemedi (peer: %s): %v", transfer.PeerID[:8], err)
+				} else {
+					log.Printf("  ✅ Transfer iptal bildirimi gönderildi (peer: %s)", transfer.PeerID[:8])
+				}
+			} else {
+				log.Printf("  ⚠️ Connection type SendTransferCancel desteklemiyor: %T", conn)
+			}
+		} else {
+			log.Printf("  ⚠️ Peer bağlı değil, transfer iptal bildirimi gönderilemedi: %s", transfer.PeerID[:8])
+		}
+	}
 
 	return &pb.Status{
 		Success: true,

@@ -241,6 +241,32 @@ func (c *TCPConnection) SendMetadata(ctx context.Context, metadata *transport.Fi
 	return nil
 }
 
+// SendTransferCancel transfer iptal bildirimi gönderir (alıcı taraf -> gönderen taraf)
+func (c *TCPConnection) SendTransferCancel(ctx context.Context, fileID, reason string) error {
+	c.sendMu.Lock()
+	defer c.sendMu.Unlock()
+	
+	// Transfer cancel mesajı encode et
+	frame, err := c.protocol.EncodeTransferCancel(fileID, reason)
+	if err != nil {
+		return fmt.Errorf("transfer cancel encode hatası: %w", err)
+	}
+	
+	// Frame boyutunu gönder (4 bytes)
+	frameLen := uint32(len(frame))
+	if err := c.writeUint32(frameLen); err != nil {
+		return fmt.Errorf("frame length yazılamadı: %w", err)
+	}
+	
+	// Frame'i gönder
+	if _, err := c.conn.Write(frame); err != nil {
+		return fmt.Errorf("frame yazılamadı: %w", err)
+	}
+	
+	log.Printf("  🛑 Transfer iptal bildirimi gönderildi: %s (reason: %s)", fileID[:8], reason)
+	return nil
+}
+
 // RequestMetadata metadata talep eder
 func (c *TCPConnection) RequestMetadata(ctx context.Context, fileID string) (*transport.FileMetadata, error) {
 	// Placeholder implementation
@@ -391,6 +417,8 @@ func (c *TCPConnection) handleMessage(messageType uint16, payload []byte) error 
 	case MessageTypeConnectionAccept, MessageTypeConnectionReject:
 		// Bu mesajlar client tarafında işlenecek
 		return nil
+	case MessageTypeTransferCancel:
+		return c.handleTransferCancel(payload)
 	default:
 		return fmt.Errorf("bilinmeyen mesaj tipi: 0x%04x", messageType)
 	}
@@ -468,6 +496,26 @@ func (c *TCPConnection) handleChunkResponse(payload []byte) error {
 		log.Printf("  ⚠️ Chunk received callback tanımlı değil, chunk kaydedilemiyor")
 	} else {
 		log.Printf("  ⚠️ FileId boş, push-based sync aktif değil")
+	}
+	
+	return nil
+}
+
+// handleTransferCancel transfer iptal bildirimi işler (gönderen taraf için)
+func (c *TCPConnection) handleTransferCancel(payload []byte) error {
+	fileID, reason, err := c.protocol.DecodeTransferCancel(payload)
+	if err != nil {
+		return fmt.Errorf("transfer cancel decode hatası: %w", err)
+	}
+	
+	log.Printf("🛑 Transfer iptal bildirimi alındı: file_id=%s, reason=%s (peer: %s)", fileID[:8], reason, c.peerID[:8])
+	
+	// Manager varsa ve onTransferCancel callback'i varsa, transfer'i iptal et
+	if c.manager != nil && c.manager.onTransferCancel != nil {
+		c.manager.onTransferCancel(c.peerID, fileID)
+		log.Printf("  ✅ Transfer iptal callback'i çağrıldı: %s", fileID[:8])
+	} else {
+		log.Printf("  ⚠️ Transfer iptal callback'i tanımlı değil: %s", fileID[:8])
 	}
 	
 	return nil
@@ -815,6 +863,7 @@ type TCPConnectionManager struct {
 	onConnectionLost        func(peerID string)
 	chunkHandlerCallback    func(chunkHash string) ([]byte, error)
 	onChunkReceived         func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName string) error
+	onTransferCancel        func(peerID, fileID string) // Transfer iptal bildirimi callback'i
 }
 
 // NewTCPConnectionManager yeni TCP connection manager oluşturur
@@ -1071,6 +1120,11 @@ func (m *TCPConnectionManager) SetOnConnectionLost(callback func(peerID string))
 // SetOnChunkReceived chunk received callback'ini set eder
 func (m *TCPConnectionManager) SetOnChunkReceived(callback func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName string) error) {
 	m.onChunkReceived = callback
+}
+
+// SetOnTransferCancel transfer cancel callback'ini set eder
+func (m *TCPConnectionManager) SetOnTransferCancel(callback func(peerID, fileID string)) {
+	m.onTransferCancel = callback
 }
 
 // handleConnectionLost bağlantı kaybını işler (internal)
