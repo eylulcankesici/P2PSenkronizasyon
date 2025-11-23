@@ -503,10 +503,14 @@ func (c *TCPConnection) handleChunkResponse(payload []byte) error {
 
 // handleTransferCancel transfer iptal bildirimi işler (gönderen taraf için)
 func (c *TCPConnection) handleTransferCancel(payload []byte) error {
-	fileID, reason, err := c.protocol.DecodeTransferCancel(payload)
-	if err != nil {
-		return fmt.Errorf("transfer cancel decode hatası: %w", err)
+	// Payload zaten decode edilmiş, protobuf unmarshal yap
+	notif := &pb.TransferCancelNotification{}
+	if err := proto.Unmarshal(payload, notif); err != nil {
+		return fmt.Errorf("transfer cancel unmarshal hatası: %w", err)
 	}
+	
+	fileID := notif.FileId
+	reason := notif.Reason
 	
 	log.Printf("🛑 Transfer iptal bildirimi alındı: file_id=%s, reason=%s (peer: %s)", fileID[:8], reason, c.peerID[:8])
 	
@@ -515,7 +519,7 @@ func (c *TCPConnection) handleTransferCancel(payload []byte) error {
 		c.manager.onTransferCancel(c.peerID, fileID)
 		log.Printf("  ✅ Transfer iptal callback'i çağrıldı: %s", fileID[:8])
 	} else {
-		log.Printf("  ⚠️ Transfer iptal callback'i tanımlı değil: %s", fileID[:8])
+		log.Printf("  ⚠️ Transfer iptal callback'i tanımlı değil (manager: %v, callback: %v): %s", c.manager != nil, c.manager != nil && c.manager.onTransferCancel != nil, fileID[:8])
 	}
 	
 	return nil
