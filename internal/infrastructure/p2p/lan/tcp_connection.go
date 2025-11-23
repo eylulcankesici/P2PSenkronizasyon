@@ -486,7 +486,10 @@ func (c *TCPConnection) handleChunkResponse(payload []byte) error {
 	
 	// Eğer file_id varsa, push-based sync demektir
 	if resp.FileId != "" {
-		log.Printf("  📁 Dosya sync: %s, fileName: %s, chunk %d/%d", resp.FileId[:8], resp.FileName, resp.ChunkIndex+1, resp.TotalChunks)
+		// Log azaltıldı - sadece her 50 chunk'ta bir log
+		if resp.ChunkIndex%50 == 0 || resp.ChunkIndex == 0 || resp.ChunkIndex == resp.TotalChunks-1 {
+			log.Printf("  📁 Dosya sync: %s, fileName: %s, chunk %d/%d", resp.FileId[:8], resp.FileName, resp.ChunkIndex+1, resp.TotalChunks)
+		}
 		
 		// Manager varsa ve chunk received callback varsa çağır
 		if c.manager != nil && c.manager.onChunkReceived != nil {

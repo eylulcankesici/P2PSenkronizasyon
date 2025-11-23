@@ -541,7 +541,10 @@ func (c *Container) initP2PTransport() error {
 
 	// handleIncomingChunk gelen chunk'ı işler (push-based sync)
 func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName string) error {
-	log.Printf("📥 Incoming chunk: file=%s, chunk=%d/%d, hash=%s", fileID[:8], chunkIndex+1, totalChunks, chunkHash[:8])
+	// Log azaltıldı - sadece her 50 chunk'ta bir log
+	if chunkIndex%50 == 0 || chunkIndex == 0 || chunkIndex == totalChunks-1 {
+		log.Printf("📥 Incoming chunk: file=%s, chunk=%d/%d, hash=%s", fileID[:8], chunkIndex+1, totalChunks, chunkHash[:8])
+	}
 	
 	// İlk chunk ise dosyayı initialize et ve transfer durumunu başlat
 	if chunkIndex == 0 {
