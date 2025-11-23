@@ -542,25 +542,35 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 	
 	// İlk chunk ise dosyayı initialize et ve transfer durumunu başlat
 	if chunkIndex == 0 {
-		// Önceki transfer varsa fileReassembler'ı temizle
-		// StartTransfer içinde zaten tüm önceki transfer'ler (CANCELLED, FAILED, ACTIVE) temizlenir
+		log.Printf("  🆕 İLK CHUNK GELDİ - Yeni transfer başlatılıyor: fileID=%s, fileName=%s, totalChunks=%d", fileID[:8], fileName, totalChunks)
+		
+		// Önceki transfer varsa explicit olarak temizle (CANCELLED, FAILED, ACTIVE hepsi)
 		existingTransfer, exists := c.transferManager.GetTransfer(fileID)
 		if exists {
-			log.Printf("  🔄 Önceki transfer bulundu (state: %v), fileReassembler temizleniyor: %s", existingTransfer.State, fileID[:8])
+			log.Printf("  🔄 ÖNCEKİ TRANSFER BULUNDU (state: %v, direction: %v) - Temizleniyor: %s", existingTransfer.State, existingTransfer.Direction, fileID[:8])
+			// Transfer'i explicit olarak iptal et ve temizle (context'i de iptal eder)
+			c.transferManager.CancelTransfer(fileID)
+			log.Printf("  ✅ Önceki transfer iptal edildi ve temizlendi: %s", fileID[:8])
+		} else {
+			log.Printf("  ✓ Önceki transfer bulunamadı (yeni transfer): %s", fileID[:8])
 		}
 		
 		// FileReassembler'ı temizle (yeni transfer için - her durumda)
 		c.fileReassembler.CleanupFile(fileID)
+		log.Printf("  ✅ FileReassembler temizlendi: %s", fileID[:8])
 		
 		// Dosyayı initialize et
 		if err := c.fileReassembler.InitializeFile(fileID, totalChunks, ""); err != nil {
-			log.Printf("  ⚠️ Dosya initialize hatası: %v", err)
+			log.Printf("  ⚠️ Dosya initialize hatası: %v, temizleme yapılıyor...", err)
 			// Hata durumunda eski dosyayı temizle ve tekrar dene
 			c.fileReassembler.CleanupFile(fileID)
+			time.Sleep(50 * time.Millisecond)
 			if err := c.fileReassembler.InitializeFile(fileID, totalChunks, ""); err != nil {
+				log.Printf("  ❌ Dosya initialize edilemedi (2. deneme): %v", err)
 				return fmt.Errorf("dosya initialize edilemedi: %w", err)
 			}
 		}
+		log.Printf("  ✅ Dosya initialize edildi: %s (%d chunks)", fileID[:8], totalChunks)
 		
 		// Peer bilgisini al (peer name için)
 		peer, err := c.peerRepo.GetByID(ctx, peerID)
@@ -580,8 +590,9 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 			totalBytes = int64(len(chunkData) * totalChunks)
 		}
 		
-			// Transfer durumunu başlat (RECEIVE - dosya alınıyor)
+		// Transfer durumunu başlat (RECEIVE - dosya alınıyor)
 		// StartTransfer içinde eski CANCELLED/FAILED/ACTIVE transfer'ler temizlenir
+		// Ancak yukarıda zaten explicit olarak temizledik, bu yüzden StartTransfer sadece yeni transfer oluşturur
 		c.transferManager.StartTransfer(
 			fileID,
 			fileName,
@@ -591,7 +602,7 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 			int32(totalChunks),
 			totalBytes,
 		)
-		log.Printf("  📊 Transfer başlatıldı: %s (alınıyor, %d chunks, %d bytes)", fileName, totalChunks, totalBytes)
+		log.Printf("  📊 Transfer başlatıldı: %s (alınıyor, %d chunks, %d bytes) - ACTIVE state ile başlatıldı", fileName, totalChunks, totalBytes)
 		
 		// İlk chunk için, transfer yeni başlatıldığı için CANCELLED kontrolü atlanmalı
 		// Doğrudan chunk işleme devam et

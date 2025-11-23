@@ -56,15 +56,19 @@ func (m *TransferManager) StartTransfer(fileID, fileName, peerID, peerName strin
 		// Context'i iptal et (eğer hala aktifse)
 		if existingTransfer.cancel != nil {
 			existingTransfer.cancel()
+			log.Printf("  🛑 Önceki transfer context'i iptal edildi: %s", fileID)
 		}
 		
 		// Transfer'i map'ten kaldır (yeni transfer başlatılacak)
 		// Her durumda (CANCELLED, FAILED, ACTIVE) temizle - aynı fileID ile yeni transfer başlatılıyor
 		delete(m.transfers, fileID)
+		log.Printf("  ✅ Önceki transfer map'ten kaldırıldı: %s", fileID)
 	}
 
-	// Cancel context oluştur
+	// Cancel context oluştur (yeni context - önceki context ile hiçbir ilişkisi yok)
 	ctx, cancel := context.WithCancel(context.Background())
+	
+	log.Printf("  🆕 Yeni transfer başlatılıyor: fileID=%s, fileName=%s, direction=%v, totalChunks=%d, totalBytes=%d", fileID[:8], fileName, direction, totalChunks, totalBytes)
 
 	m.transfers[fileID] = &TransferInfo{
 		FileID:          fileID,
@@ -82,6 +86,8 @@ func (m *TransferManager) StartTransfer(fileID, fileName, peerID, peerName strin
 		ctx:             ctx,
 		cancel:          cancel,
 	}
+	
+	log.Printf("  ✅ Yeni transfer başlatıldı (ACTIVE state): %s", fileID[:8])
 }
 
 // UpdateChunkProgress chunk progress'ini günceller
