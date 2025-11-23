@@ -233,6 +233,11 @@ func (c *Container) TransferManager() *p2p.TransferManager {
 	return c.transferManager
 }
 
+// FileReassembler file reassembler'ı döner
+func (c *Container) FileReassembler() *reassembly.FileReassembler {
+	return c.fileReassembler
+}
+
 // getOrCreateDeviceID kalıcı device ID'yi alır veya oluşturur
 func (c *Container) getOrCreateDeviceID() (string, error) {
 	ctx := context.Background()
@@ -425,13 +430,11 @@ func (c *Container) initUseCases() error {
 			// Transfer'i iptal et
 			c.transferManager.CancelTransfer(fileID)
 			
-			// RECEIVE direction transfer ise fileReassembler'ı da temizle
-			if direction == pb.TransferDirection_TRANSFER_DIRECTION_RECEIVE {
-				log.Printf("  🗑️ RECEIVE transfer iptal edildi, fileReassembler temizleniyor: %s", fileID[:8])
-				c.fileReassembler.CleanupFile(fileID)
-			}
+			// Her iki direction için de fileReassembler'ı temizle (yeni transfer için hazırlık)
+			log.Printf("  🗑️ Transfer iptal edildi, fileReassembler temizleniyor (direction: %v): %s", direction, fileID[:8])
+			c.fileReassembler.CleanupFile(fileID)
 			
-			log.Printf("  ✅ Transfer iptal edildi ve temizlendi: %s (direction: %v)", fileID[:8], direction)
+			log.Printf("  ✅ Transfer iptal edildi ve fileReassembler temizlendi, yeni transfer için hazır: %s (direction: %v)", fileID[:8], direction)
 		})
 		
 		log.Println("✓ Transfer cancel callback bağlandı")
@@ -968,17 +971,26 @@ func (c *Container) retryChunkRequest(ctx context.Context, peerID, chunkHash, fi
 
 // SyncFileWithPeerTracked dosyayı peer'a gönderir ve transfer durumunu takip eder
 func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID string) error {
-	log.Printf("🔄 SyncFileWithPeerTracked başlatılıyor: fileID=%s, peerID=%s", fileID[:8], peerID[:8])
+	log.Printf("🔄🔄🔄 SyncFileWithPeerTracked BAŞLATILIYOR - YENİ TRANSFER HAZIRLAMA: fileID=%s, peerID=%s", fileID[:8], peerID[:8])
 	
 	// Önceki transfer varsa explicit olarak temizle (CANCELLED, FAILED, ACTIVE hepsi)
 	existingTransfer, exists := c.transferManager.GetTransfer(fileID)
 	if exists {
-		log.Printf("  🔄 Önceki transfer bulundu (state: %v, direction: %v), temizleniyor: %s", existingTransfer.State, existingTransfer.Direction, fileID[:8])
+		log.Printf("  🔄 ÖNCEKİ TRANSFER BULUNDU (state: %v, direction: %v) - Temizleniyor: %s", existingTransfer.State, existingTransfer.Direction, fileID[:8])
 		// Transfer'i explicit olarak iptal et (context'i de iptal eder)
 		c.transferManager.CancelTransfer(fileID)
 		log.Printf("  ✅ Önceki transfer iptal edildi: %s", fileID[:8])
-		// Önceki transfer'in context'inin tamamen temizlenmesi için kısa bir süre bekle
-		time.Sleep(100 * time.Millisecond)
+	} else {
+		log.Printf("  ✓ Önceki transfer bulunamadı (yeni transfer): %s", fileID[:8])
+	}
+	
+	// FileReassembler'ı temizle (SEND direction için de - yeni transfer için hazırlık)
+	c.fileReassembler.CleanupFile(fileID)
+	log.Printf("  ✅ FileReassembler temizlendi (yeni transfer için hazır): %s", fileID[:8])
+	
+	// Önceki transfer'in context'inin tamamen temizlenmesi için kısa bir süre bekle
+	if exists {
+		time.Sleep(50 * time.Millisecond)
 	}
 	
 	// Dosya bilgisini al

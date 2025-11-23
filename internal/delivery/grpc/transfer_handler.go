@@ -103,20 +103,34 @@ func (h *TransferHandler) CancelTransfer(ctx context.Context, req *pb.CancelTran
 		}, nil
 	}
 
+	// Transfer yönünü kaydet (iptal edilmeden önce)
+	direction := transfer.Direction
+	
 	// Transfer'i iptal et (hem SEND hem RECEIVE için çalışır)
 	transferManager.CancelTransfer(req.FileId)
 	
 	// Yön bilgisini logla
 	directionStr := "SEND"
-	if transfer.Direction == pb.TransferDirection_TRANSFER_DIRECTION_RECEIVE {
+	if direction == pb.TransferDirection_TRANSFER_DIRECTION_RECEIVE {
 		directionStr = "RECEIVE"
 	}
 	
 	log.Printf("✅ Transfer iptal edildi: %s (direction: %s, peer: %s)", req.FileId, directionStr, transfer.PeerID[:8])
 	
+	// Her iki direction için de fileReassembler'ı temizle (yeni transfer için hazırlık)
+	if direction == pb.TransferDirection_TRANSFER_DIRECTION_RECEIVE {
+		log.Printf("  🗑️ RECEIVE transfer iptal edildi, fileReassembler temizleniyor: %s", req.FileId[:8])
+		h.container.FileReassembler().CleanupFile(req.FileId)
+	} else {
+		log.Printf("  🗑️ SEND transfer iptal edildi, fileReassembler temizleniyor (güvenlik için): %s", req.FileId[:8])
+		h.container.FileReassembler().CleanupFile(req.FileId)
+	}
+	
+	log.Printf("  ✅ Transfer ve fileReassembler temizlendi, yeni transfer için hazır: %s", req.FileId[:8])
+	
 	// Her iki durumda da karşı tarafa bildirim gönder
 	var reason string
-	if transfer.Direction == pb.TransferDirection_TRANSFER_DIRECTION_RECEIVE {
+	if direction == pb.TransferDirection_TRANSFER_DIRECTION_RECEIVE {
 		reason = "Alıcı taraf tarafından iptal edildi"
 		log.Printf("  📤 Alıcı taraf iptal edildi, gönderen tarafa bildirim gönderiliyor (peer: %s, file: %s)...", transfer.PeerID[:8], req.FileId[:8])
 	} else {
