@@ -123,7 +123,10 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
           final transfer = _fromProto(transferProto);
           transfers[transfer.fileId] = transfer;
         }
-        state = transfers;
+        // State'i güncelle - CANCELLED transfer'ler de dahil
+        // activeTransfersProvider filtresi zaten CANCELLED transfer'leri filtreler
+        // State'i tamamen değiştir (referans değişimi için)
+        state = Map<String, TransferState>.from(transfers);
       }
     } catch (e) {
       print('❌ Transferler yüklenemedi: $e');
