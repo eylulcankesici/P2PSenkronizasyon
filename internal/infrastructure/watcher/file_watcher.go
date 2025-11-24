@@ -32,7 +32,6 @@ type FileEvent struct {
 	AbsPath   string // Absolute path
 	FolderID  string
 	Timestamp time.Time
-	OldPath   string // RENAME event'i için eski path
 }
 
 // FileWatcher dosya sistemi değişikliklerini izler
@@ -44,20 +43,9 @@ type FileWatcher struct {
 	eventHandlers []func(*FileEvent) error
 	errorHandlers []func(error)
 	
-	// RENAME event tracking (yeni path'i bilmek için)
-	recentRenames map[string]*RenameTracker // oldPath -> RenameTracker
-	renameMu      sync.Mutex
-	
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
-}
-
-// RenameTracker RENAME event'lerini takip eder
-type RenameTracker struct {
-	OldPath   string
-	FolderID  string
-	Timestamp time.Time
 }
 
 // WatchedFolder izlenen klasör bilgisi
@@ -79,7 +67,6 @@ func NewFileWatcher() (*FileWatcher, error) {
 	fw := &FileWatcher{
 		watcher:        fsWatcher,
 		watchedFolders: make(map[string]*WatchedFolder),
-		recentRenames:  make(map[string]*RenameTracker),
 		eventHandlers:  make([]func(*FileEvent) error, 0),
 		errorHandlers:  make([]func(error), 0),
 		ctx:            ctx,
@@ -101,19 +88,6 @@ func (fw *FileWatcher) Start() error {
 }
 
 // Stop watcher'ı durdurur
-// cleanOldRenames eski rename kayıtlarını temizler
-func (fw *FileWatcher) cleanOldRenames() {
-	fw.renameMu.Lock()
-	defer fw.renameMu.Unlock()
-	
-	now := time.Now()
-	for path, tracker := range fw.recentRenames {
-		if now.Sub(tracker.Timestamp) > 2*time.Second {
-			delete(fw.recentRenames, path)
-		}
-	}
-}
-
 func (fw *FileWatcher) Stop() error {
 	log.Println("🛑 File watcher durduruluyor...")
 	
@@ -284,10 +258,7 @@ func (fw *FileWatcher) handleFsnotifyEvent(event fsnotify.Event) error {
 		eventType = EventTypeDelete
 		
 	case event.Op&fsnotify.Rename == fsnotify.Rename:
-		// RENAME'i basitçe DELETE olarak işle
-		// Ardından CREATE event gelecek, o normal şekilde işlenecek
-		eventType = EventTypeDelete
-		log.Printf("📝 File event: RENAME detected (treating as DELETE): %s", relPath)
+		eventType = EventTypeRename
 		
 	default:
 		// Bilinmeyen event tipi

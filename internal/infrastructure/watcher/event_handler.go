@@ -73,9 +73,9 @@ func (h *EventHandler) HandleEvent(event *FileEvent) error {
 		return h.handleDelete(event)
 		
 	case EventTypeRename:
-		// RENAME = DELETE + CREATE olarak işlenir
-		// handleRename kaldırıldı, RENAME artık DELETE olarak gelir
-		return h.handleDelete(event)
+		// Rename = Delete + Create olarak işlenir
+		log.Printf("📝 Rename event: %s (folder: %s)", event.Path, event.FolderID[:8])
+		return nil
 		
 	default:
 		return fmt.Errorf("bilinmeyen event tipi: %s", event.Type)
@@ -339,16 +339,6 @@ func (h *EventHandler) handleDelete(event *FileEvent) error {
 	
 	return nil
 }
-
-// handleRename - KULLANILMIYOR (şimdilik DELETE+CREATE olarak işleniyor)
-// TODO: Gelecekte optimize edilebilir (gerçek rename sync ile)
-/*
-func (h *EventHandler) handleRename(event *FileEvent) error {
-	// Karmaşık implementation kaldırıldı
-	// RENAME event'leri şimdilik DELETE+CREATE olarak işleniyor
-	return nil
-}
-*/
 
 // createChunks dosyayı chunk'lara ayırır ve kaydeder
 func (h *EventHandler) createChunks(ctx context.Context, file *entity.File, absPath string) error {
