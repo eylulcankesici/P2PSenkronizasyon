@@ -78,3 +78,4 @@ Write-Host "Proto dosyasi guncel!" -ForegroundColor Green
 Write-Host "========================================`n" -ForegroundColor Cyan
 exit 0
 
+
