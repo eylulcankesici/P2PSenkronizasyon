@@ -221,6 +221,11 @@ func (h *EventHandler) handleModify(event *FileEvent) error {
 	
 	// YENİ chunk'lar oluştur
 	if fileInfo.Size() > 0 {
+		// ESKİ chunk'ları sil (yenileriyle değiştirilecek)
+		if err := h.chunkRepo.DeleteFileChunks(ctx, file.ID); err != nil {
+			log.Printf("⚠️ Eski chunk'lar silinemedi (%s): %v", event.Path, err)
+		}
+		
 		if err := h.createChunks(ctx, file, event.AbsPath); err != nil {
 			log.Printf("⚠️ Chunk oluşturulamadı (%s): %v", event.Path, err)
 			return nil
