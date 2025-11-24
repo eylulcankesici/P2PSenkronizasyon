@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package aether.api;
+
+option go_package = "github.com/aether/sync/api/proto;proto";
+
+import "api/proto/common.proto";
+
+// Watcher servisi - dosya izleme
+service WatcherService {
+  // Klasör izlemeye başla
+  rpc StartWatching(StartWatchingRequest) returns (Status);
+  
+  // Klasör izlemeyi durdur
+  rpc StopWatching(StopWatchingRequest) returns (Status);
+  
+  // İzlenen klasörleri listele
+  rpc ListWatchedFolders(ListWatchedFoldersRequest) returns (ListWatchedFoldersResponse);
+  
+  // Watch durumunu al
+  rpc GetWatchStatus(GetWatchStatusRequest) returns (WatchStatusResponse);
+}
+
+// Mesajlar
+
+message StartWatchingRequest {
+  string folder_id = 1;
+}
+
+message StopWatchingRequest {
+  string folder_id = 1;
+}
+
+message ListWatchedFoldersRequest {
+  // Boş - tüm izlenen klasörleri döner
+}
+
+message ListWatchedFoldersResponse {
+  repeated string folder_ids = 1;
+  Status status = 2;
+}
+
+message GetWatchStatusRequest {
+  string folder_id = 1;
+}
+
+message WatchStatusResponse {
+  bool is_watching = 1;
+  string folder_id = 2;
+  string folder_path = 3;
+  Status status = 4;
+}
+

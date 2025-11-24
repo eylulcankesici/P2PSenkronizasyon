@@ -5,6 +5,7 @@ go 1.24.0
 require go.etcd.io/bbolt v1.3.8
 
 require (
+	github.com/fsnotify/fsnotify v1.7.0
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/mdns v1.0.6
 	github.com/mattn/go-sqlite3 v1.14.32

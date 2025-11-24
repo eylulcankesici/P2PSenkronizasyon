@@ -20,6 +20,7 @@ import (
 	"github.com/aether/sync/internal/infrastructure/database/sqlite"
 	"github.com/aether/sync/internal/infrastructure/p2p"
 	"github.com/aether/sync/internal/infrastructure/p2p/lan"
+	"github.com/aether/sync/internal/infrastructure/watcher"
 	usecaseImpl "github.com/aether/sync/internal/usecase/impl"
 	"github.com/aether/sync/pkg/chunking"
 	"github.com/aether/sync/pkg/reassembly"
@@ -64,6 +65,10 @@ type Container struct {
 	// Rejected chunks tracking (TCP buffer temizleme için)
 	// İptal edilen transfer'lardan kalan chunk'ları sayar
 	rejectedChunks sync.Map // fileID -> counter (int)
+	
+	// File watcher (real-time file monitoring)
+	fileWatcher    *watcher.FileWatcher
+	eventHandler   *watcher.EventHandler
 }
 
 // NewContainer yeni bir container oluşturur
@@ -90,6 +95,11 @@ func NewContainer(cfg *config.Config) (*Container, error) {
 	// Use case'leri oluştur
 	if err := container.initUseCases(); err != nil {
 		return nil, fmt.Errorf("use case'ler başlatılamadı: %w", err)
+	}
+	
+	// File watcher'ı başlat
+	if err := container.initFileWatcher(); err != nil {
+		return nil, fmt.Errorf("file watcher başlatılamadı: %w", err)
 	}
 	
 	log.Println("Container başarıyla oluşturuldu")
@@ -152,7 +162,16 @@ func (c *Container) runMigrations() error {
 
 // Close tüm bağlantıları kapatır
 func (c *Container) Close() error {
+	log.Println("🛑 Container kapatılıyor...")
 	var errors []error
+	
+	// File watcher'ı durdur
+	if c.fileWatcher != nil {
+		log.Println("File watcher durduruluyor...")
+		if err := c.fileWatcher.Stop(); err != nil {
+			errors = append(errors, fmt.Errorf("file watcher durdurulamadı: %w", err))
+		}
+	}
 	
 	// P2P Transport'u durdur
 	if c.transportProvider != nil {
@@ -178,7 +197,7 @@ func (c *Container) Close() error {
 		return fmt.Errorf("container kapatılırken hatalar oluştu: %v", errors)
 	}
 	
-	log.Println("Container kapatıldı")
+	log.Println("✅ Container kapatıldı")
 	return nil
 }
 
@@ -1160,5 +1179,56 @@ func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID 
 	return nil
 }
 
+// initFileWatcher file watcher'ı başlatır
+func (c *Container) initFileWatcher() error {
+	// FileWatcher oluştur
+	fw, err := watcher.NewFileWatcher()
+	if err != nil {
+		return fmt.Errorf("file watcher oluşturulamadı: %w", err)
+	}
+	c.fileWatcher = fw
+	
+	// EventHandler oluştur
+	eventHandler := watcher.NewEventHandler(
+		c.fileRepo,
+		c.chunkingUseCase,
+		c.folderRepo,
+	)
+	c.eventHandler = eventHandler
+	
+	// Event handler'ı watcher'a bağla
+	c.fileWatcher.OnEvent(eventHandler.HandleEvent)
+	
+	// Error handler
+	c.fileWatcher.OnError(func(err error) {
+		log.Printf("⚠️ File watcher hatası: %v", err)
+	})
+	
+	// Watcher'ı başlat
+	if err := c.fileWatcher.Start(); err != nil {
+		return fmt.Errorf("file watcher başlatılamadı: %w", err)
+	}
+	
+	// Aktif klasörleri otomatik olarak watch'a ekle
+	ctx := context.Background()
+	folders, err := c.folderRepo.GetAll(ctx)
+	if err != nil {
+		log.Printf("⚠️ Aktif klasörler alınamadı: %v", err)
+	} else {
+		for _, folder := range folders {
+			if folder.IsActive {
+				if err := c.fileWatcher.AddFolder(folder); err != nil {
+					log.Printf("⚠️ Klasör watch'a eklenemedi (%s): %v", folder.LocalPath, err)
+				}
+			}
+		}
+	}
+	
+	log.Println("✅ File watcher başlatıldı")
+	return nil
+}
 
-
+// FileWatcher returns the file watcher instance
+func (c *Container) FileWatcher() *watcher.FileWatcher {
+	return c.fileWatcher
+}

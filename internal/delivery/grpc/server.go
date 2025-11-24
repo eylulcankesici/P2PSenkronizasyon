@@ -46,6 +46,7 @@ func NewServer(cont *container.Container, address string) *Server {
 	pb.RegisterChunkServiceServer(grpcServer, NewChunkHandler(cont))
 	pb.RegisterP2PDataServiceServer(grpcServer, NewP2PDataHandler(cont))
 	pb.RegisterTransferServiceServer(grpcServer, NewTransferHandler(cont))
+	pb.RegisterWatcherServiceServer(grpcServer, NewWatcherHandler(cont))
 	// pb.RegisterConfigServiceServer(grpcServer, NewConfigHandler(cont))
 
 	// Reflection API'yi etkinleştir (development için)
