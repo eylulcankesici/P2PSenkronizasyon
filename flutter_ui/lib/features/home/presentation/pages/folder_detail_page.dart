@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -9,7 +10,7 @@ import 'package:aether_desktop/generated/api/proto/common.pb.dart';
 import 'package:aether_desktop/generated/api/proto/file.pb.dart' as file_pb;
 import 'package:aether_desktop/generated/api/proto/peer.pb.dart' as peer_pb;
 
-class FolderDetailPage extends ConsumerWidget {
+class FolderDetailPage extends ConsumerStatefulWidget {
   final Folder folder;
 
   const FolderDetailPage({
@@ -18,8 +19,33 @@ class FolderDetailPage extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final filesAsync = ref.watch(filesProvider(folder.id));
+  ConsumerState<FolderDetailPage> createState() => _FolderDetailPageState();
+}
+
+class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Otomatik yenileme: Her 2 saniyede bir dosya listesini güncelle
+    _refreshTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+      // Sadece mounted ise yenile
+      if (mounted) {
+        ref.invalidate(filesProvider(widget.folder.id));
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filesAsync = ref.watch(filesProvider(widget.folder.id));
 
     return Scaffold(
       appBar: AppBar(
@@ -35,9 +61,9 @@ class FolderDetailPage extends ConsumerWidget {
           IconButton(
             icon: Icon(LucideIcons.refreshCw),
             onPressed: () {
-              ref.invalidate(filesProvider(folder.id));
+              ref.invalidate(filesProvider(widget.folder.id));
             },
-            tooltip: 'Yenile',
+            tooltip: 'Manuel Yenile (Otomatik: 2sn)',
           ),
         ],
       ),
@@ -88,14 +114,14 @@ class FolderDetailPage extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        folder.localPath,
+                        widget.folder.localPath,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       SizedBox(height: 4),
                       Text(
-                        _getSyncModeText(folder.syncMode),
+                        _getSyncModeText(widget.folder.syncMode),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],

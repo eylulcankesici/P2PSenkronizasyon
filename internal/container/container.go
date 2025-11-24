@@ -71,8 +71,9 @@ type Container struct {
 	rejectedChunks sync.Map // fileID -> counter (int)
 	
 	// File watcher (real-time file monitoring)
-	fileWatcher    *watcher.FileWatcher
-	eventHandler   *watcher.EventHandler
+	fileWatcher      *watcher.FileWatcher
+	eventHandler     *watcher.EventHandler
+	eventBroadcaster *watcher.EventBroadcaster
 	
 	// Symlink manager (Desktop shortcut oluşturma)
 	symlinkManager *filesystem.SymlinkManager
@@ -172,6 +173,12 @@ func (c *Container) runMigrations() error {
 func (c *Container) Close() error {
 	log.Println("🛑 Container kapatılıyor...")
 	var errors []error
+	
+	// Event broadcaster'ı kapat
+	if c.eventBroadcaster != nil {
+		log.Println("Event broadcaster kapatılıyor...")
+		c.eventBroadcaster.Close()
+	}
 	
 	// File watcher'ı durdur
 	if c.fileWatcher != nil {
@@ -1317,12 +1324,17 @@ func (c *Container) initFileWatcher() error {
 	}
 	c.fileWatcher = fw
 	
+	// EventBroadcaster oluştur (UI event streaming için)
+	c.eventBroadcaster = watcher.NewEventBroadcaster()
+	log.Println("✓ Event broadcaster oluşturuldu")
+	
 	// EventHandler oluştur
 	eventHandler := watcher.NewEventHandler(
 		c.fileRepo,
 		c.chunkingUseCase,
 		c.folderRepo,
 		c.chunkRepo,
+		c.eventBroadcaster, // Broadcaster'ı EventHandler'a ver
 	)
 	c.eventHandler = eventHandler
 	
@@ -1379,6 +1391,11 @@ func (c *Container) initFileWatcher() error {
 // FileWatcher returns the file watcher instance
 func (c *Container) FileWatcher() *watcher.FileWatcher {
 	return c.fileWatcher
+}
+
+// EventBroadcaster event broadcaster'ı döner
+func (c *Container) EventBroadcaster() *watcher.EventBroadcaster {
+	return c.eventBroadcaster
 }
 
 // SymlinkManager returns the symlink manager instance

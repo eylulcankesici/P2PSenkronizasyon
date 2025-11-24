@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-
 	pb "github.com/aether/sync/api/proto"
 	"github.com/aether/sync/internal/container"
 )
@@ -127,4 +126,68 @@ func (h *WatcherHandler) GetWatchStatus(ctx context.Context, req *pb.GetWatchSta
 		},
 	}, nil
 }
+
+// TODO: WatchFileEvents - gRPC streaming (protobuf generate edildiğinde aktif edilecek)
+// NOT: Şimdilik Flutter tarafında polling ile UI güncellemesi yapılıyor
+//
+// Kullanım için:
+// 1. protoc çalıştır: protoc -I. --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/*.proto
+// 2. Bu kodu yorumdan çıkar
+// 3. Flutter tarafında WatchFileEvents stream'ini dinle
+
+/*
+func (h *WatcherHandler) WatchFileEvents(req *pb.WatchFileEventsRequest, stream pb.WatcherService_WatchFileEventsServer) error {
+	listenerID := uuid.New().String()
+	log.Printf("📡 Yeni event listener bağlandı: %s", listenerID)
+	
+	eventChan := h.container.EventBroadcaster().Subscribe(listenerID)
+	if eventChan == nil {
+		return fmt.Errorf("event broadcaster kapalı")
+	}
+	
+	defer func() {
+		h.container.EventBroadcaster().Unsubscribe(listenerID)
+		log.Printf("📡 Event listener bağlantısı kesildi: %s", listenerID)
+	}()
+	
+	for {
+		select {
+		case <-stream.Context().Done():
+			return nil
+		case event, ok := <-eventChan:
+			if !ok {
+				return nil
+			}
+			
+			pbEvent := &pb.FileEvent{
+				EventType: convertEventType(event.EventType),
+				FolderId:  event.FolderID,
+				FileId:    event.FileID,
+				FilePath:  event.FilePath,
+				OldPath:   event.OldPath,
+				Timestamp: event.Timestamp,
+			}
+			
+			if err := stream.Send(pbEvent); err != nil {
+				return err
+			}
+		}
+	}
+}
+
+func convertEventType(et watcher.EventType) pb.FileEvent_EventType {
+	switch et {
+	case watcher.EventTypeCreate:
+		return pb.FileEvent_EVENT_TYPE_CREATE
+	case watcher.EventTypeModify:
+		return pb.FileEvent_EVENT_TYPE_MODIFY
+	case watcher.EventTypeDelete:
+		return pb.FileEvent_EVENT_TYPE_DELETE
+	case watcher.EventTypeRename:
+		return pb.FileEvent_EVENT_TYPE_RENAME
+	default:
+		return pb.FileEvent_EVENT_TYPE_UNSPECIFIED
+	}
+}
+*/
 

@@ -5,6 +5,7 @@ package aether.api;
 option go_package = "github.com/aether/sync/api/proto;proto";
 
 import "api/proto/common.proto";
+import "google/protobuf/empty.proto";
 
 // Watcher servisi - dosya izleme
 service WatcherService {
@@ -19,6 +20,9 @@ service WatcherService {
   
   // Watch durumunu al
   rpc GetWatchStatus(GetWatchStatusRequest) returns (WatchStatusResponse);
+  
+  // Dosya değişikliklerini izle (streaming)
+  rpc WatchFileEvents(WatchFileEventsRequest) returns (stream FileEvent);
 }
 
 // Mesajlar
@@ -49,5 +53,26 @@ message WatchStatusResponse {
   string folder_id = 2;
   string folder_path = 3;
   Status status = 4;
+}
+
+message WatchFileEventsRequest {
+  // Boş - tüm dosya değişikliklerini dinler
+}
+
+message FileEvent {
+  enum EventType {
+    EVENT_TYPE_UNSPECIFIED = 0;
+    EVENT_TYPE_CREATE = 1;     // Dosya oluşturuldu
+    EVENT_TYPE_MODIFY = 2;     // Dosya değiştirildi
+    EVENT_TYPE_DELETE = 3;     // Dosya silindi
+    EVENT_TYPE_RENAME = 4;     // Dosya yeniden adlandırıldı
+  }
+  
+  EventType event_type = 1;
+  string folder_id = 2;
+  string file_id = 3;
+  string file_path = 4;         // Relative path
+  string old_path = 5;          // Rename için eski path
+  int64 timestamp = 6;          // Unix timestamp (milliseconds)
 }
 

@@ -31,6 +31,9 @@ type EventHandler struct {
 	onFileChanged      func(fileID, folderID string) error                    // Tüm dosya için sync (CREATE)
 	onChunksChanged    func(fileID, folderID string, changedChunks []int) error // Sadece değişen chunk'lar için sync (MODIFY)
 	onFileDeleted      func(fileID, folderID string) error                    // Dosya silindi sync (DELETE)
+	
+	// Event broadcaster (UI için)
+	eventBroadcaster *EventBroadcaster
 }
 
 // NewEventHandler yeni EventHandler oluşturur
@@ -39,15 +42,17 @@ func NewEventHandler(
 	chunkingUC usecase.ChunkingUseCase,
 	folderRepo repository.FolderRepository,
 	chunkRepo repository.ChunkRepository,
+	eventBroadcaster *EventBroadcaster,
 ) *EventHandler {
 	return &EventHandler{
-		fileRepo:      fileRepo,
-		chunkingUC:    chunkingUC,
-		folderRepo:    folderRepo,
-		chunkRepo:     chunkRepo,
-		debounceDelay: 500 * time.Millisecond, // Çok hızlı değişikliklerde spam önleme
-		pendingEvents: make(map[string]*FileEvent),
-		eventTimers:   make(map[string]*time.Timer),
+		fileRepo:         fileRepo,
+		chunkingUC:       chunkingUC,
+		folderRepo:       folderRepo,
+		chunkRepo:        chunkRepo,
+		debounceDelay:    500 * time.Millisecond, // Çok hızlı değişikliklerde spam önleme
+		pendingEvents:    make(map[string]*FileEvent),
+		eventTimers:      make(map[string]*time.Timer),
+		eventBroadcaster: eventBroadcaster,
 	}
 }
 
@@ -167,6 +172,17 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 		}
 	}
 	
+	// UI'a event gönder (CREATE)
+	if h.eventBroadcaster != nil {
+		h.eventBroadcaster.Broadcast(&FileEventData{
+			EventType: EventTypeCreate,
+			FolderID:  event.FolderID,
+			FileID:    file.ID,
+			FilePath:  event.Path,
+			Timestamp: time.Now().UnixMilli(),
+		})
+	}
+	
 	return nil
 }
 
@@ -262,6 +278,17 @@ func (h *EventHandler) handleModify(event *FileEvent) error {
 				log.Printf("⚠️ Delta sync hatası (%s): %v", event.Path, err)
 			}
 		}
+		
+		// UI'a event gönder (MODIFY)
+		if h.eventBroadcaster != nil {
+			h.eventBroadcaster.Broadcast(&FileEventData{
+				EventType: EventTypeModify,
+				FolderID:  event.FolderID,
+				FileID:    file.ID,
+				FilePath:  event.Path,
+				Timestamp: time.Now().UnixMilli(),
+			})
+		}
 	}
 	
 	log.Printf("✅ MODIFY işlendi: %s", event.Path)
@@ -297,6 +324,17 @@ func (h *EventHandler) handleDelete(event *FileEvent) error {
 		if err := h.onFileDeleted(fileID, event.FolderID); err != nil {
 			log.Printf("⚠️ Silme sync hatası (%s): %v", event.Path, err)
 		}
+	}
+	
+	// UI'a event gönder (DELETE)
+	if h.eventBroadcaster != nil {
+		h.eventBroadcaster.Broadcast(&FileEventData{
+			EventType: EventTypeDelete,
+			FolderID:  event.FolderID,
+			FileID:    fileID,
+			FilePath:  event.Path,
+			Timestamp: time.Now().UnixMilli(),
+		})
 	}
 	
 	return nil
