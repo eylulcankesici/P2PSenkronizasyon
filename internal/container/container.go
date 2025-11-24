@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 	
@@ -895,6 +896,18 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 				// Folder zaten var, onu kullan
 				folder = existingFolder
 				log.Printf("  ✅ Folder zaten var, mevcut folder kullanılıyor: %s (%s)", folderID[:8], folder.LocalPath)
+				
+				// 🔄 File watcher'a eklenmiş mi kontrol et ve eklenmemişse ekle
+				if c.fileWatcher != nil {
+					if err := c.fileWatcher.AddFolder(folder); err != nil {
+						// Zaten ekliyse hata vermesi normal
+						if !strings.Contains(err.Error(), "zaten izleniyor") {
+							log.Printf("  ⚠️ Folder file watcher'a eklenemedi: %v", err)
+						}
+					} else {
+						log.Printf("  ✅ Folder file watcher'a eklendi (bidirectional sync aktif)")
+					}
+				}
 			} else {
 				// Yeni folder oluştur
 				folder = entity.NewFolder(syncDir, entity.SyncModeBidirectional)
@@ -905,6 +918,15 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 					folder, _ = c.folderRepo.GetByID(ctx, folderID)
 				} else {
 					log.Printf("  ✅ Folder entity oluşturuldu: %s (%s)", folderID[:8], syncDir)
+					
+					// 🔄 File watcher'a otomatik ekle (bidirectional sync için)
+					if c.fileWatcher != nil {
+						if err := c.fileWatcher.AddFolder(folder); err != nil {
+							log.Printf("  ⚠️ Folder file watcher'a eklenemedi: %v", err)
+						} else {
+							log.Printf("  ✅ Folder otomatik olarak file watcher'a eklendi (bidirectional sync aktif)")
+						}
+					}
 				}
 			}
 		}
