@@ -2,6 +2,8 @@ package container
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
@@ -841,7 +843,10 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 		if folderName != "" {
 			// Sender'dan gelen folder adını kullan (ÖNCELİKLİ)
 			receivedFolderName = folderName
-			log.Printf("  ✅ Sender'dan gelen folder adı kullanılıyor: %s", receivedFolderName)
+			// Folder adından tutarlı bir ID üret (aynı folder adı → aynı ID)
+			hash := sha256.Sum256([]byte(folderName))
+			folderID = hex.EncodeToString(hash[:])[:32] // İlk 32 karakter
+			log.Printf("  ✅ Sender'dan gelen folder adı kullanılıyor: %s (ID: %s)", receivedFolderName, folderID[:8])
 		} else if file != nil && file.FolderID != "" {
 			// Veritabanındaki folder bilgisini kullan (fallback)
 			folderID = file.FolderID
@@ -882,39 +887,69 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 			outputPath = filepath.Join(syncDir, finalFileName)
 			log.Printf("  📁 Yeni klasöre kaydediliyor: %s", outputPath)
 			
-			// Folder entity oluştur (alıcı taraf için)
-			if folder == nil {
+		// Folder entity oluştur (alıcı taraf için)
+		if folder == nil {
+			// Önce folder zaten var mı kontrol et (aynı folder'dan başka dosyalar gelebilir)
+			existingFolder, err := c.folderRepo.GetByID(ctx, folderID)
+			if err == nil && existingFolder != nil {
+				// Folder zaten var, onu kullan
+				folder = existingFolder
+				log.Printf("  ✅ Folder zaten var, mevcut folder kullanılıyor: %s (%s)", folderID[:8], folder.LocalPath)
+			} else {
+				// Yeni folder oluştur
 				folder = entity.NewFolder(syncDir, entity.SyncModeBidirectional)
 				folder.ID = folderID
 				if err := c.folderRepo.Create(ctx, folder); err != nil {
-					log.Printf("  ⚠️ Folder entity oluşturulamadı (belki zaten var): %v", err)
+					log.Printf("  ⚠️ Folder entity oluşturulamadı: %v", err)
+					// Hata durumunda tekrar oku (race condition olabilir)
+					folder, _ = c.folderRepo.GetByID(ctx, folderID)
 				} else {
-					log.Printf("  ✅ Folder entity oluşturuldu: %s", folderID)
+					log.Printf("  ✅ Folder entity oluşturuldu: %s (%s)", folderID[:8], syncDir)
 				}
 			}
+		}
 			
-			// File entity oluştur/güncelle (alıcı taraf için)
-			if file == nil {
+		// File entity oluştur/güncelle (alıcı taraf için)
+		if file == nil {
+			// Önce file zaten var mı kontrol et
+			existingFile, err := c.fileRepo.GetByID(ctx, fileID)
+			if err == nil && existingFile != nil {
+				// File zaten var, folder ID'sini güncelle
+				file = existingFile
+				if file.FolderID != folderID {
+					file.FolderID = folderID
+					file.RelativePath = finalFileName
+					if err := c.fileRepo.Update(ctx, file); err != nil {
+						log.Printf("  ⚠️ File entity güncellenemedi: %v", err)
+					} else {
+						log.Printf("  ✅ File entity güncellendi: %s (folder: %s)", fileID[:8], folderID[:8])
+					}
+				} else {
+					log.Printf("  ✅ File zaten var, mevcut file kullanılıyor: %s", fileID[:8])
+				}
+			} else {
+				// Yeni file oluştur
 				newFile := entity.NewFile(folderID, finalFileName, 0, time.Now())
 				newFile.ID = fileID
 				if err := c.fileRepo.Create(ctx, newFile); err != nil {
-					log.Printf("  ⚠️ File entity oluşturulamadı (belki zaten var): %v", err)
-					// Entity zaten varsa tekrar oku
-					file, err = c.fileRepo.GetByID(ctx, fileID)
-					if err != nil {
-						log.Printf("  ⚠️ File entity okunamadı: %v", err)
-					}
+					log.Printf("  ⚠️ File entity oluşturulamadı: %v", err)
+					// Hata durumunda tekrar oku (race condition olabilir)
+					file, _ = c.fileRepo.GetByID(ctx, fileID)
 				} else {
-					log.Printf("  ✅ File entity oluşturuldu: %s", fileID)
-					file = newFile  // Yeni oluşturulan file entity'yi file değişkenine ata
-				}
-			} else if file.FolderID != folderID {
-				// Folder ID'sini güncelle
-				file.FolderID = folderID
-				if err := c.fileRepo.Update(ctx, file); err != nil {
-					log.Printf("  ⚠️ File entity güncellenemedi: %v", err)
+					log.Printf("  ✅ File entity oluşturuldu: %s (folder: %s, file: %s)", fileID[:8], folderID[:8], finalFileName)
+					file = newFile
 				}
 			}
+		} else if file.FolderID != folderID {
+			// Folder ID'sini güncelle
+			file.FolderID = folderID
+			file.RelativePath = finalFileName
+			if err := c.fileRepo.Update(ctx, file); err != nil {
+				log.Printf("  ⚠️ File entity güncellenemedi: %v", err)
+			} else {
+				log.Printf("  ✅ File entity güncellendi: %s (folder: %s)", fileID[:8], folderID[:8])
+			}
+		}
 		}
 		
 		// Output path'in dizinini oluştur
