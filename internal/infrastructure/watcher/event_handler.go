@@ -73,9 +73,12 @@ func (h *EventHandler) HandleEvent(event *FileEvent) error {
 		return h.handleDelete(event)
 		
 	case EventTypeRename:
-		// Rename = Delete + Create olarak işlenir
-		log.Printf("📝 Rename event: %s (folder: %s)", event.Path, event.FolderID[:8])
-		return nil
+		// Rename event'i genellikle iki aşamalıdır:
+		// 1. RENAME event'i (eski dosya) → Sil
+		// 2. CREATE event'i (yeni dosya) → Oluştur
+		// Burada eski dosyayı sil, yeni dosya CREATE event'i ile gelecek
+		log.Printf("📝 RENAME: %s (folder: %s) - eski dosya siliniyor", event.Path, event.FolderID[:8])
+		return h.handleDelete(event)
 		
 	default:
 		return fmt.Errorf("bilinmeyen event tipi: %s", event.Type)
