@@ -1111,6 +1111,20 @@ func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID 
 		return fmt.Errorf("dosya bulunamadı: %w", err)
 	}
 	
+	// Folder bilgisini al (folder adını alıcı tarafa göndermek için)
+	var folderName string
+	if file.FolderID != "" {
+		folder, err := c.folderRepo.GetByID(ctx, file.FolderID)
+		if err == nil && folder != nil {
+			// Folder adını belirle (path'in son kısmı)
+			folderName = filepath.Base(folder.LocalPath)
+			log.Printf("  📁 Folder bilgisi alındı: %s (ID: %s)", folderName, folder.ID[:8])
+		} else {
+			log.Printf("  ⚠️ Folder bilgisi alınamadı: %v", err)
+			folderName = "" // Fallback: boş string
+		}
+	}
+	
 	// Peer bilgisini al
 	peer, err := c.peerRepo.GetByID(ctx, peerID)
 	peerName := peerID[:8] // Fallback
