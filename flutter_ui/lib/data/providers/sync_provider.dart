@@ -37,6 +37,37 @@ class SyncNotifier extends StateNotifier<AsyncValue<void>> {
       state = AsyncValue.error(e, st);
     }
   }
+  
+  /// Klasörün tüm dosyalarını peer'lara senkronize et
+  Future<SyncFolderResponse?> syncFolder(String folderId, List<String> targetPeerIds) async {
+    state = const AsyncValue.loading();
+    
+    try {
+      final client = ref.read(grpcClientProvider);
+      
+      final request = SyncFolderRequest()
+        ..folderId = folderId
+        ..targetPeerIds.addAll(targetPeerIds);
+      
+      final response = await client.syncService.syncFolder(request);
+      
+      if (response.status.success) {
+        // Klasörler sekmesini yenile (folder gönderildikten sonra)
+        ref.invalidate(foldersProvider);
+        state = const AsyncValue.data(null);
+        return response;
+      } else {
+        state = AsyncValue.error(
+          response.status.message,
+          StackTrace.current,
+        );
+        return response;
+      }
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
 }
 
 /// Sync notifier provider

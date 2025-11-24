@@ -26,6 +26,13 @@ class FolderDetailPage extends ConsumerWidget {
         title: Text('Klasör Detayı'),
         actions: [
           IconButton(
+            icon: Icon(LucideIcons.folderSync),
+            onPressed: () {
+              _showSyncFolderDialog(context, ref);
+            },
+            tooltip: 'Tüm Klasörü Senkronize Et',
+          ),
+          IconButton(
             icon: Icon(LucideIcons.refreshCw),
             onPressed: () {
               ref.invalidate(filesProvider(folder.id));
@@ -331,6 +338,30 @@ class FolderDetailPage extends ConsumerWidget {
       );
     });
   }
+  
+  void _showSyncFolderDialog(BuildContext context, WidgetRef ref) {
+    final connectedPeersAsync = ref.read(connectedPeersProvider);
+    
+    connectedPeersAsync.whenData((peers) {
+      if (peers.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Bağlı peer bulunamadı. Önce bir peer\'a bağlanın.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+      
+      showDialog(
+        context: context,
+        builder: (context) => _SyncFolderDialog(
+          folder: folder,
+          peers: peers,
+        ),
+      );
+    });
+  }
 }
 
 class _SyncPeerDialog extends ConsumerStatefulWidget {
@@ -472,6 +503,141 @@ class _SyncPeerDialogState extends ConsumerState<_SyncPeerDialog> {
       return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
     }
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+  }
+}
+
+/// Folder sync dialog - tüm folder'ı peer'lara gönderir
+class _SyncFolderDialog extends ConsumerStatefulWidget {
+  final Folder folder;
+  final List<peer_pb.Peer> peers;
+
+  const _SyncFolderDialog({
+    required this.folder,
+    required this.peers,
+  });
+
+  @override
+  ConsumerState<_SyncFolderDialog> createState() => _SyncFolderDialogState();
+}
+
+class _SyncFolderDialogState extends ConsumerState<_SyncFolderDialog> {
+  final Set<String> _selectedPeerIds = {};
+
+  @override
+  Widget build(BuildContext context) {
+    final syncState = ref.watch(syncNotifierProvider);
+    
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(LucideIcons.folderSync, size: 20),
+          SizedBox(width: 8),
+          Text('Klasörü Senkronize Et'),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Klasör: ${widget.folder.localPath}',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Klasördeki TÜM dosyalar gönderilecek',
+            style: TextStyle(fontSize: 12, color: Colors.orange),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Peer Seç:',
+            style: TextStyle(fontWeight: FontWeight.w500),
+          ),
+          SizedBox(height: 8),
+          ...widget.peers.map((peer) {
+            final isSelected = _selectedPeerIds.contains(peer.deviceId);
+            return CheckboxListTile(
+              value: isSelected,
+              onChanged: syncState.isLoading
+                  ? null
+                  : (value) {
+                      setState(() {
+                        if (value == true) {
+                          _selectedPeerIds.add(peer.deviceId);
+                        } else {
+                          _selectedPeerIds.remove(peer.deviceId);
+                        }
+                      });
+                    },
+              title: Text(peer.name),
+              subtitle: Text(
+                peer.deviceId.substring(0, 8),
+                style: TextStyle(fontSize: 11, fontFamily: 'monospace'),
+              ),
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+            );
+          }),
+          if (syncState.isLoading)
+            Padding(
+              padding: EdgeInsets.only(top: 16),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 8),
+                  Text('Klasör senkronize ediliyor...'),
+                ],
+              ),
+            ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: syncState.isLoading
+              ? null
+              : () => Navigator.pop(context),
+          child: Text('İptal'),
+        ),
+        FilledButton(
+          onPressed: syncState.isLoading || _selectedPeerIds.isEmpty
+              ? null
+              : () async {
+                  final response = await ref
+                      .read(syncNotifierProvider.notifier)
+                      .syncFolder(widget.folder.id, _selectedPeerIds.toList());
+                  
+                  if (mounted && response != null) {
+                    final newState = ref.read(syncNotifierProvider);
+                    if (!newState.hasError) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Klasör başarıyla senkronize edildi\n'
+                            '${response.syncedFiles}/${response.totalFiles} dosya gönderildi'
+                          ),
+                          backgroundColor: Colors.green,
+                          duration: Duration(seconds: 4),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Hata: ${newState.error}'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+          child: Text('Klasörü Senkronize Et'),
+        ),
+      ],
+    );
   }
 }
 
