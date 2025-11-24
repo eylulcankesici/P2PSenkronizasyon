@@ -46,6 +46,13 @@ func (c *Connection) Open() error {
 		return fmt.Errorf("WAL modu etkinleştirilemedi: %w", err)
 	}
 	
+	// Busy timeout (database locked ise 5 saniye bekle)
+	// File watcher gibi concurrent operasyonlar için önemli
+	if _, err := db.Exec("PRAGMA busy_timeout=5000"); err != nil {
+		db.Close()
+		return fmt.Errorf("busy timeout ayarlanamadı: %w", err)
+	}
+	
 	// Foreign key'leri etkinleştir
 	if _, err := db.Exec("PRAGMA foreign_keys=ON"); err != nil {
 		db.Close()

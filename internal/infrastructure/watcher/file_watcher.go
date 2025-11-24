@@ -136,6 +136,12 @@ func (fw *FileWatcher) AddFolder(folder *entity.Folder) error {
 			"node_modules",
 			".idea",
 			".vscode",
+			// Microsoft Office geçici dosyaları
+			"~$",      // Word/Excel lock files (~$document.docx)
+			"~WRD",    // Word temp files (~WRD0001.tmp)
+			"~WRL",    // Word recovery files (~WRL0001.tmp)
+			".tmp",    // Genel temp files
+			"~",       // Backup files (file.txt~)
 		},
 	}
 	

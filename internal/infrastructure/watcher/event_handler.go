@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/aether/sync/internal/domain/entity"
@@ -21,8 +22,9 @@ type EventHandler struct {
 	debounceDelay time.Duration
 	
 	// Debouncing için
-	pendingEvents map[string]*FileEvent // path -> event
-	eventTimers   map[string]*time.Timer // path -> timer
+	pendingEvents map[string]*FileEvent      // path -> event
+	eventTimers   map[string]*time.Timer     // path -> timer
+	eventMu       sync.Mutex                 // Debouncing map'leri için mutex
 }
 
 // NewEventHandler yeni EventHandler oluşturur
@@ -43,13 +45,16 @@ func NewEventHandler(
 
 // HandleEvent dosya event'ini işler
 func (h *EventHandler) HandleEvent(event *FileEvent) error {
+	// MODIFY event'leri için debouncing uygula (Word çok hızlı yazıyor)
+	// CREATE ve DELETE için debouncing yok (hemen işle)
+	if event.Type == EventTypeModify {
+		return h.handleEventWithDebounce(event)
+	}
+	
 	// Event tipine göre işle
 	switch event.Type {
 	case EventTypeCreate:
 		return h.handleCreate(event)
-		
-	case EventTypeModify:
-		return h.handleModify(event)
 		
 	case EventTypeDelete:
 		return h.handleDelete(event)
@@ -62,6 +67,41 @@ func (h *EventHandler) HandleEvent(event *FileEvent) error {
 	default:
 		return fmt.Errorf("bilinmeyen event tipi: %s", event.Type)
 	}
+}
+
+// handleEventWithDebounce event'i debouncing ile işler
+func (h *EventHandler) handleEventWithDebounce(event *FileEvent) error {
+	h.eventMu.Lock()
+	defer h.eventMu.Unlock()
+	
+	// Event key (folder + path)
+	eventKey := fmt.Sprintf("%s:%s", event.FolderID, event.Path)
+	
+	// Önceki timer varsa iptal et
+	if timer, exists := h.eventTimers[eventKey]; exists {
+		timer.Stop()
+	}
+	
+	// Event'i sakla
+	h.pendingEvents[eventKey] = event
+	
+	// Yeni timer başlat
+	h.eventTimers[eventKey] = time.AfterFunc(h.debounceDelay, func() {
+		h.eventMu.Lock()
+		pendingEvent := h.pendingEvents[eventKey]
+		delete(h.pendingEvents, eventKey)
+		delete(h.eventTimers, eventKey)
+		h.eventMu.Unlock()
+		
+		if pendingEvent != nil {
+			// Event'i işle (debounce delay'den sonra)
+			if err := h.handleModify(pendingEvent); err != nil {
+				log.Printf("⚠️ Debounced event işleme hatası: %v", err)
+			}
+		}
+	})
+	
+	return nil
 }
 
 // handleCreate yeni dosya oluşturma event'ini işler
