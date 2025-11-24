@@ -47,6 +47,7 @@ func (m *Migration) RunMigrations() error {
 		{7, "create_users_table", m.createUsersTable},
 		{8, "create_versions_table", m.createVersionsTable},
 		{9, "create_indexes", m.createIndexes},
+		{10, "fix_cascade_delete", m.fixCascadeDelete},
 	}
 	
 	for _, migration := range migrations {
@@ -259,6 +260,209 @@ func (m *Migration) createIndexes(db *sql.DB) error {
 		if _, err := db.Exec(indexQuery); err != nil {
 			return err
 		}
+	}
+	
+	return nil
+}
+
+// fixCascadeDelete mevcut tablolara ON DELETE CASCADE constraint'ini ekler
+func (m *Migration) fixCascadeDelete(db *sql.DB) error {
+	// SQLite'da mevcut tabloya foreign key constraint eklemek için tabloları yeniden oluşturmak gerekiyor
+	
+	// 1. files tablosunu yeniden oluştur (ON DELETE CASCADE ile)
+	if err := m.recreateFilesTable(db); err != nil {
+		return fmt.Errorf("files tablosu yeniden oluşturulamadı: %w", err)
+	}
+	
+	// 2. file_chunks tablosunu yeniden oluştur (ON DELETE CASCADE ile)
+	if err := m.recreateFileChunksTable(db); err != nil {
+		return fmt.Errorf("file_chunks tablosu yeniden oluşturulamadı: %w", err)
+	}
+	
+	// 3. file_versions tablosunu yeniden oluştur (ON DELETE CASCADE ile)
+	if err := m.recreateFileVersionsTable(db); err != nil {
+		return fmt.Errorf("file_versions tablosu yeniden oluşturulamadı: %w", err)
+	}
+	
+	// 4. peer_folder_status tablosunu yeniden oluştur (ON DELETE CASCADE ile)
+	if err := m.recreatePeerFolderStatusTable(db); err != nil {
+		return fmt.Errorf("peer_folder_status tablosu yeniden oluşturulamadı: %w", err)
+	}
+	
+	return nil
+}
+
+// recreateFilesTable files tablosunu ON DELETE CASCADE ile yeniden oluşturur
+func (m *Migration) recreateFilesTable(db *sql.DB) error {
+	// Yeni tablo oluştur
+	_, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS files_new (
+			id TEXT PRIMARY KEY,
+			folder_id TEXT NOT NULL,
+			relative_path TEXT NOT NULL,
+			size INTEGER NOT NULL,
+			mod_time INTEGER NOT NULL,
+			global_hash TEXT NOT NULL,
+			is_deleted BOOLEAN NOT NULL,
+			FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE
+		)
+	`)
+	if err != nil {
+		return err
+	}
+	
+	// Eski tablodan verileri kopyala
+	_, err = db.Exec(`
+		INSERT INTO files_new (id, folder_id, relative_path, size, mod_time, global_hash, is_deleted)
+		SELECT id, folder_id, relative_path, size, mod_time, global_hash, is_deleted
+		FROM files
+	`)
+	if err != nil {
+		return err
+	}
+	
+	// Eski tabloyu sil
+	_, err = db.Exec(`DROP TABLE files`)
+	if err != nil {
+		return err
+	}
+	
+	// Yeni tabloyu eski adla rename et
+	_, err = db.Exec(`ALTER TABLE files_new RENAME TO files`)
+	if err != nil {
+		return err
+	}
+	
+	return nil
+}
+
+// recreateFileChunksTable file_chunks tablosunu ON DELETE CASCADE ile yeniden oluşturur
+func (m *Migration) recreateFileChunksTable(db *sql.DB) error {
+	// Yeni tablo oluştur
+	_, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS file_chunks_new (
+			file_id TEXT NOT NULL,
+			chunk_hash TEXT NOT NULL,
+			chunk_index INTEGER NOT NULL,
+			PRIMARY KEY(file_id, chunk_index),
+			FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
+			FOREIGN KEY (chunk_hash) REFERENCES chunks(hash)
+		)
+	`)
+	if err != nil {
+		return err
+	}
+	
+	// Eski tablodan verileri kopyala
+	_, err = db.Exec(`
+		INSERT INTO file_chunks_new (file_id, chunk_hash, chunk_index)
+		SELECT file_id, chunk_hash, chunk_index
+		FROM file_chunks
+	`)
+	if err != nil {
+		return err
+	}
+	
+	// Eski tabloyu sil
+	_, err = db.Exec(`DROP TABLE file_chunks`)
+	if err != nil {
+		return err
+	}
+	
+	// Yeni tabloyu eski adla rename et
+	_, err = db.Exec(`ALTER TABLE file_chunks_new RENAME TO file_chunks`)
+	if err != nil {
+		return err
+	}
+	
+	return nil
+}
+
+// recreateFileVersionsTable file_versions tablosunu ON DELETE CASCADE ile yeniden oluşturur
+func (m *Migration) recreateFileVersionsTable(db *sql.DB) error {
+	// Yeni tablo oluştur
+	_, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS file_versions_new (
+			id TEXT PRIMARY KEY,
+			file_id TEXT NOT NULL,
+			version_number INTEGER NOT NULL,
+			backup_path TEXT NOT NULL,
+			original_path TEXT NOT NULL,
+			size INTEGER NOT NULL,
+			hash TEXT NOT NULL,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			created_by_peer_id TEXT,
+			FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
+			UNIQUE(file_id, version_number)
+		)
+	`)
+	if err != nil {
+		return err
+	}
+	
+	// Eski tablodan verileri kopyala
+	_, err = db.Exec(`
+		INSERT INTO file_versions_new (id, file_id, version_number, backup_path, original_path, size, hash, created_at, created_by_peer_id)
+		SELECT id, file_id, version_number, backup_path, original_path, size, hash, created_at, created_by_peer_id
+		FROM file_versions
+	`)
+	if err != nil {
+		return err
+	}
+	
+	// Eski tabloyu sil
+	_, err = db.Exec(`DROP TABLE file_versions`)
+	if err != nil {
+		return err
+	}
+	
+	// Yeni tabloyu eski adla rename et
+	_, err = db.Exec(`ALTER TABLE file_versions_new RENAME TO file_versions`)
+	if err != nil {
+		return err
+	}
+	
+	return nil
+}
+
+// recreatePeerFolderStatusTable peer_folder_status tablosunu ON DELETE CASCADE ile yeniden oluşturur
+func (m *Migration) recreatePeerFolderStatusTable(db *sql.DB) error {
+	// Yeni tablo oluştur
+	_, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS peer_folder_status_new (
+			folder_id TEXT NOT NULL,
+			peer_id TEXT NOT NULL,
+			global_version INTEGER NOT NULL,
+			sync_state TEXT,
+			PRIMARY KEY(folder_id, peer_id),
+			FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE,
+			FOREIGN KEY (peer_id) REFERENCES peers(device_id) ON DELETE CASCADE
+		)
+	`)
+	if err != nil {
+		return err
+	}
+	
+	// Eski tablodan verileri kopyala
+	_, err = db.Exec(`
+		INSERT INTO peer_folder_status_new (folder_id, peer_id, global_version, sync_state)
+		SELECT folder_id, peer_id, global_version, sync_state
+		FROM peer_folder_status
+	`)
+	if err != nil {
+		return err
+	}
+	
+	// Eski tabloyu sil
+	_, err = db.Exec(`DROP TABLE peer_folder_status`)
+	if err != nil {
+		return err
+	}
+	
+	// Yeni tabloyu eski adla rename et
+	_, err = db.Exec(`ALTER TABLE peer_folder_status_new RENAME TO peer_folder_status`)
+	if err != nil {
+		return err
 	}
 	
 	return nil
