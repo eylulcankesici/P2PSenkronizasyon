@@ -73,12 +73,8 @@ func (h *EventHandler) HandleEvent(event *FileEvent) error {
 		return h.handleDelete(event)
 		
 	case EventTypeRename:
-		// Rename event'i genellikle iki aşamalıdır:
-		// 1. RENAME event'i (eski dosya) → Sil
-		// 2. CREATE event'i (yeni dosya) → Oluştur
-		// Burada eski dosyayı sil, yeni dosya CREATE event'i ile gelecek
-		log.Printf("📝 RENAME: %s (folder: %s) - eski dosya siliniyor", event.Path, event.FolderID[:8])
-		return h.handleDelete(event)
+		// Gerçek RENAME event'i (eski ve yeni path'imiz var)
+		return h.handleRename(event)
 		
 	default:
 		return fmt.Errorf("bilinmeyen event tipi: %s", event.Type)
@@ -336,6 +332,86 @@ func (h *EventHandler) handleDelete(event *FileEvent) error {
 			FolderID:  event.FolderID,
 			FileID:    fileID,
 			FilePath:  event.Path,
+			Timestamp: time.Now().UnixMilli(),
+		})
+	}
+	
+	return nil
+}
+
+// handleRename dosya adı değiştirme event'ini işler
+func (h *EventHandler) handleRename(event *FileEvent) error {
+	ctx := context.Background()
+	
+	log.Printf("📝 RENAME: %s -> %s (folder: %s)", event.OldPath, event.Path, event.FolderID[:8])
+	
+	// Eski dosyayı veritabanında bul
+	oldFile, err := h.fileRepo.GetByPath(ctx, event.FolderID, event.OldPath)
+	if err != nil {
+		// Eski dosya bulunamadı, yeni dosya olarak işle
+		log.Printf("  ⚠️ Eski dosya bulunamadı, CREATE olarak işleniyor: %s", event.OldPath)
+		return h.handleCreate(event)
+	}
+	
+	// Dosya bilgilerini al (yeni dosya için)
+	fileInfo, err := os.Stat(event.AbsPath)
+	if err != nil {
+		return fmt.Errorf("dosya bilgisi alınamadı: %w", err)
+	}
+	
+	// Dosya bilgilerini güncelle (sadece path ve modTime değişecek)
+	oldFile.RelativePath = event.Path
+	oldFile.ModTime = fileInfo.ModTime()
+	oldFile.UpdatedAt = time.Now()
+	
+	// Veritabanında güncelle
+	if err := h.fileRepo.Update(ctx, oldFile); err != nil {
+		return fmt.Errorf("dosya güncellenemedi: %w", err)
+	}
+	
+	log.Printf("✅ RENAME işlendi (veritabanı): %s -> %s", event.OldPath, event.Path)
+	
+	// RENAME için otomatik sync tetikle (karşı tarafa da rename bildirimi)
+	// Şimdilik DELETE + CREATE olarak gönderelim (basit implementasyon)
+	if h.onFileDeleted != nil {
+		// Eski dosyayı sil bildirimi
+		if err := h.onFileDeleted(oldFile.ID, event.FolderID); err != nil {
+			log.Printf("⚠️ Rename sync (delete) hatası (%s): %v", event.OldPath, err)
+		}
+	}
+	
+	// Chunk'ları güncelle (dosya içeriği değişmemiş olabilir, sadece path değişti)
+	// Eğer boyut da değiştiyse, yeni chunk'lar oluştur
+	if fileInfo.Size() != oldFile.Size {
+		// Boyut değişti, yeni chunk'lar oluştur
+		oldFile.Size = fileInfo.Size()
+		
+		// Eski chunk'ları sil
+		if err := h.chunkRepo.DeleteFileChunks(ctx, oldFile.ID); err != nil {
+			log.Printf("⚠️ Eski chunk'lar silinemedi: %v", err)
+		}
+		
+		// Yeni chunk'lar oluştur
+		if err := h.createChunks(ctx, oldFile, event.AbsPath); err != nil {
+			log.Printf("⚠️ Chunk oluşturulamadı: %v", err)
+		}
+		
+		// Yeni dosyayı gönder
+		if h.onFileChanged != nil {
+			if err := h.onFileChanged(oldFile.ID, event.FolderID); err != nil {
+				log.Printf("⚠️ Rename sync (create) hatası (%s): %v", event.Path, err)
+			}
+		}
+	}
+	
+	// UI'a event gönder (RENAME)
+	if h.eventBroadcaster != nil {
+		h.eventBroadcaster.Broadcast(&FileEventData{
+			EventType: EventTypeRename,
+			FolderID:  event.FolderID,
+			FileID:    oldFile.ID,
+			FilePath:  event.Path,
+			OldPath:   event.OldPath,
 			Timestamp: time.Now().UnixMilli(),
 		})
 	}

@@ -32,6 +32,7 @@ type FileEvent struct {
 	AbsPath   string // Absolute path
 	FolderID  string
 	Timestamp time.Time
+	OldPath   string // RENAME event'i için eski path
 }
 
 // FileWatcher dosya sistemi değişikliklerini izler
@@ -43,9 +44,20 @@ type FileWatcher struct {
 	eventHandlers []func(*FileEvent) error
 	errorHandlers []func(error)
 	
+	// RENAME event tracking (yeni path'i bilmek için)
+	recentRenames map[string]*RenameTracker // oldPath -> RenameTracker
+	renameMu      sync.Mutex
+	
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
+}
+
+// RenameTracker RENAME event'lerini takip eder
+type RenameTracker struct {
+	OldPath   string
+	FolderID  string
+	Timestamp time.Time
 }
 
 // WatchedFolder izlenen klasör bilgisi
@@ -67,6 +79,7 @@ func NewFileWatcher() (*FileWatcher, error) {
 	fw := &FileWatcher{
 		watcher:        fsWatcher,
 		watchedFolders: make(map[string]*WatchedFolder),
+		recentRenames:  make(map[string]*RenameTracker),
 		eventHandlers:  make([]func(*FileEvent) error, 0),
 		errorHandlers:  make([]func(error), 0),
 		ctx:            ctx,
@@ -88,6 +101,19 @@ func (fw *FileWatcher) Start() error {
 }
 
 // Stop watcher'ı durdurur
+// cleanOldRenames eski rename kayıtlarını temizler
+func (fw *FileWatcher) cleanOldRenames() {
+	fw.renameMu.Lock()
+	defer fw.renameMu.Unlock()
+	
+	now := time.Now()
+	for path, tracker := range fw.recentRenames {
+		if now.Sub(tracker.Timestamp) > 2*time.Second {
+			delete(fw.recentRenames, path)
+		}
+	}
+}
+
 func (fw *FileWatcher) Stop() error {
 	log.Println("🛑 File watcher durduruluyor...")
 	
@@ -260,9 +286,49 @@ func (fw *FileWatcher) handleFsnotifyEvent(event fsnotify.Event) error {
 	case event.Op&fsnotify.Rename == fsnotify.Rename:
 		eventType = EventTypeRename
 		
+		// RENAME event'ini kaydet (CREATE event'inde kullanmak için)
+		fw.renameMu.Lock()
+		fw.recentRenames[absPath] = &RenameTracker{
+			OldPath:   relPath,
+			FolderID:  watched.FolderID,
+			Timestamp: time.Now(),
+		}
+		fw.renameMu.Unlock()
+		
+		// Eski rename kayıtlarını temizle (2 saniyeden eski)
+		go fw.cleanOldRenames()
+		
 	default:
 		// Bilinmeyen event tipi
 		return nil
+	}
+	
+	// CREATE event'inde RENAME kontrolü yap
+	if eventType == EventTypeCreate {
+		fw.renameMu.Lock()
+		// Yakın zamanda (son 2 saniye) RENAME olmuş dosya var mı?
+		for oldPath, tracker := range fw.recentRenames {
+			if tracker.FolderID == watched.FolderID && time.Since(tracker.Timestamp) < 2*time.Second {
+				// Bu aslında RENAME! Eski path'i ekle
+				delete(fw.recentRenames, oldPath)
+				fw.renameMu.Unlock()
+				
+				// FileEvent oluştur (RENAME olarak, eski path ile)
+				fileEvent := &FileEvent{
+					Type:      EventTypeRename,
+					Path:      relPath,      // Yeni path
+					AbsPath:   absPath,      // Yeni abs path
+					FolderID:  watched.FolderID,
+					Timestamp: time.Now(),
+					OldPath:   tracker.OldPath, // Eski path
+				}
+				
+				log.Printf("📝 File event: RENAME (detected) - %s -> %s (folder: %s)", tracker.OldPath, relPath, watched.FolderID[:8])
+				fw.notifyEvent(fileEvent)
+				return nil
+			}
+		}
+		fw.renameMu.Unlock()
 	}
 	
 	// FileEvent oluştur
