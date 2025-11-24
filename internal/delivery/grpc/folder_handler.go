@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -234,6 +235,18 @@ func (h *FolderHandler) DeleteFolder(ctx context.Context, req *pb.DeleteFolderRe
 	if folder.Source == entity.FolderSourceReceived {
 		// ALICI TARAF: Peer'dan alınan folder → Fiziksel olarak sil
 		log.Printf("📦 Bu alıcı tarafın folder'ı (received), fiziksel olarak siliniyor: %s", folder.LocalPath)
+		
+		// Desktop symlink'ini sil (varsa)
+		if h.container.SymlinkManager() != nil {
+			folderName := filepath.Base(folder.LocalPath)
+			if err := h.container.SymlinkManager().RemoveDesktopSymlink(folderName); err != nil {
+				log.Printf("⚠️ Desktop symlink silinemedi: %v", err)
+			} else {
+				log.Printf("🔗 Desktop symlink silindi: %s", folderName)
+			}
+		}
+		
+		// Fiziksel klasörü sil
 		if err := os.RemoveAll(folder.LocalPath); err != nil {
 			log.Printf("⚠️ Fiziksel klasör silinemedi (%s): %v", folder.LocalPath, err)
 			return &pb.Status{

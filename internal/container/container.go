@@ -21,6 +21,7 @@ import (
 	"github.com/aether/sync/internal/domain/utils"
 	"github.com/aether/sync/internal/infrastructure/database/boltdb"
 	"github.com/aether/sync/internal/infrastructure/database/sqlite"
+	"github.com/aether/sync/internal/infrastructure/filesystem"
 	"github.com/aether/sync/internal/infrastructure/p2p"
 	"github.com/aether/sync/internal/infrastructure/p2p/lan"
 	"github.com/aether/sync/internal/infrastructure/watcher"
@@ -72,6 +73,9 @@ type Container struct {
 	// File watcher (real-time file monitoring)
 	fileWatcher    *watcher.FileWatcher
 	eventHandler   *watcher.EventHandler
+	
+	// Symlink manager (Desktop shortcut oluşturma)
+	symlinkManager *filesystem.SymlinkManager
 }
 
 // NewContainer yeni bir container oluşturur
@@ -80,6 +84,7 @@ func NewContainer(cfg *config.Config) (*Container, error) {
 		config:          cfg,
 		chunkRetryCount: make(map[string]int),
 		transferManager: p2p.NewTransferManager(),
+		symlinkManager:  filesystem.NewSymlinkManager(),
 	}
 	
 	// Database bağlantılarını kur
@@ -917,19 +922,29 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 					// Hata durumunda tekrar oku (race condition olabilir)
 					folder, _ = c.folderRepo.GetByID(ctx, folderID)
 				} else {
-					log.Printf("  ✅ Folder entity oluşturuldu: %s (%s)", folderID[:8], syncDir)
-					
-					// 🔄 File watcher'a otomatik ekle (bidirectional sync için)
-					if c.fileWatcher != nil {
-						if err := c.fileWatcher.AddFolder(folder); err != nil {
-							log.Printf("  ⚠️ Folder file watcher'a eklenemedi: %v", err)
-						} else {
-							log.Printf("  ✅ Folder otomatik olarak file watcher'a eklendi (bidirectional sync aktif)")
-						}
+				log.Printf("  ✅ Folder entity oluşturuldu: %s (%s)", folderID[:8], syncDir)
+				
+				// 🔄 File watcher'a otomatik ekle (bidirectional sync için)
+				if c.fileWatcher != nil {
+					if err := c.fileWatcher.AddFolder(folder); err != nil {
+						log.Printf("  ⚠️ Folder file watcher'a eklenemedi: %v", err)
+					} else {
+						log.Printf("  ✅ Folder otomatik olarak file watcher'a eklendi (bidirectional sync aktif)")
+					}
+				}
+				
+				// 🔗 Desktop'ta symlink oluştur (kullanıcı erişimi için)
+				if c.symlinkManager != nil {
+					symlinkPath, err := c.symlinkManager.CreateDesktopSymlink(syncDir, receivedFolderName)
+					if err != nil {
+						log.Printf("  ⚠️ Desktop symlink oluşturulamadı: %v", err)
+					} else {
+						log.Printf("  🔗 Desktop symlink oluşturuldu: %s → %s", symlinkPath, syncDir)
 					}
 				}
 			}
 		}
+	}
 			
 		// File entity oluştur/güncelle (alıcı taraf için)
 		if file == nil {
@@ -1316,6 +1331,11 @@ func (c *Container) initFileWatcher() error {
 // FileWatcher returns the file watcher instance
 func (c *Container) FileWatcher() *watcher.FileWatcher {
 	return c.fileWatcher
+}
+
+// SymlinkManager returns the symlink manager instance
+func (c *Container) SymlinkManager() *filesystem.SymlinkManager {
+	return c.symlinkManager
 }
 
 // syncFileToAllPeers dosyayı tüm peer'lara sync eder (otomatik sync için)
