@@ -21,7 +21,7 @@ class AetherApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.dark,  // ⚫ Siyah tema aktif
+      themeMode: ThemeMode.system,
       home: const HomePage(),
     );
   }
