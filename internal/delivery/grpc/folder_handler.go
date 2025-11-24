@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -226,11 +228,15 @@ func (h *FolderHandler) DeleteFolder(ctx context.Context, req *pb.DeleteFolderRe
 	}
 	log.Printf("✅ Klasör veritabanından silindi: %s", req.Id[:8])
 
-	// FİZİKSEL klasörü sil (tüm dosyalarıyla birlikte)
-	if folder.LocalPath != "" {
+	// FİZİKSEL klasörü SİL mi yoksa KORU mu?
+	// KURAL: Eğer "synced_folders" içindeyse → Alıcı tarafın folder'ı → FİZİKSEL OLARAK SİL
+	//        Değilse → Gönderici tarafın folder'ı → SADECE DB'DEN SİL, FİZİKSEL DOSYALARI KORU
+	
+	if folder.LocalPath != "" && strings.Contains(filepath.ToSlash(folder.LocalPath), "synced_folders") {
+		// ALICI TARAF: synced_folders içinde → Fiziksel olarak sil
+		log.Printf("📦 Bu alıcı tarafın folder'ı (synced_folders), fiziksel olarak siliniyor: %s", folder.LocalPath)
 		if err := os.RemoveAll(folder.LocalPath); err != nil {
 			log.Printf("⚠️ Fiziksel klasör silinemedi (%s): %v", folder.LocalPath, err)
-			// Hata döndürmüyoruz çünkü veritabanından silme başarılı
 			return &pb.Status{
 				Success: true,
 				Message: fmt.Sprintf("Klasör veritabanından silindi ama fiziksel klasör silinemedi: %v", err),
@@ -238,13 +244,22 @@ func (h *FolderHandler) DeleteFolder(ctx context.Context, req *pb.DeleteFolderRe
 			}, nil
 		}
 		log.Printf("✅ Fiziksel klasör silindi: %s", folder.LocalPath)
+		
+		return &pb.Status{
+			Success: true,
+			Message: "Klasör başarıyla silindi (veritabanı + fiziksel dosyalar)",
+			Code:    200,
+		}, nil
+	} else {
+		// GÖNDERİCİ TARAF: Kullanıcının kendi eklediği folder → Fiziksel olarak SILME
+		log.Printf("📁 Bu gönderici tarafın folder'ı, fiziksel dosyalar KORUNUYOR: %s", folder.LocalPath)
+		
+		return &pb.Status{
+			Success: true,
+			Message: "Klasör uygulamadan kaldırıldı (fiziksel dosyalar korundu)",
+			Code:    200,
+		}, nil
 	}
-
-	return &pb.Status{
-		Success: true,
-		Message: "Klasör başarıyla silindi (veritabanı + fiziksel dosyalar)",
-		Code:    200,
-	}, nil
 }
 
 // ToggleFolderActive klasörü aktif/pasif yapar

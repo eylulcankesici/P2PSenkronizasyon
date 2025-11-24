@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -98,24 +99,47 @@ func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest)
 	}
 	log.Printf("✅ Dosya veritabanından silindi: %s", req.FileId[:8])
 	
-	// FİZİKSEL dosyayı sil
+	// FİZİKSEL dosyayı SİL mi yoksa KORU mu?
+	// KURAL: Eğer "synced_folders" içindeyse → Alıcı tarafın dosyası → FİZİKSEL OLARAK SİL
+	//        Değilse → Gönderici tarafın dosyası → SADECE DB'DEN SİL, FİZİKSEL DOSYAYI KORU
+	
 	if folder != nil && folder.LocalPath != "" && file.RelativePath != "" {
 		filePath := filepath.Join(folder.LocalPath, file.RelativePath)
-		if err := os.Remove(filePath); err != nil {
-			log.Printf("⚠️ Fiziksel dosya silinemedi (%s): %v", filePath, err)
-			// Hata döndürmüyoruz çünkü veritabanından silme başarılı
+		
+		if strings.Contains(filepath.ToSlash(folder.LocalPath), "synced_folders") {
+			// ALICI TARAF: synced_folders içinde → Fiziksel olarak sil
+			log.Printf("📦 Bu alıcı tarafın dosyası (synced_folders), fiziksel olarak siliniyor: %s", filePath)
+			if err := os.Remove(filePath); err != nil {
+				log.Printf("⚠️ Fiziksel dosya silinemedi (%s): %v", filePath, err)
+				return &pb.Status{
+					Success: true,
+					Message: fmt.Sprintf("Dosya veritabanından silindi ama fiziksel dosya silinemedi: %v", err),
+					Code:    200,
+				}, nil
+			}
+			log.Printf("✅ Fiziksel dosya silindi: %s", filePath)
+			
 			return &pb.Status{
 				Success: true,
-				Message: fmt.Sprintf("Dosya veritabanından silindi ama fiziksel dosya silinemedi: %v", err),
+				Message: "Dosya başarıyla silindi (veritabanı + fiziksel dosya)",
+				Code:    200,
+			}, nil
+		} else {
+			// GÖNDERİCİ TARAF: Kullanıcının kendi eklediği dosya → Fiziksel olarak SILME
+			log.Printf("📁 Bu gönderici tarafın dosyası, fiziksel dosya KORUNUYOR: %s", filePath)
+			
+			return &pb.Status{
+				Success: true,
+				Message: "Dosya uygulamadan kaldırıldı (fiziksel dosya korundu)",
 				Code:    200,
 			}, nil
 		}
-		log.Printf("✅ Fiziksel dosya silindi: %s", filePath)
 	}
 	
+	// Folder bilgisi yoksa (fallback)
 	return &pb.Status{
 		Success: true,
-		Message: "Dosya başarıyla silindi (veritabanı + fiziksel dosya)",
+		Message: "Dosya veritabanından silindi",
 		Code:    200,
 	}, nil
 }
