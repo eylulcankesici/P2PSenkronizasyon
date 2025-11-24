@@ -13,12 +13,21 @@ const (
 	SyncModeReceiveOnly   SyncMode = "receive_only"  // Sadece al
 )
 
+// FolderSource folder'ın nereden geldiğini tanımlar
+type FolderSource string
+
+const (
+	FolderSourceUser     FolderSource = "user"     // Kullanıcının manuel eklediği folder
+	FolderSourceReceived FolderSource = "received" // Peer'dan alınan folder
+)
+
 // Folder senkronize edilen bir klasörü temsil eder
 // Single Responsibility: Sadece klasör verilerini tutar
 type Folder struct {
 	ID           string
 	LocalPath    string
 	SyncMode     SyncMode
+	Source       FolderSource // Folder'ın kaynağı (user/received)
 	LastScanTime time.Time
 	IsActive     bool
 	CreatedAt    time.Time
@@ -31,11 +40,19 @@ func NewFolder(localPath string, syncMode SyncMode) *Folder {
 	return &Folder{
 		LocalPath:    localPath,
 		SyncMode:     syncMode,
+		Source:       FolderSourceUser, // Varsayılan: kullanıcının eklediği
 		IsActive:     true,
 		LastScanTime: time.Time{},
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
+}
+
+// NewReceivedFolder peer'dan alınan folder oluşturur
+func NewReceivedFolder(localPath string, syncMode SyncMode) *Folder {
+	folder := NewFolder(localPath, syncMode)
+	folder.Source = FolderSourceReceived
+	return folder
 }
 
 // Validate klasörün geçerliliğini kontrol eder

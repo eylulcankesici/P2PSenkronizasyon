@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -100,15 +99,16 @@ func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest)
 	log.Printf("✅ Dosya veritabanından silindi: %s", req.FileId[:8])
 	
 	// FİZİKSEL dosyayı SİL mi yoksa KORU mu?
-	// KURAL: Eğer "synced_folders" içindeyse → Alıcı tarafın dosyası → FİZİKSEL OLARAK SİL
-	//        Değilse → Gönderici tarafın dosyası → SADECE DB'DEN SİL, FİZİKSEL DOSYAYI KORU
+	// KURAL: Source field'ına göre karar ver (path'e bakmaya gerek yok!)
+	//   - FolderSourceReceived → Peer'dan alınan → FİZİKSEL OLARAK SİL
+	//   - FolderSourceUser → Kullanıcının eklediği → SADECE DB'DEN SİL, FİZİKSEL DOSYAYI KORU
 	
 	if folder != nil && folder.LocalPath != "" && file.RelativePath != "" {
 		filePath := filepath.Join(folder.LocalPath, file.RelativePath)
 		
-		if strings.Contains(filepath.ToSlash(folder.LocalPath), "synced_folders") {
-			// ALICI TARAF: synced_folders içinde → Fiziksel olarak sil
-			log.Printf("📦 Bu alıcı tarafın dosyası (synced_folders), fiziksel olarak siliniyor: %s", filePath)
+		if folder.Source == entity.FolderSourceReceived {
+			// ALICI TARAF: Peer'dan alınan dosya → Fiziksel olarak sil
+			log.Printf("📦 Bu alıcı tarafın dosyası (received), fiziksel olarak siliniyor: %s", filePath)
 			if err := os.Remove(filePath); err != nil {
 				log.Printf("⚠️ Fiziksel dosya silinemedi (%s): %v", filePath, err)
 				return &pb.Status{

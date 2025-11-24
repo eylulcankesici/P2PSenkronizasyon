@@ -909,8 +909,8 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 					}
 				}
 			} else {
-				// Yeni folder oluştur
-				folder = entity.NewFolder(syncDir, entity.SyncModeBidirectional)
+				// Yeni folder oluştur (alıcı taraf için - received source)
+				folder = entity.NewReceivedFolder(syncDir, entity.SyncModeBidirectional)
 				folder.ID = folderID
 				if err := c.folderRepo.Create(ctx, folder); err != nil {
 					log.Printf("  ⚠️ Folder entity oluşturulamadı: %v", err)

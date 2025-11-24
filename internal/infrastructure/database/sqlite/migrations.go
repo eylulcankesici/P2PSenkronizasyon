@@ -48,6 +48,7 @@ func (m *Migration) RunMigrations() error {
 		{8, "create_versions_table", m.createVersionsTable},
 		{9, "create_indexes", m.createIndexes},
 		{10, "fix_cascade_delete", m.fixCascadeDelete},
+		{11, "add_folder_source", m.addFolderSource},
 	}
 	
 	for _, migration := range migrations {
@@ -463,6 +464,33 @@ func (m *Migration) recreatePeerFolderStatusTable(db *sql.DB) error {
 	_, err = db.Exec(`ALTER TABLE peer_folder_status_new RENAME TO peer_folder_status`)
 	if err != nil {
 		return err
+	}
+	
+	return nil
+}
+
+// addFolderSource folders tablosuna source kolonu ekler (migration 11)
+func (m *Migration) addFolderSource(db *sql.DB) error {
+	// source kolonu ekle (default 'user')
+	_, err := db.Exec(`
+		ALTER TABLE folders 
+		ADD COLUMN source TEXT NOT NULL DEFAULT 'user'
+	`)
+	if err != nil {
+		return fmt.Errorf("source kolonu eklenemedi: %w", err)
+	}
+	
+	// Mevcut tüm folder'ların source'unu belirle
+	// synced_folders içindeyse 'received', değilse 'user'
+	_, err = db.Exec(`
+		UPDATE folders 
+		SET source = CASE 
+			WHEN local_path LIKE '%synced_folders%' THEN 'received'
+			ELSE 'user'
+		END
+	`)
+	if err != nil {
+		return fmt.Errorf("source değerleri güncellenemedi: %w", err)
 	}
 	
 	return nil
