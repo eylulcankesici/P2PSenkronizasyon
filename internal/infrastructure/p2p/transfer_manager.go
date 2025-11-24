@@ -137,7 +137,7 @@ func (m *TransferManager) UpdateChunkProgress(fileID string, completedChunks int
 	}
 }
 
-// CompleteTransfer transfer'i tamamlandı olarak işaretle
+// CompleteTransfer transfer'i tamamlandı olarak işaretle ve map'ten kaldır
 func (m *TransferManager) CompleteTransfer(fileID string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -153,9 +153,19 @@ func (m *TransferManager) CompleteTransfer(fileID string) {
 	transfer.CompletedChunks = transfer.TotalChunks
 	transfer.TransferredBytes = transfer.TotalBytes
 	transfer.lastUpdate = time.Now()
+	
+	// Transfer tamamlandı, map'ten kaldır (yeni transfer için temiz başlangıç)
+	log.Printf("✅ Transfer tamamlandı ve map'ten kaldırılıyor: %s", fileID[:8])
+	
+	// Context'i iptal et
+	if transfer.cancel != nil {
+		transfer.cancel()
+	}
+	
+	delete(m.transfers, fileID)
 }
 
-// FailTransfer transfer'i başarısız olarak işaretle
+// FailTransfer transfer'i başarısız olarak işaretle ve map'ten kaldır
 func (m *TransferManager) FailTransfer(fileID string, err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -170,6 +180,16 @@ func (m *TransferManager) FailTransfer(fileID string, err error) {
 	transfer.State = pb.TransferState_TRANSFER_STATE_FAILED
 	transfer.Error = err
 	transfer.lastUpdate = time.Now()
+	
+	// Transfer başarısız oldu, map'ten kaldır (yeni transfer için temiz başlangıç)
+	log.Printf("❌ Transfer başarısız oldu ve map'ten kaldırılıyor: %s, hata: %v", fileID[:8], err)
+	
+	// Context'i iptal et
+	if transfer.cancel != nil {
+		transfer.cancel()
+	}
+	
+	delete(m.transfers, fileID)
 }
 
 // CancelTransfer transfer'i iptal et
