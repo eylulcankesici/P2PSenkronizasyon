@@ -19,6 +19,7 @@ type EventHandler struct {
 	fileRepo      repository.FileRepository
 	chunkingUC    usecase.ChunkingUseCase
 	folderRepo    repository.FolderRepository
+	chunkRepo     repository.ChunkRepository
 	debounceDelay time.Duration
 	
 	// Debouncing için
@@ -26,8 +27,9 @@ type EventHandler struct {
 	eventTimers   map[string]*time.Timer     // path -> timer
 	eventMu       sync.Mutex                 // Debouncing map'leri için mutex
 	
-	// Sync callback (değişiklik olduktan sonra otomatik sync tetikle)
-	onFileChanged func(fileID, folderID string) error
+	// Sync callbacks
+	onFileChanged      func(fileID, folderID string) error                    // Tüm dosya için sync
+	onChunksChanged    func(fileID, folderID string, changedChunks []int) error // Sadece değişen chunk'lar için sync
 }
 
 // NewEventHandler yeni EventHandler oluşturur
@@ -35,11 +37,13 @@ func NewEventHandler(
 	fileRepo repository.FileRepository,
 	chunkingUC usecase.ChunkingUseCase,
 	folderRepo repository.FolderRepository,
+	chunkRepo repository.ChunkRepository,
 ) *EventHandler {
 	return &EventHandler{
 		fileRepo:      fileRepo,
 		chunkingUC:    chunkingUC,
 		folderRepo:    folderRepo,
+		chunkRepo:     chunkRepo,
 		debounceDelay: 500 * time.Millisecond, // Çok hızlı değişikliklerde spam önleme
 		pendingEvents: make(map[string]*FileEvent),
 		eventTimers:   make(map[string]*time.Timer),
@@ -176,14 +180,26 @@ func (h *EventHandler) handleModify(event *FileEvent) error {
 		return nil
 	}
 	
-	// Log azaltılmış (MODIFY çok fazla)
-	// log.Printf("📝 MODIFY: %s (folder: %s)", event.Path, event.FolderID[:8])
+	log.Printf("📝 MODIFY: %s (folder: %s)", event.Path, event.FolderID[:8])
 	
 	// Veritabanında dosyayı bul
 	file, err := h.fileRepo.GetByPath(ctx, event.FolderID, event.Path)
 	if err != nil {
 		// Dosya veritabanında yoksa, CREATE olarak işle
 		return h.handleCreate(event)
+	}
+	
+	// ESKİ chunk hash'lerini al (delta sync için)
+	oldChunks, err := h.chunkRepo.GetFileChunks(ctx, file.ID)
+	if err != nil {
+		log.Printf("⚠️ Eski chunk'lar alınamadı, tüm dosya sync edilecek: %v", err)
+		oldChunks = nil // Eski chunk yok, tüm dosyayı sync et
+	}
+	
+	// Eski chunk hash'lerini map'e al (hızlı karşılaştırma için)
+	oldChunkHashes := make(map[int]string) // index -> hash
+	for _, chunk := range oldChunks {
+		oldChunkHashes[chunk.ChunkIndex] = chunk.ChunkHash
 	}
 	
 	// Dosya bilgilerini güncelle
@@ -195,20 +211,46 @@ func (h *EventHandler) handleModify(event *FileEvent) error {
 		return fmt.Errorf("dosya güncellenemedi: %w", err)
 	}
 	
-	// Yeni chunk'lar oluştur
+	// YENİ chunk'lar oluştur
 	if fileInfo.Size() > 0 {
 		if err := h.createChunks(ctx, file, event.AbsPath); err != nil {
 			log.Printf("⚠️ Chunk oluşturulamadı (%s): %v", event.Path, err)
-			log.Printf("✅ MODIFY işlendi: %s", event.Path)
-			return nil // Chunk hatası olsa bile devam et
+			return nil
 		}
 		
-		// MODIFY için otomatik sync KAPALI
-		// Çünkü: Sistem tüm chunk'ları tekrar gönderiyor (delta sync yok)
-		// Kullanıcı UI'dan manuel "Sync" yapacak
-		log.Printf("✅ MODIFY işlendi, chunk'lar hazır: %s (manuel sync gerekli)", event.Path)
+		// Yeni chunk'ları al
+		newChunks, err := h.chunkRepo.GetFileChunks(ctx, file.ID)
+		if err != nil {
+			log.Printf("⚠️ Yeni chunk'lar alınamadı: %v", err)
+			return nil
+		}
+		
+		// DEĞİŞEN chunk'ları tespit et
+		changedChunkIndices := make([]int, 0)
+		for _, newChunk := range newChunks {
+			oldHash, exists := oldChunkHashes[newChunk.ChunkIndex]
+			if !exists || oldHash != newChunk.ChunkHash {
+				// Bu chunk değişti veya yeni
+				changedChunkIndices = append(changedChunkIndices, newChunk.ChunkIndex)
+			}
+		}
+		
+		if len(changedChunkIndices) == 0 {
+			log.Printf("✅ MODIFY işlendi, değişiklik yok: %s", event.Path)
+			return nil
+		}
+		
+		log.Printf("🔄 %d/%d chunk değişti: %s", len(changedChunkIndices), len(newChunks), event.Path)
+		
+		// DELTA SYNC: Sadece değişen chunk'ları gönder
+		if h.onChunksChanged != nil {
+			if err := h.onChunksChanged(file.ID, event.FolderID, changedChunkIndices); err != nil {
+				log.Printf("⚠️ Delta sync hatası (%s): %v", event.Path, err)
+			}
+		}
 	}
 	
+	log.Printf("✅ MODIFY işlendi: %s", event.Path)
 	return nil
 }
 
@@ -268,8 +310,13 @@ func (h *EventHandler) SetDebounceDelay(delay time.Duration) {
 	h.debounceDelay = delay
 }
 
-// SetOnFileChanged file changed callback'i ayarlar
+// SetOnFileChanged file changed callback'i ayarlar (tüm dosya için)
 func (h *EventHandler) SetOnFileChanged(callback func(fileID, folderID string) error) {
 	h.onFileChanged = callback
+}
+
+// SetOnChunksChanged chunks changed callback'i ayarlar (sadece değişen chunk'lar için)
+func (h *EventHandler) SetOnChunksChanged(callback func(fileID, folderID string, changedChunks []int) error) {
+	h.onChunksChanged = callback
 }
 

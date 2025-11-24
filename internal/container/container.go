@@ -1193,16 +1193,23 @@ func (c *Container) initFileWatcher() error {
 		c.fileRepo,
 		c.chunkingUseCase,
 		c.folderRepo,
+		c.chunkRepo,
 	)
 	c.eventHandler = eventHandler
 	
 	// Event handler'ı watcher'a bağla
 	c.fileWatcher.OnEvent(eventHandler.HandleEvent)
 	
-	// File changed callback (otomatik sync)
+	// File changed callback (yeni dosya için - tüm chunk'lar)
 	eventHandler.SetOnFileChanged(func(fileID, folderID string) error {
-		// Dosya değiştiğinde tüm peer'lara sync et
+		// Yeni dosya oluşturulduğunda tüm peer'lara sync et
 		return c.syncFileToAllPeers(fileID, folderID)
+	})
+	
+	// Chunks changed callback (MODIFY için - sadece değişen chunk'lar)
+	eventHandler.SetOnChunksChanged(func(fileID, folderID string, changedChunks []int) error {
+		// Dosya düzenlendiğinde sadece değişen chunk'ları sync et (DELTA SYNC)
+		return c.syncChangedChunksToAllPeers(fileID, folderID, changedChunks)
 	})
 	
 	// Error handler
@@ -1269,6 +1276,108 @@ func (c *Container) syncFileToAllPeers(fileID, folderID string) error {
 				log.Printf("✅ Otomatik sync başarılı (peer: %s, file: %s)", pid[:8], fileID[:8])
 			}
 		}(peerID)
+	}
+	
+	return nil
+}
+
+// syncChangedChunksToAllPeers sadece değişen chunk'ları tüm peer'lara sync eder (DELTA SYNC)
+func (c *Container) syncChangedChunksToAllPeers(fileID, folderID string, changedChunkIndices []int) error {
+	ctx := context.Background()
+	
+	// TransportProvider yoksa atla
+	if c.transportProvider == nil {
+		log.Printf("  ℹ️  TransportProvider yok, delta sync atlanıyor: %s", fileID[:8])
+		return nil
+	}
+	
+	// Gerçek bağlı peer'ları al
+	allConnections := c.transportProvider.GetAllConnections()
+	
+	if len(allConnections) == 0 {
+		log.Printf("  ℹ️  Hiç bağlı peer yok, delta sync atlanıyor: %s", fileID[:8])
+		return nil
+	}
+	
+	log.Printf("🔄 DELTA SYNC: %d chunk değişikliği -> %d peer", len(changedChunkIndices), len(allConnections))
+	
+	// Her peer'a sadece değişen chunk'ları gönder
+	for _, conn := range allConnections {
+		peerID := conn.GetPeerID()
+		go func(pid string, indices []int) {
+			if err := c.syncSpecificChunksToPeer(ctx, pid, fileID, indices); err != nil {
+				log.Printf("⚠️ Delta sync hatası (peer: %s, file: %s): %v", pid[:8], fileID[:8], err)
+			} else {
+				log.Printf("✅ Delta sync başarılı (peer: %s, %d chunk)", pid[:8], len(indices))
+			}
+		}(peerID, changedChunkIndices)
+	}
+	
+	return nil
+}
+
+// syncSpecificChunksToPeer belirli chunk'ları peer'a gönderir
+func (c *Container) syncSpecificChunksToPeer(ctx context.Context, peerID, fileID string, chunkIndices []int) error {
+	// Dosya bilgisini al
+	file, err := c.fileRepo.GetByID(ctx, fileID)
+	if err != nil {
+		return fmt.Errorf("dosya bulunamadı: %w", err)
+	}
+	
+	// Tüm chunk'ları al
+	allChunks, err := c.chunkRepo.GetFileChunks(ctx, fileID)
+	if err != nil {
+		return fmt.Errorf("chunk'lar alınamadı: %w", err)
+	}
+	
+	// Sadece değişen chunk'ları filtrele
+	chunksToSend := make([]*entity.FileChunk, 0)
+	for _, chunk := range allChunks {
+		for _, idx := range chunkIndices {
+			if chunk.ChunkIndex == idx {
+				chunksToSend = append(chunksToSend, chunk)
+				break
+			}
+		}
+	}
+	
+	if len(chunksToSend) == 0 {
+		return fmt.Errorf("gönderilecek chunk bulunamadı")
+	}
+	
+	// Bağlantıyı al
+	conn, exists := c.transportProvider.GetConnection(peerID)
+	if !exists {
+		return fmt.Errorf("peer bağlı değil: %s", peerID)
+	}
+	
+	// Her değişen chunk'ı gönder
+	for _, fc := range chunksToSend {
+		// Chunk verisini al
+		chunkData, err := c.chunkingUseCase.GetChunkData(ctx, fc.ChunkHash)
+		if err != nil {
+			return fmt.Errorf("chunk verisi alınamadı: %w", err)
+		}
+		
+		// Chunk'ı gönder (file bilgisiyle)
+		if tcpConn, ok := conn.(interface {
+			SendChunkWithFileInfo(ctx context.Context, chunkHash string, data []byte, fileID string, chunkIndex, totalChunks int, fileName string) error
+		}); ok {
+			if err := tcpConn.SendChunkWithFileInfo(
+				ctx,
+				fc.ChunkHash,
+				chunkData,
+				fileID,
+				fc.ChunkIndex,
+				len(allChunks),
+				file.RelativePath,
+			); err != nil {
+				return fmt.Errorf("chunk gönderilemedi [%d]: %w", fc.ChunkIndex, err)
+			}
+			log.Printf("  📤 Değişen chunk gönderildi: index=%d, hash=%s", fc.ChunkIndex, fc.ChunkHash[:8])
+		} else {
+			return fmt.Errorf("connection SendChunkWithFileInfo desteklemiyor")
+		}
 	}
 	
 	return nil
