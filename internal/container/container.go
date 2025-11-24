@@ -429,9 +429,9 @@ func (c *Container) initUseCases() error {
 			// Şimdilik sadece log - UI tarafında polling ile alınabilir
 		})
 		
-		// Chunk received callback'ini bağla (push-based sync için)
-		connMgr.SetOnChunkReceived(func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName string) error {
-			return c.handleIncomingChunk(context.Background(), peerID, fileID, chunkHash, chunkData, chunkIndex, totalChunks, fileName)
+		// Chunk received callback'ini bağla (push-based sync için - folder name ile)
+		connMgr.SetOnChunkReceived(func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string) error {
+			return c.handleIncomingChunk(context.Background(), peerID, fileID, chunkHash, chunkData, chunkIndex, totalChunks, fileName, folderName)
 		})
 		
 		log.Println("✓ Chunk received callback bağlandı")
@@ -563,10 +563,10 @@ func (c *Container) initP2PTransport() error {
 }
 
 	// handleIncomingChunk gelen chunk'ı işler (push-based sync)
-func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName string) error {
+func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string) error {
 	// Log azaltıldı - sadece her 50 chunk'ta bir log
 	if chunkIndex%50 == 0 || chunkIndex == 0 || chunkIndex == totalChunks-1 {
-		log.Printf("📥 Incoming chunk: file=%s, chunk=%d/%d, hash=%s", fileID[:8], chunkIndex+1, totalChunks, chunkHash[:8])
+		log.Printf("📥 Incoming chunk: file=%s, folder=%s, chunk=%d/%d, hash=%s", fileID[:8], folderName, chunkIndex+1, totalChunks, chunkHash[:8])
 	}
 	
 	// İlk chunk ise dosyayı initialize et ve transfer durumunu başlat
@@ -770,8 +770,8 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 			log.Printf("  ❌ Chunk hash hatası (retry %d/%d): %v", retryCount+1, maxRetries, err)
 			c.incrementChunkRetryCount(retryKey)
 			
-			// Chunk'ı tekrar talep et
-			if err := c.retryChunkRequest(ctx, peerID, chunkHash, fileID, chunkIndex, totalChunks, fileName); err != nil {
+			// Chunk'ı tekrar talep et (folder name ile)
+			if err := c.retryChunkRequest(ctx, peerID, chunkHash, fileID, chunkIndex, totalChunks, fileName, folderName); err != nil {
 				log.Printf("  ⚠️ Chunk retry hatası: %v", err)
 				return fmt.Errorf("chunk retry başarısız: %w", err)
 			}
@@ -832,44 +832,45 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 		if outputPath == "" {
 			log.Printf("  📁 Dosya/folder bilgisi yok, yeni klasör oluşturuluyor")
 			
-			// Varsayılan sync klasörü: DataDir/synced_folders/{folder_id veya file_id}
-			syncBaseDir := filepath.Join(c.config.App.DataDir, "synced_folders")
-			
-			var folderID, folderName, finalFileName string
-			
-			// Folder bilgisini belirle
-			if file != nil && file.FolderID != "" {
-				folderID = file.FolderID
-				// Folder adını klasör yolundan çıkar (son klasör adı)
-				if folderNameTemp, err := c.folderRepo.GetByID(ctx, file.FolderID); err == nil && folderNameTemp != nil {
-					folderName = filepath.Base(folderNameTemp.LocalPath)
-				} else {
-					folderName = folderID[:8] // İlk 8 karakter
-				}
-				finalFileName = file.RelativePath
+		// Varsayılan sync klasörü: DataDir/synced_folders/{folder_name}
+		syncBaseDir := filepath.Join(c.config.App.DataDir, "synced_folders")
+		
+		var folderID, receivedFolderName, finalFileName string
+		
+		// Folder adını belirle (öncelik: gelen folderName parametresi)
+		if folderName != "" {
+			// Sender'dan gelen folder adını kullan (ÖNCELİKLİ)
+			receivedFolderName = folderName
+			log.Printf("  ✅ Sender'dan gelen folder adı kullanılıyor: %s", receivedFolderName)
+		} else if file != nil && file.FolderID != "" {
+			// Veritabanındaki folder bilgisini kullan (fallback)
+			folderID = file.FolderID
+			if folderTemp, err := c.folderRepo.GetByID(ctx, file.FolderID); err == nil && folderTemp != nil {
+				receivedFolderName = filepath.Base(folderTemp.LocalPath)
 			} else {
-				// FileID'den klasör oluştur
-				folderID = fmt.Sprintf("synced_%s", fileID[:8])
-				folderName = folderID
-				// Önce gelen fileName'i kullan, yoksa file.RelativePath, yoksa fallback
-				var relativePath string
-				if file != nil {
-					relativePath = file.RelativePath
-				}
-				log.Printf("  🔍 fileName kontrol ediliyor: fileName='%s', file.RelativePath='%s'", fileName, relativePath)
-				if fileName != "" {
-					finalFileName = fileName  // Gelen fileName'i kullan
-					log.Printf("  ✅ Gelen fileName kullaniliyor: %s", finalFileName)
-				} else if file != nil && file.RelativePath != "" {
-					finalFileName = file.RelativePath
-					log.Printf("  ✅ File.RelativePath kullaniliyor: %s", finalFileName)
-				} else {
-					finalFileName = fmt.Sprintf("file_%s", fileID[:8])
-					log.Printf("  ⚠️ Fallback fileName kullaniliyor: %s", finalFileName)
-				}
+				receivedFolderName = folderID[:8] // İlk 8 karakter
 			}
-			
-			syncDir := filepath.Join(syncBaseDir, folderName)
+			log.Printf("  ⚠️ Veritabanından folder adı kullanılıyor: %s", receivedFolderName)
+		} else {
+			// FileID'den klasör oluştur (son fallback)
+			folderID = fmt.Sprintf("synced_%s", fileID[:8])
+			receivedFolderName = folderID
+			log.Printf("  ⚠️ Fallback folder adı oluşturuldu: %s", receivedFolderName)
+		}
+		
+		// FileName belirle
+		if fileName != "" {
+			finalFileName = fileName  // Gelen fileName'i kullan
+			log.Printf("  ✅ Gelen fileName kullanılıyor: %s", finalFileName)
+		} else if file != nil && file.RelativePath != "" {
+			finalFileName = file.RelativePath
+			log.Printf("  ✅ File.RelativePath kullanılıyor: %s", finalFileName)
+		} else {
+			finalFileName = fmt.Sprintf("file_%s", fileID[:8])
+			log.Printf("  ⚠️ Fallback fileName kullanılıyor: %s", finalFileName)
+		}
+		
+		syncDir := filepath.Join(syncBaseDir, receivedFolderName)
 			
 			// Klasörü oluştur
 			if err := os.MkdirAll(syncDir, 0755); err != nil {
@@ -1010,7 +1011,7 @@ func (c *Container) clearChunkRetryCount(retryKey string) {
 }
 
 // retryChunkRequest chunk'ı tekrar talep eder (retry mekanizması)
-func (c *Container) retryChunkRequest(ctx context.Context, peerID, chunkHash, fileID string, chunkIndex, totalChunks int, fileName string) error {
+func (c *Container) retryChunkRequest(ctx context.Context, peerID, chunkHash, fileID string, chunkIndex, totalChunks int, fileName, folderName string) error {
 	log.Printf("  🔄 Chunk retry başlatılıyor: %s (file: %s, index: %d)", chunkHash[:8], fileID[:8], chunkIndex)
 	
 	// Bağlantıyı al
@@ -1032,9 +1033,9 @@ func (c *Container) retryChunkRequest(ctx context.Context, peerID, chunkHash, fi
 			return fmt.Errorf("chunk retry talebi başarısız: %w", err)
 		}
 		
-		// Tekrar handleIncomingChunk çağır (recursive retry)
+		// Tekrar handleIncomingChunk çağır (recursive retry - folder name ile)
 		log.Printf("  ✅ Chunk retry alındı, tekrar doğrulanıyor: %s", chunkHash[:8])
-		return c.handleIncomingChunk(ctx, peerID, fileID, chunkHash, retryChunkData, chunkIndex, totalChunks, fileName)
+		return c.handleIncomingChunk(ctx, peerID, fileID, chunkHash, retryChunkData, chunkIndex, totalChunks, fileName, folderName)
 	}
 	
 	return fmt.Errorf("retry desteği yok (connection type: %T)", conn)
@@ -1324,6 +1325,13 @@ func (c *Container) syncSpecificChunksToPeer(ctx context.Context, peerID, fileID
 		return fmt.Errorf("dosya bulunamadı: %w", err)
 	}
 	
+	// Folder bilgisini al (folder adı için)
+	folder, err := c.folderRepo.GetByID(ctx, file.FolderID)
+	if err != nil {
+		return fmt.Errorf("folder bulunamadı: %w", err)
+	}
+	folderName := filepath.Base(folder.LocalPath)
+	
 	// Tüm chunk'ları al
 	allChunks, err := c.chunkRepo.GetFileChunks(ctx, fileID)
 	if err != nil {
@@ -1359,9 +1367,9 @@ func (c *Container) syncSpecificChunksToPeer(ctx context.Context, peerID, fileID
 			return fmt.Errorf("chunk verisi alınamadı: %w", err)
 		}
 		
-		// Chunk'ı gönder (file bilgisiyle)
+		// Chunk'ı gönder (file + folder bilgisiyle)
 		if tcpConn, ok := conn.(interface {
-			SendChunkWithFileInfo(ctx context.Context, chunkHash string, data []byte, fileID string, chunkIndex, totalChunks int, fileName string) error
+			SendChunkWithFileInfo(ctx context.Context, chunkHash string, data []byte, fileID string, chunkIndex, totalChunks int, fileName, folderName string) error
 		}); ok {
 			if err := tcpConn.SendChunkWithFileInfo(
 				ctx,
@@ -1371,6 +1379,7 @@ func (c *Container) syncSpecificChunksToPeer(ctx context.Context, peerID, fileID
 				fc.ChunkIndex,
 				len(allChunks),
 				file.RelativePath,
+				folderName,  // Folder adı eklendi
 			); err != nil {
 				return fmt.Errorf("chunk gönderilemedi [%d]: %w", fc.ChunkIndex, err)
 			}

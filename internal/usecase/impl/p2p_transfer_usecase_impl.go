@@ -105,6 +105,13 @@ func (uc *P2PTransferUseCaseImpl) SyncFileWithPeerWithProgress(ctx context.Conte
 		return fmt.Errorf("dosya bilgisi alınamadı: %w", err)
 	}
 	
+	// Folder bilgisini al (folderName için)
+	folder, err := uc.folderRepo.GetByID(ctx, file.FolderID)
+	if err != nil {
+		return fmt.Errorf("folder bilgisi alınamadı: %w", err)
+	}
+	folderName := filepath.Base(folder.LocalPath)
+	
 	// Dosyanın file-chunk ilişkilerini al (index bilgisi için)
 	fileChunks, err := uc.chunkRepo.GetFileChunks(ctx, fileID)
 	if err != nil {
@@ -203,14 +210,14 @@ func (uc *P2PTransferUseCaseImpl) SyncFileWithPeerWithProgress(ctx context.Conte
 		default:
 		}
 		
-		// Chunk'ı file bilgisiyle gönder
+		// Chunk'ı file + folder bilgisiyle gönder
 		var chunkSentBytes int64
 		if tcpConn, ok := conn.(interface {
-			SendChunkWithFileInfo(ctx context.Context, chunkHash string, data []byte, fileID string, chunkIndex, totalChunks int, fileName string) error
+			SendChunkWithFileInfo(ctx context.Context, chunkHash string, data []byte, fileID string, chunkIndex, totalChunks int, fileName, folderName string) error
 		}); ok {
 			// Log azaltıldı - sadece her 50 chunk'ta bir log
-			// log.Printf("  📤 Chunk %d/%d gönderiliyor (fileID: %s, fileName: %s): %s", fc.ChunkIndex+1, len(fileChunks), fileID, file.RelativePath, fc.ChunkHash[:8])
-			if err := tcpConn.SendChunkWithFileInfo(ctx, fc.ChunkHash, chunkData, fileID, fc.ChunkIndex, len(fileChunks), file.RelativePath); err != nil {
+			// log.Printf("  📤 Chunk %d/%d gönderiliyor (fileID: %s, fileName: %s, folderName: %s): %s", fc.ChunkIndex+1, len(fileChunks), fileID, file.RelativePath, folderName, fc.ChunkHash[:8])
+			if err := tcpConn.SendChunkWithFileInfo(ctx, fc.ChunkHash, chunkData, fileID, fc.ChunkIndex, len(fileChunks), file.RelativePath, folderName); err != nil {
 				// Context iptal edilmişse özel hata döndür
 				if ctx.Err() != nil {
 					log.Printf("  🛑 Transfer iptal edildi, chunk gönderimi durduruluyor: %s (chunk %d/%d)", fileID, i+1, len(fileChunks))
