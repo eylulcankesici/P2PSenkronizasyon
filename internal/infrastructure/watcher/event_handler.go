@@ -25,6 +25,9 @@ type EventHandler struct {
 	pendingEvents map[string]*FileEvent      // path -> event
 	eventTimers   map[string]*time.Timer     // path -> timer
 	eventMu       sync.Mutex                 // Debouncing map'leri için mutex
+	
+	// Sync callback (değişiklik olduktan sonra otomatik sync tetikle)
+	onFileChanged func(fileID, folderID string) error
 }
 
 // NewEventHandler yeni EventHandler oluşturur
@@ -138,6 +141,15 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 	if fileInfo.Size() > 0 {
 		if err := h.createChunks(ctx, file, event.AbsPath); err != nil {
 			log.Printf("⚠️ Chunk oluşturulamadı (%s): %v", event.Path, err)
+			return nil // Chunk hatası olsa bile devam et
+		}
+		
+		// Otomatik sync tetikle (callback varsa)
+		if h.onFileChanged != nil {
+			log.Printf("🔄 Otomatik sync tetikleniyor: %s (folder: %s)", event.Path, event.FolderID[:8])
+			if err := h.onFileChanged(file.ID, event.FolderID); err != nil {
+				log.Printf("⚠️ Otomatik sync hatası (%s): %v", event.Path, err)
+			}
 		}
 	}
 	
@@ -186,6 +198,16 @@ func (h *EventHandler) handleModify(event *FileEvent) error {
 	if fileInfo.Size() > 0 {
 		if err := h.createChunks(ctx, file, event.AbsPath); err != nil {
 			log.Printf("⚠️ Chunk oluşturulamadı (%s): %v", event.Path, err)
+			log.Printf("✅ MODIFY işlendi: %s", event.Path)
+			return nil // Chunk hatası olsa bile devam et
+		}
+		
+		// Otomatik sync tetikle (callback varsa)
+		if h.onFileChanged != nil {
+			log.Printf("🔄 Otomatik sync tetikleniyor: %s (folder: %s)", event.Path, event.FolderID[:8])
+			if err := h.onFileChanged(file.ID, event.FolderID); err != nil {
+				log.Printf("⚠️ Otomatik sync hatası (%s): %v", event.Path, err)
+			}
 		}
 	}
 	
@@ -247,5 +269,10 @@ func (h *EventHandler) createChunks(ctx context.Context, file *entity.File, absP
 // SetDebounceDelay debounce delay'i ayarlar
 func (h *EventHandler) SetDebounceDelay(delay time.Duration) {
 	h.debounceDelay = delay
+}
+
+// SetOnFileChanged file changed callback'i ayarlar
+func (h *EventHandler) SetOnFileChanged(callback func(fileID, folderID string) error) {
+	h.onFileChanged = callback
 }
 
