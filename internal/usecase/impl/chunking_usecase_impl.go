@@ -56,6 +56,12 @@ func (uc *ChunkingUseCaseImpl) ChunkAndStoreFile(
 
 	log.Printf("   ✓ %d chunk oluşturuldu", len(chunkResults))
 
+	// BOŞ DOSYA KONTROLÜ: 0 chunk varsa, boş hash döndür
+	if len(chunkResults) == 0 {
+		log.Printf("   ⚠️ Dosya boş veya çok küçük (0 chunk), boş hash döndürülüyor")
+		return []*entity.Chunk{}, "", nil
+	}
+
 	// 2. Global hash hesapla
 	globalHash := chunking.CalculateFileHash(chunkResults)
 
@@ -85,7 +91,12 @@ func (uc *ChunkingUseCaseImpl) ChunkAndStoreFile(
 		chunks = append(chunks, chunk)
 	}
 
-	log.Printf("   ✓ %d chunk kaydedildi (global_hash: %s...)", len(chunks), globalHash[:16])
+	// Global hash'i güvenli şekilde logla (boş olabilir kontrolü)
+	hashPreview := globalHash
+	if len(globalHash) > 16 {
+		hashPreview = globalHash[:16] + "..."
+	}
+	log.Printf("   ✓ %d chunk kaydedildi (global_hash: %s)", len(chunks), hashPreview)
 
 	return chunks, globalHash, nil
 }
