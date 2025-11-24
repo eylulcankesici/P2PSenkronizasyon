@@ -383,16 +383,20 @@ func isValidIPv4Address(addr string) bool {
 			return true
 		}
 		
-		// 172.x.x.x aralığı kontrolü
-		if octets[0] == 172 {
-			if octets[1] >= 16 && octets[1] <= 25 {
-				return true // 172.16-25: Güvenilir private range
-			} else if octets[1] >= 26 && octets[1] <= 31 {
-				// ❌ 172.26-31: VPN/virtual adapter aralığı - FİLTRELE
-				log.Printf("⚠️  VPN/virtual adapter IP filtrelendi: %s (172.26-31.x.x aralığı)", addr)
-				return false
-			}
+	// 172.x.x.x aralığı kontrolü
+	if octets[0] == 172 {
+		if octets[1] == 17 {
+			// ❌ 172.17.x.x: Docker/Hyper-V default bridge - FİLTRELE
+			log.Printf("⚠️  Docker/Hyper-V IP filtrelendi: %s (172.17.x.x Docker aralığı)", addr)
+			return false
+		} else if octets[1] >= 16 && octets[1] <= 25 {
+			return true // 172.16, 172.18-25: Güvenilir private range
+		} else if octets[1] >= 26 && octets[1] <= 31 {
+			// ❌ 172.26-31: WSL/VPN aralığı - FİLTRELE
+			log.Printf("⚠️  WSL/VPN IP filtrelendi: %s (172.26-31.x.x aralığı)", addr)
+			return false
 		}
+	}
 		
 		// 10.x.x.x her zaman güvenilir
 		return true
@@ -432,19 +436,21 @@ func getValidLANIPs() []net.IP {
 			continue
 		}
 		
-		// VPN/Virtual adapter'ları filtrele (isimlerine göre)
-		ifaceName := strings.ToLower(iface.Name)
-		if strings.Contains(ifaceName, "vpn") ||
-			strings.Contains(ifaceName, "virtual") ||
-			strings.Contains(ifaceName, "hyper-v") ||
-			strings.Contains(ifaceName, "vmware") ||
-			strings.Contains(ifaceName, "virtualbox") ||
-			strings.Contains(ifaceName, "tap") ||
-			strings.Contains(ifaceName, "tun") ||
-			strings.Contains(ifaceName, "wsl") {
-			log.Printf("⚠️  VPN/Virtual adapter atlandı: %s", iface.Name)
-			continue
-		}
+	// VPN/Virtual adapter'ları filtrele (isimlerine göre)
+	ifaceName := strings.ToLower(iface.Name)
+	if strings.Contains(ifaceName, "vpn") ||
+		strings.Contains(ifaceName, "virtual") ||
+		strings.Contains(ifaceName, "vethernet") || // Windows Hyper-V
+		strings.Contains(ifaceName, "hyper-v") ||
+		strings.Contains(ifaceName, "vmware") ||
+		strings.Contains(ifaceName, "virtualbox") ||
+		strings.Contains(ifaceName, "tap") ||
+		strings.Contains(ifaceName, "tun") ||
+		strings.Contains(ifaceName, "wsl") ||
+		strings.Contains(ifaceName, "docker") {
+		log.Printf("⚠️  VPN/Virtual adapter atlandı: %s", iface.Name)
+		continue
+	}
 		
 		// Interface'in IP adreslerini al
 		addrs, err := iface.Addrs()
