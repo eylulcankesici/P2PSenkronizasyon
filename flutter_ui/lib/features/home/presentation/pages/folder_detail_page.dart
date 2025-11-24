@@ -137,13 +137,13 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                   context,
                   icon: LucideIcons.clock,
                   label: 'Son Tarama',
-                  value: _formatDateTime(folder.lastScanTime.toDateTime()),
+                  value: _formatDateTime(widget.folder.lastScanTime.toDateTime()),
                 ),
                 _buildInfoChip(
                   context,
-                  icon: folder.isActive ? LucideIcons.checkCircle : LucideIcons.pauseCircle,
+                  icon: widget.folder.isActive ? LucideIcons.checkCircle : LucideIcons.pauseCircle,
                   label: 'Durum',
-                  value: folder.isActive ? 'Aktif' : 'Pasif',
+                  value: widget.folder.isActive ? 'Aktif' : 'Pasif',
                 ),
               ],
             ),
@@ -382,7 +382,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       showDialog(
         context: context,
         builder: (context) => _SyncFolderDialog(
-          folder: folder,
+          folder: widget.folder,
           peers: peers,
         ),
       );
