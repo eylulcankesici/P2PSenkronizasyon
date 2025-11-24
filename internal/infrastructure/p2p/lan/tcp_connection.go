@@ -168,6 +168,44 @@ func (c *TCPConnection) SendChunkWithFileInfo(ctx context.Context, chunkHash str
 	return nil
 }
 
+// SendFileDelete dosya silme bildirimini gönderir (peer-to-peer)
+func (c *TCPConnection) SendFileDelete(ctx context.Context, fileID string) error {
+	// Context iptal kontrolü (göndermeden önce)
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+	
+	c.sendMu.Lock()
+	defer c.sendMu.Unlock()
+	
+	// FileDelete mesajı encode et
+	frame, err := c.protocol.EncodeFileDelete(fileID)
+	if err != nil {
+		return fmt.Errorf("file delete encode hatası: %w", err)
+	}
+	
+	// Frame boyutunu gönder (4 bytes)
+	frameLen := uint32(len(frame))
+	if err := c.writeUint32(frameLen); err != nil {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		return fmt.Errorf("frame length yazılamadı: %w", err)
+	}
+	
+	// Frame'i gönder
+	if _, err := c.conn.Write(frame); err != nil {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		return fmt.Errorf("frame yazılamadı: %w", err)
+	}
+	
+	return nil
+}
+
 // RequestChunk chunk talep eder
 func (c *TCPConnection) RequestChunk(ctx context.Context, chunkHash string) ([]byte, error) {
 	c.sendMu.Lock()
@@ -426,6 +464,8 @@ func (c *TCPConnection) handleMessage(messageType uint16, payload []byte) error 
 		return nil
 	case MessageTypeTransferCancel:
 		return c.handleTransferCancel(payload)
+	case MessageTypeFileDelete:
+		return c.handleFileDelete(payload)
 	default:
 		return fmt.Errorf("bilinmeyen mesaj tipi: 0x%04x", messageType)
 	}
@@ -533,6 +573,32 @@ func (c *TCPConnection) handleTransferCancel(payload []byte) error {
 		log.Printf("  ✅ Transfer iptal callback'i çağrıldı: %s", fileID[:8])
 	} else {
 		log.Printf("  ⚠️ Transfer iptal callback'i tanımlı değil (manager: %v, callback: %v): %s", c.manager != nil, c.manager != nil && c.manager.onTransferCancel != nil, fileID[:8])
+	}
+	
+	return nil
+}
+
+// handleFileDelete dosya silme bildirimini işler
+func (c *TCPConnection) handleFileDelete(payload []byte) error {
+	// Payload zaten decode edilmiş, JSON unmarshal yap
+	deleteMsg := struct {
+		FileID string `json:"file_id"`
+	}{}
+	
+	if err := json.Unmarshal(payload, &deleteMsg); err != nil {
+		return fmt.Errorf("file delete unmarshal hatası: %w", err)
+	}
+	
+	fileID := deleteMsg.FileID
+	
+	log.Printf("🗑️ Dosya silme bildirimi alındı: file_id=%s (peer: %s)", fileID[:8], c.peerID[:8])
+	
+	// Manager varsa ve onFileDelete callback'i varsa, dosyayı sil
+	if c.manager != nil && c.manager.onFileDelete != nil {
+		c.manager.onFileDelete(c.peerID, fileID)
+		log.Printf("  ✅ Dosya silme callback'i çağrıldı: %s", fileID[:8])
+	} else {
+		log.Printf("  ⚠️ Dosya silme callback'i tanımlı değil: %s", fileID[:8])
 	}
 	
 	return nil
@@ -881,6 +947,7 @@ type TCPConnectionManager struct {
 	chunkHandlerCallback    func(chunkHash string) ([]byte, error)
 	onChunkReceived         func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string) error
 	onTransferCancel        func(peerID, fileID string) // Transfer iptal bildirimi callback'i
+	onFileDelete            func(peerID, fileID string) // Dosya silme bildirimi callback'i
 }
 
 // NewTCPConnectionManager yeni TCP connection manager oluşturur
@@ -1142,6 +1209,11 @@ func (m *TCPConnectionManager) SetOnChunkReceived(callback func(peerID, fileID, 
 // SetOnTransferCancel transfer cancel callback'ini set eder
 func (m *TCPConnectionManager) SetOnTransferCancel(callback func(peerID, fileID string)) {
 	m.onTransferCancel = callback
+}
+
+// SetOnFileDelete dosya silme callback'ini ayarlar
+func (m *TCPConnectionManager) SetOnFileDelete(callback func(peerID, fileID string)) {
+	m.onFileDelete = callback
 }
 
 // handleConnectionLost bağlantı kaybını işler (internal)

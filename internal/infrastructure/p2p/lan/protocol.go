@@ -36,6 +36,7 @@ const (
 	MessageTypeConnectionAccept = 0x0008
 	MessageTypeConnectionReject = 0x0009
 	MessageTypeTransferCancel   = 0x000A // Transfer iptal bildirimi
+	MessageTypeFileDelete      = 0x000B // Dosya silme bildirimi (peer-to-peer)
 	
 	// Frame sizes
 	HeaderSize = 16 // Magic(4) + Version(2) + Type(2) + Length(4) + CRC(4)
@@ -516,5 +517,43 @@ func (p *Protocol) DecodeConnectionReject(data []byte) (string, error) {
 	}
 	
 	return resp.Message, nil
+}
+
+// EncodeFileDelete dosya silme bildirimini encode eder
+func (p *Protocol) EncodeFileDelete(fileID string) ([]byte, error) {
+	deleteMsg := struct {
+		FileID string `json:"file_id"`
+	}{
+		FileID: fileID,
+	}
+	
+	payload, err := json.Marshal(deleteMsg)
+	if err != nil {
+		return nil, fmt.Errorf("JSON marshal hatası: %w", err)
+	}
+	
+	return p.EncodeFrame(MessageTypeFileDelete, payload)
+}
+
+// DecodeFileDelete dosya silme bildirimini parse eder
+func (p *Protocol) DecodeFileDelete(data []byte) (string, error) {
+	messageType, payload, err := p.DecodeFrame(data)
+	if err != nil {
+		return "", err
+	}
+	
+	if messageType != MessageTypeFileDelete {
+		return "", fmt.Errorf("beklenmeyen message type: 0x%04x", messageType)
+	}
+	
+	deleteMsg := struct {
+		FileID string `json:"file_id"`
+	}{}
+	
+	if err := json.Unmarshal(payload, &deleteMsg); err != nil {
+		return "", fmt.Errorf("JSON unmarshal hatası: %w", err)
+	}
+	
+	return deleteMsg.FileID, nil
 }
 

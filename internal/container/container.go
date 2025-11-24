@@ -469,6 +469,48 @@ func (c *Container) initUseCases() error {
 		})
 		
 		log.Println("✓ Transfer cancel callback bağlandı")
+		
+		// Dosya silme callback'ini bağla (peer'dan silme bildirimi geldiğinde buraya gelir)
+		connMgr.SetOnFileDelete(func(peerID, fileID string) {
+			log.Printf("🗑️ Dosya silme bildirimi alındı (peer: %s, file: %s), dosya siliniyor...", peerID[:8], fileID[:8])
+			
+			ctx := context.Background()
+			
+			// Dosyayı veritabanından al
+			file, err := c.fileRepo.GetByID(ctx, fileID)
+			if err != nil {
+				log.Printf("  ⚠️ Dosya bulunamadı: %s - %v", fileID[:8], err)
+				return
+			}
+			
+			// Folder bilgisini al
+			folder, err := c.folderRepo.GetByID(ctx, file.FolderID)
+			if err != nil {
+				log.Printf("  ⚠️ Folder bulunamadı: %s - %v", file.FolderID[:8], err)
+				return
+			}
+			
+			// Veritabanından sil
+			if err := c.fileRepo.Delete(ctx, fileID); err != nil {
+				log.Printf("  ❌ Dosya veritabanından silinemedi: %s - %v", fileID[:8], err)
+				return
+			}
+			log.Printf("  ✅ Dosya veritabanından silindi: %s", fileID[:8])
+			
+			// FİZİKSEL dosyayı SİL (sadece received folder'lar için)
+			if folder.Source == entity.FolderSourceReceived {
+				filePath := filepath.Join(folder.LocalPath, file.RelativePath)
+				if err := os.Remove(filePath); err != nil {
+					log.Printf("  ⚠️ Fiziksel dosya silinemedi (%s): %v", filePath, err)
+				} else {
+					log.Printf("  ✅ Fiziksel dosya silindi: %s", filePath)
+				}
+			} else {
+				log.Printf("  ℹ️  User folder, fiziksel dosya korunuyor")
+			}
+		})
+		
+		log.Println("✓ Dosya silme callback bağlandı")
 	}
 	
 	return nil
@@ -1569,14 +1611,29 @@ func (c *Container) deleteFileFromAllPeers(fileID, folderID string) error {
 	return nil
 }
 
-// sendDeleteFileToPeer peer'a dosya silme bildirimi gönderir
+// sendDeleteFileToPeer peer'a dosya silme bildirimi gönderir (peer-to-peer TCP)
 func (c *Container) sendDeleteFileToPeer(ctx context.Context, peerID, fileID string) error {
-	// Şimdilik karşı taraf kendi file watcher'ı ile silmeyi algılayacak
-	// Her iki tarafta da file watcher aktif olduğu için bu yeterli
-	log.Printf("  📤 DELETE algılandı, karşı taraf file watcher ile algılayacak: peer=%s, file=%s", peerID[:8], fileID[:8])
+	log.Printf("  📤 Dosya silme bildirimi gönderiliyor: peer=%s, file=%s", peerID[:8], fileID[:8])
 	
-	// NOT: Gelecekte gRPC üzerinden aktif bildirim eklenebilir
-	// Ama mevcut mimari (bidirectional file watcher) ile gerek yok
+	// TCP connection al
+	conn, ok := c.transportProvider.GetConnection(peerID)
+	if !ok || conn == nil {
+		return fmt.Errorf("peer connection bulunamadı: %s", peerID[:8])
+	}
 	
-	return nil
+	// SendFileDelete metodu var mı kontrol et (type assertion)
+	if tcpConn, ok := conn.(interface {
+		SendFileDelete(ctx context.Context, fileID string) error
+	}); ok {
+		// Peer'a TCP üzerinden dosya silme bildirimi gönder
+		if err := tcpConn.SendFileDelete(ctx, fileID); err != nil {
+			log.Printf("  ❌ Dosya silme bildirimi gönderilemedi (peer: %s, file: %s): %v", peerID[:8], fileID[:8], err)
+			return fmt.Errorf("SendFileDelete başarısız: %w", err)
+		}
+		
+		log.Printf("  ✅ Dosya silme bildirimi başarıyla gönderildi: peer=%s, file=%s", peerID[:8], fileID[:8])
+		return nil
+	}
+	
+	return fmt.Errorf("connection SendFileDelete desteklemiyor")
 }
