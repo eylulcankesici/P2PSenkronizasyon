@@ -65,6 +65,15 @@ func (h *FolderHandler) CreateFolder(ctx context.Context, req *pb.CreateFolderRe
 		}, nil
 	}
 
+	// 📂 File watcher'a otomatik ekle (real-time sync için)
+	if h.container.FileWatcher() != nil {
+		if err := h.container.FileWatcher().AddFolder(folder); err != nil {
+			log.Printf("⚠️ Klasör file watcher'a eklenemedi (manuel ekleme gerekebilir): %v", err)
+		} else {
+			log.Printf("✅ Klasör otomatik olarak file watcher'a eklendi: %s", folder.LocalPath)
+		}
+	}
+
 	return &pb.FolderResponse{
 		Status: &pb.Status{
 			Success: true,
@@ -185,6 +194,13 @@ func (h *FolderHandler) UpdateFolder(ctx context.Context, req *pb.UpdateFolderRe
 
 // DeleteFolder klasör siler
 func (h *FolderHandler) DeleteFolder(ctx context.Context, req *pb.DeleteFolderRequest) (*pb.Status, error) {
+	// File watcher'dan kaldır (folder silinmeden önce)
+	if h.container.FileWatcher() != nil {
+		if err := h.container.FileWatcher().RemoveFolder(req.Id); err != nil {
+			log.Printf("⚠️ Klasör file watcher'dan kaldırılamadı: %v", err)
+		}
+	}
+
 	if err := h.container.FolderRepository().Delete(ctx, req.Id); err != nil {
 		return &pb.Status{
 			Success: false,
