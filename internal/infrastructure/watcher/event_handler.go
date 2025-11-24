@@ -126,6 +126,14 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 		return nil
 	}
 	
+	// Dosya zaten veritabanında var mı? (Word RENAME+CREATE yapıyor)
+	existingFile, err := h.fileRepo.GetByPath(ctx, event.FolderID, event.Path)
+	if err == nil && existingFile != nil {
+		// Dosya zaten var! Bu aslında MODIFY (Word'ün kaydetme davranışı)
+		log.Printf("📝 CREATE → MODIFY (dosya zaten var): %s", event.Path)
+		return h.handleModify(event)
+	}
+	
 	log.Printf("📄 CREATE: %s (folder: %s)", event.Path, event.FolderID[:8])
 	
 	// File entity oluştur
