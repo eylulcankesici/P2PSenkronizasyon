@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -194,24 +195,54 @@ func (h *FolderHandler) UpdateFolder(ctx context.Context, req *pb.UpdateFolderRe
 
 // DeleteFolder klasör siler
 func (h *FolderHandler) DeleteFolder(ctx context.Context, req *pb.DeleteFolderRequest) (*pb.Status, error) {
+	log.Printf("🗑️ Klasör siliniyor: %s", req.Id[:8])
+	
+	// Önce folder bilgisini al (fiziksel path için)
+	folder, err := h.container.FolderRepository().GetByID(ctx, req.Id)
+	if err != nil {
+		return &pb.Status{
+			Success: false,
+			Message: fmt.Sprintf("Klasör bulunamadı: %v", err),
+			Code:    404,
+		}, nil
+	}
+	
 	// File watcher'dan kaldır (folder silinmeden önce)
 	if h.container.FileWatcher() != nil {
 		if err := h.container.FileWatcher().RemoveFolder(req.Id); err != nil {
 			log.Printf("⚠️ Klasör file watcher'dan kaldırılamadı: %v", err)
+		} else {
+			log.Printf("✅ Klasör file watcher'dan kaldırıldı: %s", req.Id[:8])
 		}
 	}
 
+	// Veritabanından sil (CASCADE olduğu için files ve chunks da silinir)
 	if err := h.container.FolderRepository().Delete(ctx, req.Id); err != nil {
 		return &pb.Status{
 			Success: false,
-			Message: fmt.Sprintf("Klasör silinemedi: %v", err),
+			Message: fmt.Sprintf("Klasör veritabanından silinemedi: %v", err),
 			Code:    500,
 		}, nil
+	}
+	log.Printf("✅ Klasör veritabanından silindi: %s", req.Id[:8])
+
+	// FİZİKSEL klasörü sil (tüm dosyalarıyla birlikte)
+	if folder.LocalPath != "" {
+		if err := os.RemoveAll(folder.LocalPath); err != nil {
+			log.Printf("⚠️ Fiziksel klasör silinemedi (%s): %v", folder.LocalPath, err)
+			// Hata döndürmüyoruz çünkü veritabanından silme başarılı
+			return &pb.Status{
+				Success: true,
+				Message: fmt.Sprintf("Klasör veritabanından silindi ama fiziksel klasör silinemedi: %v", err),
+				Code:    200,
+			}, nil
+		}
+		log.Printf("✅ Fiziksel klasör silindi: %s", folder.LocalPath)
 	}
 
 	return &pb.Status{
 		Success: true,
-		Message: "Klasör başarıyla silindi",
+		Message: "Klasör başarıyla silindi (veritabanı + fiziksel dosyalar)",
 		Code:    200,
 	}, nil
 }

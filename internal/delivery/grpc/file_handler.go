@@ -3,6 +3,9 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
+	"path/filepath"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -64,12 +67,56 @@ func (h *FileHandler) ListFiles(ctx context.Context, req *pb.ListFilesRequest) (
 	}, nil
 }
 
-// DeleteFile dosya siler (placeholder)
+// DeleteFile dosya siler
 func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest) (*pb.Status, error) {
+	log.Printf("🗑️ Dosya siliniyor: %s", req.FileId[:8])
+	
+	// Önce file bilgisini al (fiziksel path için)
+	file, err := h.container.FileRepository().GetByID(ctx, req.FileId)
+	if err != nil {
+		return &pb.Status{
+			Success: false,
+			Message: fmt.Sprintf("Dosya bulunamadı: %v", err),
+			Code:    404,
+		}, nil
+	}
+	
+	// Folder bilgisini al (path oluşturmak için)
+	folder, err := h.container.FolderRepository().GetByID(ctx, file.FolderID)
+	if err != nil {
+		log.Printf("⚠️ Folder bilgisi alınamadı: %v", err)
+		// Devam et, sadece veritabanından sil
+	}
+	
+	// Veritabanından sil (CASCADE olduğu için file_chunks da silinir)
+	if err := h.container.FileRepository().Delete(ctx, req.FileId); err != nil {
+		return &pb.Status{
+			Success: false,
+			Message: fmt.Sprintf("Dosya veritabanından silinemedi: %v", err),
+			Code:    500,
+		}, nil
+	}
+	log.Printf("✅ Dosya veritabanından silindi: %s", req.FileId[:8])
+	
+	// FİZİKSEL dosyayı sil
+	if folder != nil && folder.LocalPath != "" && file.RelativePath != "" {
+		filePath := filepath.Join(folder.LocalPath, file.RelativePath)
+		if err := os.Remove(filePath); err != nil {
+			log.Printf("⚠️ Fiziksel dosya silinemedi (%s): %v", filePath, err)
+			// Hata döndürmüyoruz çünkü veritabanından silme başarılı
+			return &pb.Status{
+				Success: true,
+				Message: fmt.Sprintf("Dosya veritabanından silindi ama fiziksel dosya silinemedi: %v", err),
+				Code:    200,
+			}, nil
+		}
+		log.Printf("✅ Fiziksel dosya silindi: %s", filePath)
+	}
+	
 	return &pb.Status{
 		Success: true,
-		Message: "FileHandler - yakında implement edilecek",
-		Code:    501,
+		Message: "Dosya başarıyla silindi (veritabanı + fiziksel dosya)",
+		Code:    200,
 	}, nil
 }
 
