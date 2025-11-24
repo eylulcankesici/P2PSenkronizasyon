@@ -1243,36 +1243,32 @@ func (c *Container) FileWatcher() *watcher.FileWatcher {
 func (c *Container) syncFileToAllPeers(fileID, folderID string) error {
 	ctx := context.Background()
 	
-	// Bağlı tüm peer'ları al
-	peers, err := c.peerRepo.GetAll(ctx)
-	if err != nil {
-		return fmt.Errorf("peer'lar alınamadı: %w", err)
-	}
-	
-	// Online peer'ları filtrele
-	onlinePeers := make([]*entity.Peer, 0)
-	for _, peer := range peers {
-		if peer.Status == entity.PeerStatusOnline {
-			onlinePeers = append(onlinePeers, peer)
-		}
-	}
-	
-	if len(onlinePeers) == 0 {
-		log.Printf("  ℹ️  Hiç online peer yok, sync atlanıyor: %s", fileID[:8])
+	// TransportProvider yoksa atla
+	if c.transportProvider == nil {
+		log.Printf("  ℹ️  TransportProvider yok, sync atlanıyor: %s", fileID[:8])
 		return nil
 	}
 	
-	log.Printf("🔄 Dosya otomatik sync ediliyor: %s -> %d peer", fileID[:8], len(onlinePeers))
+	// Gerçek bağlı peer'ları al (TCP connection'lardan)
+	allConnections := c.transportProvider.GetAllConnections()
+	
+	if len(allConnections) == 0 {
+		log.Printf("  ℹ️  Hiç bağlı peer yok, sync atlanıyor: %s", fileID[:8])
+		return nil
+	}
+	
+	log.Printf("🔄 Dosya otomatik sync ediliyor: %s -> %d peer", fileID[:8], len(allConnections))
 	
 	// Her peer'a sync et
-	for _, peer := range onlinePeers {
-		go func(p *entity.Peer) {
-			if err := c.SyncFileWithPeerTracked(ctx, p.DeviceID, fileID); err != nil {
-				log.Printf("⚠️ Otomatik sync hatası (peer: %s, file: %s): %v", p.DeviceID[:8], fileID[:8], err)
+	for _, conn := range allConnections {
+		peerID := conn.GetPeerID()
+		go func(pid string) {
+			if err := c.SyncFileWithPeerTracked(ctx, pid, fileID); err != nil {
+				log.Printf("⚠️ Otomatik sync hatası (peer: %s, file: %s): %v", pid[:8], fileID[:8], err)
 			} else {
-				log.Printf("✅ Otomatik sync başarılı (peer: %s, file: %s)", p.DeviceID[:8], fileID[:8])
+				log.Printf("✅ Otomatik sync başarılı (peer: %s, file: %s)", pid[:8], fileID[:8])
 			}
-		}(peer)
+		}(peerID)
 	}
 	
 	return nil
