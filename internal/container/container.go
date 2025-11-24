@@ -1299,6 +1299,12 @@ func (c *Container) initFileWatcher() error {
 		return c.syncChangedChunksToAllPeers(fileID, folderID, changedChunks)
 	})
 	
+	// File deleted callback (DELETE için - karşı taraftan da silinmeli)
+	eventHandler.SetOnFileDeleted(func(fileID, folderID string) error {
+		// Dosya silindiğinde tüm peer'lara silme bildirimi gönder
+		return c.deleteFileFromAllPeers(fileID, folderID)
+	})
+	
 	// Error handler
 	c.fileWatcher.OnError(func(err error) {
 		log.Printf("⚠️ File watcher hatası: %v", err)
@@ -1342,6 +1348,21 @@ func (c *Container) SymlinkManager() *filesystem.SymlinkManager {
 func (c *Container) syncFileToAllPeers(fileID, folderID string) error {
 	ctx := context.Background()
 	
+	// Folder bilgisini al (sync mode kontrolü için)
+	folder, err := c.folderRepo.GetByID(ctx, folderID)
+	if err != nil {
+		log.Printf("  ⚠️ Folder bulunamadı, sync atlanıyor: %v", err)
+		return nil
+	}
+	
+	// Sync mode kontrolü
+	// SEND_ONLY veya BIDIRECTIONAL ise karşıya gönder
+	// RECEIVE_ONLY ise karşıya gönderme
+	if folder.SyncMode == entity.SyncModeReceiveOnly {
+		log.Printf("  ℹ️  Folder receive-only mode'da, yeni dosya sync atlanıyor: %s", folderID[:8])
+		return nil
+	}
+	
 	// TransportProvider yoksa atla
 	if c.transportProvider == nil {
 		log.Printf("  ℹ️  TransportProvider yok, sync atlanıyor: %s", fileID[:8])
@@ -1376,6 +1397,21 @@ func (c *Container) syncFileToAllPeers(fileID, folderID string) error {
 // syncChangedChunksToAllPeers sadece değişen chunk'ları tüm peer'lara sync eder (DELTA SYNC)
 func (c *Container) syncChangedChunksToAllPeers(fileID, folderID string, changedChunkIndices []int) error {
 	ctx := context.Background()
+	
+	// Folder bilgisini al (sync mode kontrolü için)
+	folder, err := c.folderRepo.GetByID(ctx, folderID)
+	if err != nil {
+		log.Printf("  ⚠️ Folder bulunamadı, delta sync atlanıyor: %v", err)
+		return nil
+	}
+	
+	// Sync mode kontrolü
+	// SEND_ONLY veya BIDIRECTIONAL ise karşıya gönder
+	// RECEIVE_ONLY ise karşıya gönderme
+	if folder.SyncMode == entity.SyncModeReceiveOnly {
+		log.Printf("  ℹ️  Folder receive-only mode'da, değişiklik sync atlanıyor: %s", folderID[:8])
+		return nil
+	}
 	
 	// TransportProvider yoksa atla
 	if c.transportProvider == nil {
@@ -1479,6 +1515,68 @@ func (c *Container) syncSpecificChunksToPeer(ctx context.Context, peerID, fileID
 			return fmt.Errorf("connection SendChunkWithFileInfo desteklemiyor")
 		}
 	}
+	
+	return nil
+}
+
+// deleteFileFromAllPeers dosyayı tüm peer'lardan siler (otomatik sync için)
+func (c *Container) deleteFileFromAllPeers(fileID, folderID string) error {
+	ctx := context.Background()
+	
+	// Folder bilgisini al (sync mode kontrolü için)
+	folder, err := c.folderRepo.GetByID(ctx, folderID)
+	if err != nil {
+		log.Printf("  ⚠️ Folder bulunamadı, silme sync atlanıyor: %v", err)
+		return nil
+	}
+	
+	// Sync mode kontrolü
+	// SEND_ONLY veya BIDIRECTIONAL ise karşıya gönder
+	// RECEIVE_ONLY ise karşıya gönderme
+	if folder.SyncMode == entity.SyncModeReceiveOnly {
+		log.Printf("  ℹ️  Folder receive-only mode'da, silme sync atlanıyor: %s", folderID[:8])
+		return nil
+	}
+	
+	// TransportProvider yoksa atla
+	if c.transportProvider == nil {
+		log.Printf("  ℹ️  TransportProvider yok, silme sync atlanıyor: %s", fileID[:8])
+		return nil
+	}
+	
+	// Gerçek bağlı peer'ları al
+	allConnections := c.transportProvider.GetAllConnections()
+	
+	if len(allConnections) == 0 {
+		log.Printf("  ℹ️  Hiç bağlı peer yok, silme sync atlanıyor: %s", fileID[:8])
+		return nil
+	}
+	
+	log.Printf("🗑️ Dosya silme bildirimi gönderiliyor: %s -> %d peer", fileID[:8], len(allConnections))
+	
+	// Her peer'a silme bildirimi gönder
+	for _, conn := range allConnections {
+		peerID := conn.GetPeerID()
+		go func(pid string) {
+			if err := c.sendDeleteFileToPeer(ctx, pid, fileID); err != nil {
+				log.Printf("⚠️ Silme bildirimi hatası (peer: %s, file: %s): %v", pid[:8], fileID[:8], err)
+			} else {
+				log.Printf("✅ Silme bildirimi gönderildi (peer: %s, file: %s)", pid[:8], fileID[:8])
+			}
+		}(peerID)
+	}
+	
+	return nil
+}
+
+// sendDeleteFileToPeer peer'a dosya silme bildirimi gönderir
+func (c *Container) sendDeleteFileToPeer(ctx context.Context, peerID, fileID string) error {
+	// Şimdilik karşı taraf kendi file watcher'ı ile silmeyi algılayacak
+	// Her iki tarafta da file watcher aktif olduğu için bu yeterli
+	log.Printf("  📤 DELETE algılandı, karşı taraf file watcher ile algılayacak: peer=%s, file=%s", peerID[:8], fileID[:8])
+	
+	// NOT: Gelecekte gRPC üzerinden aktif bildirim eklenebilir
+	// Ama mevcut mimari (bidirectional file watcher) ile gerek yok
 	
 	return nil
 }

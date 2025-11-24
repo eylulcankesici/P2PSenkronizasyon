@@ -28,8 +28,9 @@ type EventHandler struct {
 	eventMu       sync.Mutex                 // Debouncing map'leri için mutex
 	
 	// Sync callbacks
-	onFileChanged      func(fileID, folderID string) error                    // Tüm dosya için sync
-	onChunksChanged    func(fileID, folderID string, changedChunks []int) error // Sadece değişen chunk'lar için sync
+	onFileChanged      func(fileID, folderID string) error                    // Tüm dosya için sync (CREATE)
+	onChunksChanged    func(fileID, folderID string, changedChunks []int) error // Sadece değişen chunk'lar için sync (MODIFY)
+	onFileDeleted      func(fileID, folderID string) error                    // Dosya silindi sync (DELETE)
 }
 
 // NewEventHandler yeni EventHandler oluşturur
@@ -280,12 +281,24 @@ func (h *EventHandler) handleDelete(event *FileEvent) error {
 		return nil
 	}
 	
-	// Dosyayı sil
-	if err := h.fileRepo.Delete(ctx, file.ID); err != nil {
+	// Dosya ID'sini sakla (silmeden önce)
+	fileID := file.ID
+	
+	// Dosyayı veritabanından sil (CASCADE: chunk'lar da silinir)
+	if err := h.fileRepo.Delete(ctx, fileID); err != nil {
 		return fmt.Errorf("dosya silinemedi: %w", err)
 	}
 	
-	log.Printf("✅ DELETE işlendi: %s", event.Path)
+	log.Printf("✅ DELETE işlendi (veritabanı): %s", event.Path)
+	
+	// DELETE için otomatik sync tetikle (karşı taraftan da silinmeli)
+	if h.onFileDeleted != nil {
+		log.Printf("🔄 Dosya silindi - karşı tarafa bildirim gönderiliyor: %s", event.Path)
+		if err := h.onFileDeleted(fileID, event.FolderID); err != nil {
+			log.Printf("⚠️ Silme sync hatası (%s): %v", event.Path, err)
+		}
+	}
+	
 	return nil
 }
 
@@ -331,5 +344,10 @@ func (h *EventHandler) SetOnFileChanged(callback func(fileID, folderID string) e
 // SetOnChunksChanged chunks changed callback'i ayarlar (sadece değişen chunk'lar için)
 func (h *EventHandler) SetOnChunksChanged(callback func(fileID, folderID string, changedChunks []int) error) {
 	h.onChunksChanged = callback
+}
+
+// SetOnFileDeleted file deleted callback'i ayarlar
+func (h *EventHandler) SetOnFileDeleted(callback func(fileID, folderID string) error) {
+	h.onFileDeleted = callback
 }
 
