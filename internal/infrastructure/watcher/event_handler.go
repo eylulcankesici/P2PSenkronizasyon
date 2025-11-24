@@ -144,9 +144,10 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 			return nil // Chunk hatası olsa bile devam et
 		}
 		
-		// Otomatik sync tetikle (callback varsa)
+		// YENİ DOSYA için otomatik sync tetikle
+		// (Tüm chunk'lar gitmeli - yeni dosya)
 		if h.onFileChanged != nil {
-			log.Printf("🔄 Otomatik sync tetikleniyor: %s (folder: %s)", event.Path, event.FolderID[:8])
+			log.Printf("🔄 Yeni dosya - otomatik sync tetikleniyor: %s", event.Path)
 			if err := h.onFileChanged(file.ID, event.FolderID); err != nil {
 				log.Printf("⚠️ Otomatik sync hatası (%s): %v", event.Path, err)
 			}
@@ -202,16 +203,12 @@ func (h *EventHandler) handleModify(event *FileEvent) error {
 			return nil // Chunk hatası olsa bile devam et
 		}
 		
-		// Otomatik sync tetikle (callback varsa)
-		if h.onFileChanged != nil {
-			log.Printf("🔄 Otomatik sync tetikleniyor: %s (folder: %s)", event.Path, event.FolderID[:8])
-			if err := h.onFileChanged(file.ID, event.FolderID); err != nil {
-				log.Printf("⚠️ Otomatik sync hatası (%s): %v", event.Path, err)
-			}
-		}
+		// MODIFY için otomatik sync KAPALI
+		// Çünkü: Sistem tüm chunk'ları tekrar gönderiyor (delta sync yok)
+		// Kullanıcı UI'dan manuel "Sync" yapacak
+		log.Printf("✅ MODIFY işlendi, chunk'lar hazır: %s (manuel sync gerekli)", event.Path)
 	}
 	
-	log.Printf("✅ MODIFY işlendi: %s", event.Path)
 	return nil
 }
 
