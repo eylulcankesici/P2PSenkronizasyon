@@ -112,6 +112,8 @@ class ChunkResponse extends $pb.GeneratedMessage {
     $core.int? totalChunks,
     $core.String? fileName,
     $core.String? folderName,
+    $1.SyncMode? senderSyncMode,
+    $1.SyncMode? receiverSyncMode,
   }) {
     final result = create();
     if (status != null) result.status = status;
@@ -123,6 +125,8 @@ class ChunkResponse extends $pb.GeneratedMessage {
     if (totalChunks != null) result.totalChunks = totalChunks;
     if (fileName != null) result.fileName = fileName;
     if (folderName != null) result.folderName = folderName;
+    if (senderSyncMode != null) result.senderSyncMode = senderSyncMode;
+    if (receiverSyncMode != null) result.receiverSyncMode = receiverSyncMode;
     return result;
   }
 
@@ -150,6 +154,10 @@ class ChunkResponse extends $pb.GeneratedMessage {
     ..aI(7, _omitFieldNames ? '' : 'totalChunks')
     ..aOS(8, _omitFieldNames ? '' : 'fileName')
     ..aOS(9, _omitFieldNames ? '' : 'folderName')
+    ..aE<$1.SyncMode>(10, _omitFieldNames ? '' : 'senderSyncMode',
+        enumValues: $1.SyncMode.values)
+    ..aE<$1.SyncMode>(11, _omitFieldNames ? '' : 'receiverSyncMode',
+        enumValues: $1.SyncMode.values)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -254,6 +262,24 @@ class ChunkResponse extends $pb.GeneratedMessage {
   $core.bool hasFolderName() => $_has(8);
   @$pb.TagNumber(9)
   void clearFolderName() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  $1.SyncMode get senderSyncMode => $_getN(9);
+  @$pb.TagNumber(10)
+  set senderSyncMode($1.SyncMode value) => $_setField(10, value);
+  @$pb.TagNumber(10)
+  $core.bool hasSenderSyncMode() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearSenderSyncMode() => $_clearField(10);
+
+  @$pb.TagNumber(11)
+  $1.SyncMode get receiverSyncMode => $_getN(10);
+  @$pb.TagNumber(11)
+  set receiverSyncMode($1.SyncMode value) => $_setField(11, value);
+  @$pb.TagNumber(11)
+  $core.bool hasReceiverSyncMode() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearReceiverSyncMode() => $_clearField(11);
 }
 
 class ChunkData extends $pb.GeneratedMessage {

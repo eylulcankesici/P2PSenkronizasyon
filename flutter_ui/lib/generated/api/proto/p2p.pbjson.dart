@@ -90,6 +90,22 @@ const ChunkResponse$json = {
     {'1': 'total_chunks', '3': 7, '4': 1, '5': 5, '10': 'totalChunks'},
     {'1': 'file_name', '3': 8, '4': 1, '5': 9, '10': 'fileName'},
     {'1': 'folder_name', '3': 9, '4': 1, '5': 9, '10': 'folderName'},
+    {
+      '1': 'sender_sync_mode',
+      '3': 10,
+      '4': 1,
+      '5': 14,
+      '6': '.aether.api.SyncMode',
+      '10': 'senderSyncMode'
+    },
+    {
+      '1': 'receiver_sync_mode',
+      '3': 11,
+      '4': 1,
+      '5': 14,
+      '6': '.aether.api.SyncMode',
+      '10': 'receiverSyncMode'
+    },
   ],
 };
 
@@ -100,7 +116,9 @@ final $typed_data.Uint8List chunkResponseDescriptor = $convert.base64Decode(
     'CWNodW5rSGFzaBIdCgpjaHVua19zaXplGAQgASgDUgljaHVua1NpemUSFwoHZmlsZV9pZBgFIA'
     'EoCVIGZmlsZUlkEh8KC2NodW5rX2luZGV4GAYgASgFUgpjaHVua0luZGV4EiEKDHRvdGFsX2No'
     'dW5rcxgHIAEoBVILdG90YWxDaHVua3MSGwoJZmlsZV9uYW1lGAggASgJUghmaWxlTmFtZRIfCg'
-    'tmb2xkZXJfbmFtZRgJIAEoCVIKZm9sZGVyTmFtZQ==');
+    'tmb2xkZXJfbmFtZRgJIAEoCVIKZm9sZGVyTmFtZRI+ChBzZW5kZXJfc3luY19tb2RlGAogASgO'
+    'MhQuYWV0aGVyLmFwaS5TeW5jTW9kZVIOc2VuZGVyU3luY01vZGUSQgoScmVjZWl2ZXJfc3luY1'
+    '9tb2RlGAsgASgOMhQuYWV0aGVyLmFwaS5TeW5jTW9kZVIQcmVjZWl2ZXJTeW5jTW9kZQ==');
 
 @$core.Deprecated('Use chunkDataDescriptor instead')
 const ChunkData$json = {

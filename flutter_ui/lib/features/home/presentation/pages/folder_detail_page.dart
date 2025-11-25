@@ -7,6 +7,8 @@ import 'package:aether_desktop/data/providers/peer_provider.dart';
 import 'package:aether_desktop/data/providers/sync_provider.dart';
 import 'package:aether_desktop/generated/api/proto/folder.pb.dart';
 import 'package:aether_desktop/generated/api/proto/common.pb.dart';
+import 'package:aether_desktop/generated/api/proto/common.pbenum.dart';
+import 'package:aether_desktop/generated/api/proto/sync.pb.dart';
 import 'package:aether_desktop/generated/api/proto/file.pb.dart' as file_pb;
 import 'package:aether_desktop/generated/api/proto/peer.pb.dart' as peer_pb;
 
@@ -521,7 +523,8 @@ class _SyncPeerDialog extends ConsumerStatefulWidget {
 }
 
 class _SyncPeerDialogState extends ConsumerState<_SyncPeerDialog> {
-  final Set<String> _selectedPeerIds = {};
+  final Map<String, SyncMode> _senderModes = {}; // peerId -> sender sync mode
+  final Map<String, SyncMode> _receiverModes = {}; // peerId -> receiver sync mode
 
   @override
   Widget build(BuildContext context) {
@@ -532,71 +535,135 @@ class _SyncPeerDialogState extends ConsumerState<_SyncPeerDialog> {
         children: [
           Icon(LucideIcons.send, size: 20),
           SizedBox(width: 8),
-          Text('Dosyayı Senkronize Et'),
+          Expanded(child: Text('Dosyayı Senkronize Et')),
         ],
       ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Dosya: ${widget.file.relativePath}',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 4),
-          Text(
-            'Boyut: ${_formatFileSize(widget.file.size.toInt())}',
-            style: TextStyle(fontSize: 12, color: Colors.grey),
-          ),
-          SizedBox(height: 16),
-          Text(
-            'Peer Seç:',
-            style: TextStyle(fontWeight: FontWeight.w500),
-          ),
-          SizedBox(height: 8),
-          ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: 300),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: widget.peers.map((peer) {
-                  final isSelected = _selectedPeerIds.contains(peer.deviceId);
-                  
-                  return CheckboxListTile(
-                    title: Text(peer.name),
-                    subtitle: Text(peer.deviceId.substring(0, 8)),
-                    value: isSelected,
-                    onChanged: (value) {
-                      setState(() {
-                        if (value == true) {
-                          _selectedPeerIds.add(peer.deviceId);
-                        } else {
-                          _selectedPeerIds.remove(peer.deviceId);
-                        }
-                      });
-                    },
-                    dense: true,
-                  );
-                }).toList(),
+      content: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: 600, maxHeight: 600),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Dosya: ${widget.file.relativePath}',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 4),
+            Text(
+              'Boyut: ${_formatFileSize(widget.file.size.toInt())}',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Peer Seç ve Sync Mode Belirle:',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+            SizedBox(height: 8),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: widget.peers.map((peer) {
+                    final isSelected = _senderModes.containsKey(peer.deviceId);
+                    final senderMode = _senderModes[peer.deviceId] ?? SyncMode.SYNC_MODE_BIDIRECTIONAL;
+                    final receiverMode = _receiverModes[peer.deviceId] ?? SyncMode.SYNC_MODE_BIDIRECTIONAL;
+                    
+                    return Card(
+                      margin: EdgeInsets.only(bottom: 8),
+                      child: ExpansionTile(
+                        leading: Checkbox(
+                          value: isSelected,
+                          onChanged: (value) {
+                            setState(() {
+                              if (value == true) {
+                                _senderModes[peer.deviceId] = SyncMode.SYNC_MODE_BIDIRECTIONAL;
+                                _receiverModes[peer.deviceId] = SyncMode.SYNC_MODE_BIDIRECTIONAL;
+                              } else {
+                                _senderModes.remove(peer.deviceId);
+                                _receiverModes.remove(peer.deviceId);
+                              }
+                            });
+                          },
+                        ),
+                        title: Text(peer.name),
+                        subtitle: Text(peer.deviceId.substring(0, 8)),
+                        initiallyExpanded: isSelected,
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Gönderici Sync Mode:',
+                                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                                ),
+                                SizedBox(height: 8),
+                                ...SyncMode.values.where((m) => m != SyncMode.SYNC_MODE_UNSPECIFIED).map((mode) {
+                                  return RadioListTile<SyncMode>(
+                                    dense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                    title: Text(_getSyncModeName(mode)),
+                                    value: mode,
+                                    groupValue: senderMode,
+                                    onChanged: isSelected ? (value) {
+                                      if (value != null) {
+                                        setState(() {
+                                          _senderModes[peer.deviceId] = value;
+                                        });
+                                      }
+                                    } : null,
+                                  );
+                                }),
+                                SizedBox(height: 16),
+                                Text(
+                                  'Alıcı Sync Mode:',
+                                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                                ),
+                                SizedBox(height: 8),
+                                ...SyncMode.values.where((m) => m != SyncMode.SYNC_MODE_UNSPECIFIED).map((mode) {
+                                  return RadioListTile<SyncMode>(
+                                    dense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                    title: Text(_getSyncModeName(mode)),
+                                    value: mode,
+                                    groupValue: receiverMode,
+                                    onChanged: isSelected ? (value) {
+                                      if (value != null) {
+                                        setState(() {
+                                          _receiverModes[peer.deviceId] = value;
+                                        });
+                                      }
+                                    } : null,
+                                  );
+                                }),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
               ),
             ),
-          ),
-          if (syncState.isLoading)
-            Padding(
-              padding: EdgeInsets.only(top: 16),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                  SizedBox(width: 8),
-                  Text('Senkronize ediliyor...'),
-                ],
+            if (syncState.isLoading)
+              Padding(
+                padding: EdgeInsets.only(top: 16),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 8),
+                    Text('Senkronize ediliyor...'),
+                  ],
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -606,12 +673,20 @@ class _SyncPeerDialogState extends ConsumerState<_SyncPeerDialog> {
           child: Text('İptal'),
         ),
         FilledButton(
-          onPressed: syncState.isLoading || _selectedPeerIds.isEmpty
+          onPressed: syncState.isLoading || _senderModes.isEmpty
               ? null
               : () async {
+                  // Peer sync mode'larını oluştur
+                  final peerSyncModes = _senderModes.entries.map((e) {
+                    return PeerSyncMode()
+                      ..peerId = e.key
+                      ..senderMode = e.value
+                      ..receiverMode = _receiverModes[e.key] ?? SyncMode.SYNC_MODE_BIDIRECTIONAL;
+                  }).toList();
+                  
                   await ref
                       .read(syncNotifierProvider.notifier)
-                      .syncFile(widget.file.id, _selectedPeerIds.toList());
+                      .syncFile(widget.file.id, _senderModes.keys.toList(), peerSyncModes);
                   
                   if (mounted) {
                     final newState = ref.read(syncNotifierProvider);
@@ -637,6 +712,19 @@ class _SyncPeerDialogState extends ConsumerState<_SyncPeerDialog> {
         ),
       ],
     );
+  }
+  
+  String _getSyncModeName(SyncMode mode) {
+    switch (mode) {
+      case SyncMode.SYNC_MODE_BIDIRECTIONAL:
+        return 'İki Yönlü';
+      case SyncMode.SYNC_MODE_SEND_ONLY:
+        return 'Sadece Gönder';
+      case SyncMode.SYNC_MODE_RECEIVE_ONLY:
+        return 'Sadece Al';
+      default:
+        return 'Bilinmeyen';
+    }
   }
 
   String _formatFileSize(int bytes) {
@@ -664,7 +752,8 @@ class _SyncFolderDialog extends ConsumerStatefulWidget {
 }
 
 class _SyncFolderDialogState extends ConsumerState<_SyncFolderDialog> {
-  final Set<String> _selectedPeerIds = {};
+  final Map<String, SyncMode> _senderModes = {}; // peerId -> sender sync mode
+  final Map<String, SyncMode> _receiverModes = {}; // peerId -> receiver sync mode
 
   @override
   Widget build(BuildContext context) {
@@ -675,68 +764,135 @@ class _SyncFolderDialogState extends ConsumerState<_SyncFolderDialog> {
         children: [
           Icon(LucideIcons.folderSync, size: 20),
           SizedBox(width: 8),
-          Text('Klasörü Senkronize Et'),
+          Expanded(child: Text('Klasörü Senkronize Et')),
         ],
       ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Klasör: ${widget.folder.localPath}',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 4),
-          Text(
-            'Klasördeki TÜM dosyalar gönderilecek',
-            style: TextStyle(fontSize: 12, color: Colors.orange),
-          ),
-          SizedBox(height: 16),
-          Text(
-            'Peer Seç:',
-            style: TextStyle(fontWeight: FontWeight.w500),
-          ),
-          SizedBox(height: 8),
-          ...widget.peers.map((peer) {
-            final isSelected = _selectedPeerIds.contains(peer.deviceId);
-            return CheckboxListTile(
-              value: isSelected,
-              onChanged: syncState.isLoading
-                  ? null
-                  : (value) {
-                      setState(() {
-                        if (value == true) {
-                          _selectedPeerIds.add(peer.deviceId);
-                        } else {
-                          _selectedPeerIds.remove(peer.deviceId);
-                        }
-                      });
-                    },
-              title: Text(peer.name),
-              subtitle: Text(
-                peer.deviceId.substring(0, 8),
-                style: TextStyle(fontSize: 11, fontFamily: 'monospace'),
-              ),
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-            );
-          }),
-          if (syncState.isLoading)
-            Padding(
-              padding: EdgeInsets.only(top: 16),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                  SizedBox(width: 8),
-                  Text('Klasör senkronize ediliyor...'),
-                ],
+      content: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: 600, maxHeight: 600),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Klasör: ${widget.folder.localPath}',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 4),
+            Text(
+              'Klasördeki TÜM dosyalar gönderilecek',
+              style: TextStyle(fontSize: 12, color: Colors.orange),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Peer Seç ve Sync Mode Belirle:',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+            SizedBox(height: 8),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: widget.peers.map((peer) {
+                    final isSelected = _senderModes.containsKey(peer.deviceId);
+                    final senderMode = _senderModes[peer.deviceId] ?? SyncMode.SYNC_MODE_BIDIRECTIONAL;
+                    final receiverMode = _receiverModes[peer.deviceId] ?? SyncMode.SYNC_MODE_BIDIRECTIONAL;
+                    
+                    return Card(
+                      margin: EdgeInsets.only(bottom: 8),
+                      child: ExpansionTile(
+                        leading: Checkbox(
+                          value: isSelected,
+                          onChanged: (value) {
+                            setState(() {
+                              if (value == true) {
+                                _senderModes[peer.deviceId] = SyncMode.SYNC_MODE_BIDIRECTIONAL;
+                                _receiverModes[peer.deviceId] = SyncMode.SYNC_MODE_BIDIRECTIONAL;
+                              } else {
+                                _senderModes.remove(peer.deviceId);
+                                _receiverModes.remove(peer.deviceId);
+                              }
+                            });
+                          },
+                        ),
+                        title: Text(peer.name),
+                        subtitle: Text(peer.deviceId.substring(0, 8)),
+                        initiallyExpanded: isSelected,
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Gönderici Sync Mode:',
+                                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                                ),
+                                SizedBox(height: 8),
+                                ...SyncMode.values.where((m) => m != SyncMode.SYNC_MODE_UNSPECIFIED).map((mode) {
+                                  return RadioListTile<SyncMode>(
+                                    dense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                    title: Text(_getSyncModeName(mode)),
+                                    value: mode,
+                                    groupValue: senderMode,
+                                    onChanged: isSelected ? (value) {
+                                      if (value != null) {
+                                        setState(() {
+                                          _senderModes[peer.deviceId] = value;
+                                        });
+                                      }
+                                    } : null,
+                                  );
+                                }),
+                                SizedBox(height: 16),
+                                Text(
+                                  'Alıcı Sync Mode:',
+                                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                                ),
+                                SizedBox(height: 8),
+                                ...SyncMode.values.where((m) => m != SyncMode.SYNC_MODE_UNSPECIFIED).map((mode) {
+                                  return RadioListTile<SyncMode>(
+                                    dense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                    title: Text(_getSyncModeName(mode)),
+                                    value: mode,
+                                    groupValue: receiverMode,
+                                    onChanged: isSelected ? (value) {
+                                      if (value != null) {
+                                        setState(() {
+                                          _receiverModes[peer.deviceId] = value;
+                                        });
+                                      }
+                                    } : null,
+                                  );
+                                }),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
               ),
             ),
-        ],
+            if (syncState.isLoading)
+              Padding(
+                padding: EdgeInsets.only(top: 16),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 8),
+                    Text('Klasör senkronize ediliyor...'),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -746,12 +902,20 @@ class _SyncFolderDialogState extends ConsumerState<_SyncFolderDialog> {
           child: Text('İptal'),
         ),
         FilledButton(
-          onPressed: syncState.isLoading || _selectedPeerIds.isEmpty
+          onPressed: syncState.isLoading || _senderModes.isEmpty
               ? null
               : () async {
+                  // Peer sync mode'larını oluştur
+                  final peerSyncModes = _senderModes.entries.map((e) {
+                    return PeerSyncMode()
+                      ..peerId = e.key
+                      ..senderMode = e.value
+                      ..receiverMode = _receiverModes[e.key] ?? SyncMode.SYNC_MODE_BIDIRECTIONAL;
+                  }).toList();
+                  
                   final response = await ref
                       .read(syncNotifierProvider.notifier)
-                      .syncFolder(widget.folder.id, _selectedPeerIds.toList());
+                      .syncFolder(widget.folder.id, _senderModes.keys.toList(), peerSyncModes);
                   
                   if (mounted && response != null) {
                     final newState = ref.read(syncNotifierProvider);
@@ -781,6 +945,19 @@ class _SyncFolderDialogState extends ConsumerState<_SyncFolderDialog> {
         ),
       ],
     );
+  }
+  
+  String _getSyncModeName(SyncMode mode) {
+    switch (mode) {
+      case SyncMode.SYNC_MODE_BIDIRECTIONAL:
+        return 'İki Yönlü';
+      case SyncMode.SYNC_MODE_SEND_ONLY:
+        return 'Sadece Gönder';
+      case SyncMode.SYNC_MODE_RECEIVE_ONLY:
+        return 'Sadece Al';
+      default:
+        return 'Bilinmeyen';
+    }
   }
 }
 

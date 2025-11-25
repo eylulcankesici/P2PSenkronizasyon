@@ -20,13 +20,52 @@ const SyncFileRequest$json = {
   '2': [
     {'1': 'file_id', '3': 1, '4': 1, '5': 9, '10': 'fileId'},
     {'1': 'target_peer_ids', '3': 2, '4': 3, '5': 9, '10': 'targetPeerIds'},
+    {
+      '1': 'peer_sync_modes',
+      '3': 3,
+      '4': 3,
+      '5': 11,
+      '6': '.aether.api.PeerSyncMode',
+      '10': 'peerSyncModes'
+    },
   ],
 };
 
 /// Descriptor for `SyncFileRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List syncFileRequestDescriptor = $convert.base64Decode(
     'Cg9TeW5jRmlsZVJlcXVlc3QSFwoHZmlsZV9pZBgBIAEoCVIGZmlsZUlkEiYKD3RhcmdldF9wZW'
-    'VyX2lkcxgCIAMoCVINdGFyZ2V0UGVlcklkcw==');
+    'VyX2lkcxgCIAMoCVINdGFyZ2V0UGVlcklkcxJACg9wZWVyX3N5bmNfbW9kZXMYAyADKAsyGC5h'
+    'ZXRoZXIuYXBpLlBlZXJTeW5jTW9kZVINcGVlclN5bmNNb2Rlcw==');
+
+@$core.Deprecated('Use peerSyncModeDescriptor instead')
+const PeerSyncMode$json = {
+  '1': 'PeerSyncMode',
+  '2': [
+    {'1': 'peer_id', '3': 1, '4': 1, '5': 9, '10': 'peerId'},
+    {
+      '1': 'sender_mode',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.aether.api.SyncMode',
+      '10': 'senderMode'
+    },
+    {
+      '1': 'receiver_mode',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.aether.api.SyncMode',
+      '10': 'receiverMode'
+    },
+  ],
+};
+
+/// Descriptor for `PeerSyncMode`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List peerSyncModeDescriptor = $convert.base64Decode(
+    'CgxQZWVyU3luY01vZGUSFwoHcGVlcl9pZBgBIAEoCVIGcGVlcklkEjUKC3NlbmRlcl9tb2RlGA'
+    'IgASgOMhQuYWV0aGVyLmFwaS5TeW5jTW9kZVIKc2VuZGVyTW9kZRI5Cg1yZWNlaXZlcl9tb2Rl'
+    'GAMgASgOMhQuYWV0aGVyLmFwaS5TeW5jTW9kZVIMcmVjZWl2ZXJNb2Rl');
 
 @$core.Deprecated('Use syncFileResponseDescriptor instead')
 const SyncFileResponse$json = {
@@ -63,13 +102,22 @@ const SyncFolderRequest$json = {
   '2': [
     {'1': 'folder_id', '3': 1, '4': 1, '5': 9, '10': 'folderId'},
     {'1': 'target_peer_ids', '3': 2, '4': 3, '5': 9, '10': 'targetPeerIds'},
+    {
+      '1': 'peer_sync_modes',
+      '3': 3,
+      '4': 3,
+      '5': 11,
+      '6': '.aether.api.PeerSyncMode',
+      '10': 'peerSyncModes'
+    },
   ],
 };
 
 /// Descriptor for `SyncFolderRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List syncFolderRequestDescriptor = $convert.base64Decode(
     'ChFTeW5jRm9sZGVyUmVxdWVzdBIbCglmb2xkZXJfaWQYASABKAlSCGZvbGRlcklkEiYKD3Rhcm'
-    'dldF9wZWVyX2lkcxgCIAMoCVINdGFyZ2V0UGVlcklkcw==');
+    'dldF9wZWVyX2lkcxgCIAMoCVINdGFyZ2V0UGVlcklkcxJACg9wZWVyX3N5bmNfbW9kZXMYAyAD'
+    'KAsyGC5hZXRoZXIuYXBpLlBlZXJTeW5jTW9kZVINcGVlclN5bmNNb2Rlcw==');
 
 @$core.Deprecated('Use syncFolderResponseDescriptor instead')
 const SyncFolderResponse$json = {

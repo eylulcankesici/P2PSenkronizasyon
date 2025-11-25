@@ -27,10 +27,12 @@ class SyncFileRequest extends $pb.GeneratedMessage {
   factory SyncFileRequest({
     $core.String? fileId,
     $core.Iterable<$core.String>? targetPeerIds,
+    $core.Iterable<PeerSyncMode>? peerSyncModes,
   }) {
     final result = create();
     if (fileId != null) result.fileId = fileId;
     if (targetPeerIds != null) result.targetPeerIds.addAll(targetPeerIds);
+    if (peerSyncModes != null) result.peerSyncModes.addAll(peerSyncModes);
     return result;
   }
 
@@ -49,6 +51,8 @@ class SyncFileRequest extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'fileId')
     ..pPS(2, _omitFieldNames ? '' : 'targetPeerIds')
+    ..pPM<PeerSyncMode>(3, _omitFieldNames ? '' : 'peerSyncModes',
+        subBuilder: PeerSyncMode.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -81,6 +85,89 @@ class SyncFileRequest extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(2)
   $pb.PbList<$core.String> get targetPeerIds => $_getList(1);
+
+  @$pb.TagNumber(3)
+  $pb.PbList<PeerSyncMode> get peerSyncModes => $_getList(2);
+}
+
+class PeerSyncMode extends $pb.GeneratedMessage {
+  factory PeerSyncMode({
+    $core.String? peerId,
+    $1.SyncMode? senderMode,
+    $1.SyncMode? receiverMode,
+  }) {
+    final result = create();
+    if (peerId != null) result.peerId = peerId;
+    if (senderMode != null) result.senderMode = senderMode;
+    if (receiverMode != null) result.receiverMode = receiverMode;
+    return result;
+  }
+
+  PeerSyncMode._();
+
+  factory PeerSyncMode.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory PeerSyncMode.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'PeerSyncMode',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'peerId')
+    ..aE<$1.SyncMode>(2, _omitFieldNames ? '' : 'senderMode',
+        enumValues: $1.SyncMode.values)
+    ..aE<$1.SyncMode>(3, _omitFieldNames ? '' : 'receiverMode',
+        enumValues: $1.SyncMode.values)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PeerSyncMode clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PeerSyncMode copyWith(void Function(PeerSyncMode) updates) =>
+      super.copyWith((message) => updates(message as PeerSyncMode))
+          as PeerSyncMode;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PeerSyncMode create() => PeerSyncMode._();
+  @$core.override
+  PeerSyncMode createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static PeerSyncMode getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<PeerSyncMode>(create);
+  static PeerSyncMode? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get peerId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set peerId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPeerId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPeerId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $1.SyncMode get senderMode => $_getN(1);
+  @$pb.TagNumber(2)
+  set senderMode($1.SyncMode value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasSenderMode() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSenderMode() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $1.SyncMode get receiverMode => $_getN(2);
+  @$pb.TagNumber(3)
+  set receiverMode($1.SyncMode value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasReceiverMode() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearReceiverMode() => $_clearField(3);
 }
 
 class SyncFileResponse extends $pb.GeneratedMessage {
@@ -159,10 +246,12 @@ class SyncFolderRequest extends $pb.GeneratedMessage {
   factory SyncFolderRequest({
     $core.String? folderId,
     $core.Iterable<$core.String>? targetPeerIds,
+    $core.Iterable<PeerSyncMode>? peerSyncModes,
   }) {
     final result = create();
     if (folderId != null) result.folderId = folderId;
     if (targetPeerIds != null) result.targetPeerIds.addAll(targetPeerIds);
+    if (peerSyncModes != null) result.peerSyncModes.addAll(peerSyncModes);
     return result;
   }
 
@@ -181,6 +270,8 @@ class SyncFolderRequest extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'folderId')
     ..pPS(2, _omitFieldNames ? '' : 'targetPeerIds')
+    ..pPM<PeerSyncMode>(3, _omitFieldNames ? '' : 'peerSyncModes',
+        subBuilder: PeerSyncMode.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -213,6 +304,9 @@ class SyncFolderRequest extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(2)
   $pb.PbList<$core.String> get targetPeerIds => $_getList(1);
+
+  @$pb.TagNumber(3)
+  $pb.PbList<PeerSyncMode> get peerSyncModes => $_getList(2);
 }
 
 class SyncFolderResponse extends $pb.GeneratedMessage {

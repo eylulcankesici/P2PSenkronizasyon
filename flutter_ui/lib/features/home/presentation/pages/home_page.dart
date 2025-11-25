@@ -558,7 +558,6 @@ class _AddFolderDialog extends ConsumerStatefulWidget {
 }
 
 class _AddFolderDialogState extends ConsumerState<_AddFolderDialog> {
-  SyncMode _selectedMode = SyncMode.SYNC_MODE_BIDIRECTIONAL;
   bool _isLoading = false;
 
   @override
@@ -594,50 +593,13 @@ class _AddFolderDialogState extends ConsumerState<_AddFolderDialog> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           Text(
-            'Senkronizasyon Modu:',
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-          const SizedBox(height: 12),
-          RadioListTile<SyncMode>(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            title: const Text('İki Yönlü'),
-            subtitle: const Text('Dosyalar her iki yönde de senkronize edilir'),
-            value: SyncMode.SYNC_MODE_BIDIRECTIONAL,
-            groupValue: _selectedMode,
-            onChanged: (value) {
-              if (value != null) {
-                setState(() => _selectedMode = value);
-              }
-            },
-          ),
-          RadioListTile<SyncMode>(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Sadece Al'),
-            subtitle: const Text('Bu cihaz sadece dosya alır'),
-            value: SyncMode.SYNC_MODE_RECEIVE_ONLY,
-            groupValue: _selectedMode,
-            onChanged: (value) {
-              if (value != null) {
-                setState(() => _selectedMode = value);
-              }
-            },
-          ),
-          RadioListTile<SyncMode>(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Sadece Gönder'),
-            subtitle: const Text('Bu cihaz sadece dosya gönderir'),
-            value: SyncMode.SYNC_MODE_SEND_ONLY,
-            groupValue: _selectedMode,
-            onChanged: (value) {
-              if (value != null) {
-                setState(() => _selectedMode = value);
-              }
-            },
+            'Senkronizasyon modu, dosyayı gönderirken seçilebilir.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.grey.shade600,
+              fontStyle: FontStyle.italic,
+            ),
           ),
         ],
       ),
@@ -664,9 +626,10 @@ class _AddFolderDialogState extends ConsumerState<_AddFolderDialog> {
     setState(() => _isLoading = true);
 
     try {
+      // Varsayılan olarak BIDIRECTIONAL kullan (senkronizasyon modu gönderirken seçilecek)
       await ref.read(folderNotifierProvider.notifier).addFolder(
             widget.folderPath,
-            _selectedMode,
+            SyncMode.SYNC_MODE_BIDIRECTIONAL,
           );
 
       if (mounted) {

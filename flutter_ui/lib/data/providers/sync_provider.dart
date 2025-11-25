@@ -11,7 +11,7 @@ class SyncNotifier extends StateNotifier<AsyncValue<void>> {
   final Ref ref;
   
   /// Dosyayı peer'lara senkronize et
-  Future<void> syncFile(String fileId, List<String> targetPeerIds) async {
+  Future<void> syncFile(String fileId, List<String> targetPeerIds, List<PeerSyncMode> peerSyncModes) async {
     state = const AsyncValue.loading();
     
     try {
@@ -19,7 +19,8 @@ class SyncNotifier extends StateNotifier<AsyncValue<void>> {
       
       final request = SyncFileRequest()
         ..fileId = fileId
-        ..targetPeerIds.addAll(targetPeerIds);
+        ..targetPeerIds.addAll(targetPeerIds)
+        ..peerSyncModes.addAll(peerSyncModes);
       
       final response = await client.syncService.syncFile(request);
       
@@ -39,7 +40,7 @@ class SyncNotifier extends StateNotifier<AsyncValue<void>> {
   }
   
   /// Klasörün tüm dosyalarını peer'lara senkronize et
-  Future<SyncFolderResponse?> syncFolder(String folderId, List<String> targetPeerIds) async {
+  Future<SyncFolderResponse?> syncFolder(String folderId, List<String> targetPeerIds, List<PeerSyncMode> peerSyncModes) async {
     state = const AsyncValue.loading();
     
     try {
@@ -47,7 +48,8 @@ class SyncNotifier extends StateNotifier<AsyncValue<void>> {
       
       final request = SyncFolderRequest()
         ..folderId = folderId
-        ..targetPeerIds.addAll(targetPeerIds);
+        ..targetPeerIds.addAll(targetPeerIds)
+        ..peerSyncModes.addAll(peerSyncModes);
       
       final response = await client.syncService.syncFolder(request);
       
