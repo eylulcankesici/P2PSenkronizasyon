@@ -892,29 +892,58 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 		// Varsayılan sync klasörü: DataDir/synced_folders/{folder_name}
 		syncBaseDir := filepath.Join(c.config.App.DataDir, "synced_folders")
 		
-		var folderID, receivedFolderName, finalFileName string
+		var folderID, receivedFolderName, finalFileName, syncDir string
 		
 		// Folder adını belirle (öncelik: gelen folderName parametresi)
 		if folderName != "" {
 			// Sender'dan gelen folder adını kullan (ÖNCELİKLİ)
 			receivedFolderName = folderName
-			// Folder adından tutarlı bir ID üret (aynı folder adı → aynı ID)
-			hash := sha256.Sum256([]byte(folderName))
-			folderID = hex.EncodeToString(hash[:])[:32] // İlk 32 karakter
-			log.Printf("  ✅ Sender'dan gelen folder adı kullanılıyor: %s (ID: %s)", receivedFolderName, folderID[:8])
+			
+			// ÖNEMLİ: Gönderici tarafında, mevcut folder'larla eşleştir
+			// Eğer aynı isimde bir folder varsa, onu kullan (aynı folder'a dosya eklensin)
+			var matchedFolder *entity.Folder
+			allFolders, err := c.folderRepo.GetAll(ctx)
+			if err == nil {
+				for _, f := range allFolders {
+					// Folder adını karşılaştır (base name)
+					if filepath.Base(f.LocalPath) == folderName {
+						matchedFolder = f
+						log.Printf("  ✅ Aynı isimde folder bulundu: %s (ID: %s, Path: %s)", folderName, f.ID[:8], f.LocalPath)
+						break
+					}
+				}
+			}
+			
+			if matchedFolder != nil {
+				// Mevcut folder'ı kullan (aynı folder'a ekle)
+				folderID = matchedFolder.ID
+				syncDir = matchedFolder.LocalPath
+				folder = matchedFolder
+				log.Printf("  📁 Mevcut folder kullanılıyor: %s (ID: %s)", syncDir, folderID[:8])
+			} else {
+				// Yeni folder oluştur (alıcı taraf için)
+				// Folder adından tutarlı bir ID üret (aynı folder adı → aynı ID)
+				hash := sha256.Sum256([]byte(folderName))
+				folderID = hex.EncodeToString(hash[:])[:32] // İlk 32 karakter
+				syncDir = filepath.Join(syncBaseDir, receivedFolderName)
+				log.Printf("  ✅ Sender'dan gelen folder adı kullanılıyor (yeni folder): %s (ID: %s)", receivedFolderName, folderID[:8])
+			}
 		} else if file != nil && file.FolderID != "" {
 			// Veritabanındaki folder bilgisini kullan (fallback)
 			folderID = file.FolderID
 			if folderTemp, err := c.folderRepo.GetByID(ctx, file.FolderID); err == nil && folderTemp != nil {
 				receivedFolderName = filepath.Base(folderTemp.LocalPath)
+				syncDir = folderTemp.LocalPath
 			} else {
 				receivedFolderName = folderID[:8] // İlk 8 karakter
+				syncDir = filepath.Join(syncBaseDir, receivedFolderName)
 			}
 			log.Printf("  ⚠️ Veritabanından folder adı kullanılıyor: %s", receivedFolderName)
 		} else {
 			// FileID'den klasör oluştur (son fallback)
 			folderID = fmt.Sprintf("synced_%s", fileID[:8])
 			receivedFolderName = folderID
+			syncDir = filepath.Join(syncBaseDir, receivedFolderName)
 			log.Printf("  ⚠️ Fallback folder adı oluşturuldu: %s", receivedFolderName)
 		}
 		
@@ -930,17 +959,15 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 			log.Printf("  ⚠️ Fallback fileName kullanılıyor: %s", finalFileName)
 		}
 		
-		syncDir := filepath.Join(syncBaseDir, receivedFolderName)
-			
-			// Klasörü oluştur
-			if err := os.MkdirAll(syncDir, 0755); err != nil {
-				log.Printf("  ⚠️ Sync klasörü oluşturulamadı: %v", err)
-				syncDir = syncBaseDir // Fallback
-				os.MkdirAll(syncDir, 0755)
-			}
-			
-			outputPath = filepath.Join(syncDir, finalFileName)
-			log.Printf("  📁 Yeni klasöre kaydediliyor: %s", outputPath)
+		// Klasörü oluştur (eğer yoksa)
+		if err := os.MkdirAll(syncDir, 0755); err != nil {
+			log.Printf("  ⚠️ Sync klasörü oluşturulamadı: %v", err)
+			syncDir = syncBaseDir // Fallback
+			os.MkdirAll(syncDir, 0755)
+		}
+		
+		outputPath = filepath.Join(syncDir, finalFileName)
+		log.Printf("  📁 Dosya kaydediliyor: %s", outputPath)
 			
 		// Folder entity oluştur (alıcı taraf için)
 		if folder == nil {
