@@ -228,16 +228,16 @@ func (h *FolderHandler) DeleteFolder(ctx context.Context, req *pb.DeleteFolderRe
 	log.Printf("✅ Klasör veritabanından silindi: %s", req.Id[:8])
 
 	// FİZİKSEL klasörü SİL mi yoksa KORU mu?
-	// KURAL: Source field'ına göre karar ver (path'e bakmaya gerek yok!)
-	//   - FolderSourceReceived → Peer'dan alınan → FİZİKSEL OLARAK SİL
-	//   - FolderSourceUser → Kullanıcının eklediği → SADECE DB'DEN SİL, FİZİKSEL DOSYALARI KORU
+	// KURAL: Kullanıcı seçimine göre karar ver (req.DeletePhysically)
+	//   - delete_physically = true → Bilgisayardan tamamen kaldır (HEM ALICI HEM GÖNDERİCİ)
+	//   - delete_physically = false → Sadece uygulamadan kaldır, fiziksel dosyalar korunur (HEM ALICI HEM GÖNDERİCİ)
 	
-	if folder.Source == entity.FolderSourceReceived {
-		// ALICI TARAF: Peer'dan alınan folder → Fiziksel olarak sil
-		log.Printf("📦 Bu alıcı tarafın folder'ı (received), fiziksel olarak siliniyor: %s", folder.LocalPath)
+	if req.DeletePhysically {
+		// Kullanıcı bilgisayardan tamamen kaldırmayı seçti
+		log.Printf("🗑️ Kullanıcı seçimi: Klasör bilgisayardan tamamen kaldırılıyor: %s", folder.LocalPath)
 		
-		// Desktop symlink'ini sil (varsa)
-		if h.container.SymlinkManager() != nil {
+		// Desktop symlink'ini sil (varsa - sadece received folder'lar için)
+		if h.container.SymlinkManager() != nil && folder.Source == entity.FolderSourceReceived {
 			folderName := filepath.Base(folder.LocalPath)
 			if err := h.container.SymlinkManager().RemoveDesktopSymlink(folderName); err != nil {
 				log.Printf("⚠️ Desktop symlink silinemedi: %v", err)
@@ -263,8 +263,8 @@ func (h *FolderHandler) DeleteFolder(ctx context.Context, req *pb.DeleteFolderRe
 			Code:    200,
 		}, nil
 	} else {
-		// GÖNDERİCİ TARAF: Kullanıcının kendi eklediği folder → Fiziksel olarak SILME
-		log.Printf("📁 Bu gönderici tarafın folder'ı, fiziksel dosyalar KORUNUYOR: %s", folder.LocalPath)
+		// Kullanıcı sadece uygulamadan kaldırmayı seçti → Fiziksel dosyalar korunur
+		log.Printf("📁 Kullanıcı seçimi: Klasör sadece uygulamadan kaldırıldı (fiziksel dosyalar korundu): %s", folder.LocalPath)
 		
 		return &pb.Status{
 			Success: true,

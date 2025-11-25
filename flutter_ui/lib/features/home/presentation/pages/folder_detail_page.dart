@@ -262,11 +262,128 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                     // TODO: Dosya indirme
                   },
                 ),
+                PopupMenuItem(
+                  child: Row(
+                    children: [
+                      Icon(LucideIcons.trash2, size: 16, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Sil', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                  onTap: () {
+                    // PopupMenu kapandıktan sonra dialog'u göster
+                    Future.delayed(Duration(milliseconds: 100), () {
+                      _showDeleteFileDialog(context, ref, file);
+                    });
+                  },
+                ),
               ],
             ),
           ),
         );
       },
+    );
+  }
+
+  void _showDeleteFileDialog(BuildContext context, WidgetRef ref, file_pb.File file) {
+    bool deletePhysically = false;
+    
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Dosyayı Sil'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Dosya: ${file.relativePath}',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Boyut: ${_formatFileSize(file.size.toInt())}',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              SizedBox(height: 16),
+              CheckboxListTile(
+                title: const Text(
+                  'Bilgisayarımdan tamamen kaldır',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+                subtitle: const Text(
+                  'İşaretlenirse dosya bilgisayardan silinir',
+                  style: TextStyle(fontSize: 11, color: Colors.red),
+                ),
+                value: deletePhysically,
+                onChanged: (value) {
+                  setDialogState(() {
+                    deletePhysically = value ?? false;
+                  });
+                },
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+              ),
+              SizedBox(height: 8),
+              Text(
+                deletePhysically
+                    ? '⚠️ UYARI: Dosya bilgisayardan silinecek!'
+                    : 'ℹ️ Dosya sadece uygulamadan kaldırılacak, fiziksel dosya korunacak.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: deletePhysically ? Colors.red : Colors.grey,
+                  fontWeight: deletePhysically ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('İptal'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                
+                await ref.read(fileNotifierProvider.notifier).deleteFile(
+                  file.id,
+                  file.folderId,
+                  deletePhysically: deletePhysically,
+                );
+                
+                if (context.mounted) {
+                  final fileState = ref.read(fileNotifierProvider);
+                  if (!fileState.hasError) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          deletePhysically
+                              ? 'Dosya bilgisayardan tamamen silindi'
+                              : 'Dosya uygulamadan kaldırıldı (fiziksel dosya korundu)',
+                        ),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Hata: ${fileState.error}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: deletePhysically ? Colors.red : Colors.orange,
+              ),
+              child: Text(deletePhysically ? 'Tamamen Sil' : 'Uygulamadan Kaldır'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

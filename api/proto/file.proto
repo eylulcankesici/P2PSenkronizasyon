@@ -93,6 +93,7 @@ message FileInfoResponse {
 
 message DeleteFileRequest {
   string file_id = 1;
+  bool delete_physically = 2; // true: Bilgisayardan tamamen kaldır, false: Sadece uygulamadan kaldır
 }
 
 message GetFileVersionsRequest {

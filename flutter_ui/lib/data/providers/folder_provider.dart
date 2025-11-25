@@ -52,13 +52,16 @@ class FolderNotifier extends StateNotifier<AsyncValue<void>> {
   }
   
   /// Klasör sil
-  Future<void> deleteFolder(String folderId) async {
+  /// [deletePhysically] true ise bilgisayardan tamamen kaldırılır, false ise sadece uygulamadan kaldırılır
+  Future<void> deleteFolder(String folderId, {bool deletePhysically = false}) async {
     state = const AsyncValue.loading();
     
     try {
       final client = ref.read(grpcClientProvider);
       
-      final request = DeleteFolderRequest()..id = folderId;
+      final request = DeleteFolderRequest()
+        ..id = folderId
+        ..deletePhysically = deletePhysically;
       final response = await client.folderService.deleteFolder(request);
       
       if (response.success) {

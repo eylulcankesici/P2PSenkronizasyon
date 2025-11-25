@@ -99,49 +99,39 @@ func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest)
 	log.Printf("✅ Dosya veritabanından silindi: %s", req.FileId[:8])
 	
 	// FİZİKSEL dosyayı SİL mi yoksa KORU mu?
-	// KURAL: Source field'ına göre karar ver (path'e bakmaya gerek yok!)
-	//   - FolderSourceReceived → Peer'dan alınan → FİZİKSEL OLARAK SİL
-	//   - FolderSourceUser → Kullanıcının eklediği → SADECE DB'DEN SİL, FİZİKSEL DOSYAYI KORU
+	// KURAL: Kullanıcı seçimine göre karar ver (req.DeletePhysically)
+	//   - delete_physically = true → Bilgisayardan tamamen kaldır (HEM ALICI HEM GÖNDERİCİ)
+	//   - delete_physically = false → Sadece uygulamadan kaldır, fiziksel dosya korunur (HEM ALICI HEM GÖNDERİCİ)
 	
-	if folder != nil && folder.LocalPath != "" && file.RelativePath != "" {
+	if req.DeletePhysically && folder != nil && folder.LocalPath != "" && file.RelativePath != "" {
 		filePath := filepath.Join(folder.LocalPath, file.RelativePath)
 		
-		if folder.Source == entity.FolderSourceReceived {
-			// ALICI TARAF: Peer'dan alınan dosya → Fiziksel olarak sil
-			log.Printf("📦 Bu alıcı tarafın dosyası (received), fiziksel olarak siliniyor: %s", filePath)
-			if err := os.Remove(filePath); err != nil {
-				log.Printf("⚠️ Fiziksel dosya silinemedi (%s): %v", filePath, err)
-				return &pb.Status{
-					Success: true,
-					Message: fmt.Sprintf("Dosya veritabanından silindi ama fiziksel dosya silinemedi: %v", err),
-					Code:    200,
-				}, nil
-			}
-			log.Printf("✅ Fiziksel dosya silindi: %s", filePath)
-			
+		log.Printf("🗑️ Kullanıcı seçimi: Dosya bilgisayardan tamamen kaldırılıyor: %s", filePath)
+		if err := os.Remove(filePath); err != nil {
+			log.Printf("⚠️ Fiziksel dosya silinemedi (%s): %v", filePath, err)
 			return &pb.Status{
 				Success: true,
-				Message: "Dosya başarıyla silindi (veritabanı + fiziksel dosya)",
-				Code:    200,
-			}, nil
-		} else {
-			// GÖNDERİCİ TARAF: Kullanıcının kendi eklediği dosya → Fiziksel olarak SILME
-			log.Printf("📁 Bu gönderici tarafın dosyası, fiziksel dosya KORUNUYOR: %s", filePath)
-			
-			return &pb.Status{
-				Success: true,
-				Message: "Dosya uygulamadan kaldırıldı (fiziksel dosya korundu)",
+				Message: fmt.Sprintf("Dosya veritabanından silindi ama fiziksel dosya silinemedi: %v", err),
 				Code:    200,
 			}, nil
 		}
+		log.Printf("✅ Fiziksel dosya silindi: %s", filePath)
+		
+		return &pb.Status{
+			Success: true,
+			Message: "Dosya başarıyla silindi (veritabanı + fiziksel dosya)",
+			Code:    200,
+		}, nil
+	} else {
+		// Kullanıcı sadece uygulamadan kaldırmayı seçti → Fiziksel dosya korunur
+		log.Printf("📁 Kullanıcı seçimi: Dosya sadece uygulamadan kaldırıldı (fiziksel dosya korundu)")
+		
+		return &pb.Status{
+			Success: true,
+			Message: "Dosya uygulamadan kaldırıldı (fiziksel dosya korundu)",
+			Code:    200,
+		}, nil
 	}
-	
-	// Folder bilgisi yoksa (fallback)
-	return &pb.Status{
-		Success: true,
-		Message: "Dosya veritabanından silindi",
-		Code:    200,
-	}, nil
 }
 
 // GetFileVersions dosya versiyonlarını getirir (placeholder)

@@ -448,55 +448,98 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Future<void> _confirmDeleteFolder(String folderId, String folderPath) async {
-    final confirmed = await showDialog<bool>(
+    bool deletePhysically = false;
+    
+    final confirmed = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Klasörü Sil'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Bu klasörü senkronizasyondan kaldırmak istediğinizden emin misiniz?'),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(4),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Klasörü Sil'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Bu klasörü senkronizasyondan kaldırmak istediğinizden emin misiniz?'),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  folderPath,
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                ),
               ),
-              child: Text(
-                folderPath,
-                style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+              const SizedBox(height: 16),
+              CheckboxListTile(
+                title: const Text(
+                  'Bilgisayarımdan tamamen kaldır',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+                subtitle: const Text(
+                  'İşaretlenirse klasör ve tüm dosyalar bilgisayardan silinir',
+                  style: TextStyle(fontSize: 11, color: Colors.red),
+                ),
+                value: deletePhysically,
+                onChanged: (value) {
+                  setDialogState(() {
+                    deletePhysically = value ?? false;
+                  });
+                },
+                contentPadding: EdgeInsets.zero,
+                dense: true,
               ),
+              const SizedBox(height: 8),
+              Text(
+                deletePhysically
+                    ? '⚠️ UYARI: Klasör ve tüm içeriği bilgisayardan silinecek!'
+                    : 'ℹ️ Klasör sadece uygulamadan kaldırılacak, dosyalar korunacak.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: deletePhysically ? Colors.red : Colors.grey,
+                  fontWeight: deletePhysically ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(null),
+              child: const Text('İptal'),
             ),
-            const SizedBox(height: 12),
-            const Text(
-              'Not: Yerel dosyalarınız silinmeyecek, sadece senkronizasyon durur.',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop({
+                'confirmed': true,
+                'deletePhysically': deletePhysically,
+              }),
+              style: FilledButton.styleFrom(
+                backgroundColor: deletePhysically ? Colors.red : Colors.orange,
+              ),
+              child: Text(deletePhysically ? 'Tamamen Sil' : 'Uygulamadan Kaldır'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('İptal'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Sil'),
-          ),
-        ],
       ),
     );
 
-    if (confirmed == true) {
-      await ref.read(folderNotifierProvider.notifier).deleteFolder(folderId);
+    if (confirmed != null && confirmed['confirmed'] == true) {
+      final shouldDeletePhysically = confirmed['deletePhysically'] as bool? ?? false;
+      
+      await ref.read(folderNotifierProvider.notifier).deleteFolder(
+        folderId,
+        deletePhysically: shouldDeletePhysically,
+      );
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Klasör silindi'),
+          SnackBar(
+            content: Text(
+              shouldDeletePhysically
+                  ? 'Klasör bilgisayardan tamamen silindi'
+                  : 'Klasör uygulamadan kaldırıldı (dosyalar korundu)',
+            ),
             backgroundColor: Colors.green,
           ),
         );
