@@ -101,11 +101,11 @@ func (c *TCPConnection) SetChunkHandler(handler func(chunkHash string) ([]byte, 
 
 // SendChunk chunk gönderir (pull-based için)
 func (c *TCPConnection) SendChunk(ctx context.Context, chunkHash string, data []byte) error {
-	return c.SendChunkWithFileInfo(ctx, chunkHash, data, "", 0, 0, "", "")
+	return c.SendChunkWithFileInfo(ctx, chunkHash, data, "", 0, 0, "", "", pb.SyncMode_SYNC_MODE_UNSPECIFIED, pb.SyncMode_SYNC_MODE_UNSPECIFIED)
 }
 
 // SendChunkWithFileInfo chunk gönderir (push-based sync için file bilgisiyle)
-func (c *TCPConnection) SendChunkWithFileInfo(ctx context.Context, chunkHash string, data []byte, fileID string, chunkIndex, totalChunks int, fileName, folderName string) error {
+func (c *TCPConnection) SendChunkWithFileInfo(ctx context.Context, chunkHash string, data []byte, fileID string, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error {
 	// Context iptal kontrolü (göndermeden önce)
 	select {
 	case <-ctx.Done():
@@ -123,8 +123,8 @@ func (c *TCPConnection) SendChunkWithFileInfo(ctx context.Context, chunkHash str
 	default:
 	}
 	
-	// Chunk response mesajı encode et (folder adı ile)
-	frame, err := c.protocol.EncodeChunkResponseWithFileInfo(chunkHash, data, fileID, chunkIndex, totalChunks, fileName, folderName)
+	// Chunk response mesajı encode et (folder adı ve sync mode ile)
+	frame, err := c.protocol.EncodeChunkResponseWithFileInfo(chunkHash, data, fileID, chunkIndex, totalChunks, fileName, folderName, senderSyncMode, receiverSyncMode)
 	if err != nil {
 		return fmt.Errorf("chunk encode hatası: %w", err)
 	}
@@ -541,9 +541,9 @@ func (c *TCPConnection) handleChunkResponse(payload []byte) error {
 			log.Printf("  📁 Dosya sync: %s, fileName: %s, folderName: %s, chunk %d/%d", resp.FileId[:8], resp.FileName, resp.FolderName, resp.ChunkIndex+1, resp.TotalChunks)
 		}
 		
-		// Manager varsa ve chunk received callback varsa çağır (folder name ile)
+		// Manager varsa ve chunk received callback varsa çağır (folder name ve sync mode ile)
 		if c.manager != nil && c.manager.onChunkReceived != nil {
-			return c.manager.onChunkReceived(c.peerID, resp.FileId, resp.ChunkHash, resp.ChunkData, int(resp.ChunkIndex), int(resp.TotalChunks), resp.FileName, resp.FolderName)
+			return c.manager.onChunkReceived(c.peerID, resp.FileId, resp.ChunkHash, resp.ChunkData, int(resp.ChunkIndex), int(resp.TotalChunks), resp.FileName, resp.FolderName, resp.SenderSyncMode, resp.ReceiverSyncMode)
 		}
 		
 		log.Printf("  ⚠️ Chunk received callback tanımlı değil, chunk kaydedilemiyor")
@@ -945,7 +945,7 @@ type TCPConnectionManager struct {
 	onConnectionRequested   func(deviceID, deviceName string)
 	onConnectionLost        func(peerID string)
 	chunkHandlerCallback    func(chunkHash string) ([]byte, error)
-	onChunkReceived         func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string) error
+	onChunkReceived         func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error
 	onTransferCancel        func(peerID, fileID string) // Transfer iptal bildirimi callback'i
 	onFileDelete            func(peerID, fileID string) // Dosya silme bildirimi callback'i
 }
@@ -1202,7 +1202,7 @@ func (m *TCPConnectionManager) SetOnConnectionLost(callback func(peerID string))
 }
 
 // SetOnChunkReceived chunk received callback'ini set eder
-func (m *TCPConnectionManager) SetOnChunkReceived(callback func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string) error) {
+func (m *TCPConnectionManager) SetOnChunkReceived(callback func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error) {
 	m.onChunkReceived = callback
 }
 

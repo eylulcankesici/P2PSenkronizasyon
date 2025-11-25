@@ -205,25 +205,27 @@ func (p *Protocol) DecodeChunkRequest(data []byte) (string, error) {
 
 // EncodeChunkResponse chunk response mesajı oluşturur (pull-based için)
 func (p *Protocol) EncodeChunkResponse(chunkHash string, chunkData []byte) ([]byte, error) {
-	return p.EncodeChunkResponseWithFileInfo(chunkHash, chunkData, "", 0, 0, "", "")
+	return p.EncodeChunkResponseWithFileInfo(chunkHash, chunkData, "", 0, 0, "", "", pb.SyncMode_SYNC_MODE_UNSPECIFIED, pb.SyncMode_SYNC_MODE_UNSPECIFIED)
 }
 
 // EncodeChunkResponseWithFileInfo chunk response mesajı oluşturur (push-based sync için)
-func (p *Protocol) EncodeChunkResponseWithFileInfo(chunkHash string, chunkData []byte, fileID string, chunkIndex, totalChunks int, fileName, folderName string) ([]byte, error) {
+func (p *Protocol) EncodeChunkResponseWithFileInfo(chunkHash string, chunkData []byte, fileID string, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) ([]byte, error) {
 	resp := &pb.ChunkResponse{
 		Status: &pb.Status{
 			Success: true,
 			Message: "OK",
 			Code:    200,
 		},
-		ChunkHash:   chunkHash,
-		ChunkData:   chunkData,
-		ChunkSize:   int64(len(chunkData)),
-		FileId:      fileID,
-		ChunkIndex:  int32(chunkIndex),
-		TotalChunks: int32(totalChunks),
-		FileName:    fileName,
-		FolderName:  folderName,  // Folder adı eklendi (receiver için)
+		ChunkHash:        chunkHash,
+		ChunkData:        chunkData,
+		ChunkSize:        int64(len(chunkData)),
+		FileId:           fileID,
+		ChunkIndex:       int32(chunkIndex),
+		TotalChunks:      int32(totalChunks),
+		FileName:         fileName,
+		FolderName:       folderName,  // Folder adı eklendi (receiver için)
+		SenderSyncMode:   senderSyncMode,  // Gönderen tarafın sync mode'u
+		ReceiverSyncMode: receiverSyncMode,  // Alıcı tarafın sync mode'u
 	}
 	
 	// Log kapatıldı (spam önleme)

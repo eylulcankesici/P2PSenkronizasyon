@@ -54,6 +54,8 @@ message ChunkResponse {
   int32 total_chunks = 7;
   string file_name = 8;  // Dosya adı (uzantı dahil)
   string folder_name = 9;  // Klasör adı (receiver için folder yapısını korumak için)
+  SyncMode sender_sync_mode = 10;  // Gönderen tarafın sync mode'u
+  SyncMode receiver_sync_mode = 11;  // Alıcı tarafın sync mode'u
 }
 
 message ChunkData {

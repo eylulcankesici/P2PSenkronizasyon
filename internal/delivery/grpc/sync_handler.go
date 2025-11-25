@@ -82,6 +82,12 @@ func (h *SyncHandler) SyncFile(ctx context.Context, req *pb.SyncFileRequest) (*p
 		log.Printf("  ✅ Dosya chunk'landı: %d chunk", len(fileChunks))
 	}
 	
+	// Peer başına sync mode bilgisini map'e çevir (hızlı erişim için)
+	peerSyncModes := make(map[string]*pb.PeerSyncMode)
+	for _, psm := range req.PeerSyncModes {
+		peerSyncModes[psm.PeerId] = psm
+	}
+	
 	// Her peer için senkronizasyon başlat
 	successCount := 0
 	var lastError error
@@ -89,8 +95,17 @@ func (h *SyncHandler) SyncFile(ctx context.Context, req *pb.SyncFileRequest) (*p
 	for _, peerID := range req.TargetPeerIds {
 		log.Printf("  📤 Peer'a gönderiliyor: %s", peerID[:8])
 		
+		// Peer için sync mode'ları al (varsayılan: BIDIRECTIONAL)
+		senderMode := pb.SyncMode_SYNC_MODE_BIDIRECTIONAL
+		receiverMode := pb.SyncMode_SYNC_MODE_BIDIRECTIONAL
+		if psm, exists := peerSyncModes[peerID]; exists {
+			senderMode = psm.SenderMode
+			receiverMode = psm.ReceiverMode
+			log.Printf("  📋 Sync mode'lar: sender=%v, receiver=%v", senderMode, receiverMode)
+		}
+		
 		// Transfer durumunu takip ederek senkronize et
-		err := h.container.SyncFileWithPeerTracked(ctx, peerID, req.FileId)
+		err := h.container.SyncFileWithPeerTracked(ctx, peerID, req.FileId, senderMode, receiverMode)
 		if err != nil {
 			log.Printf("  ⚠️ Peer'a gönderim hatası (%s): %v", peerID[:8], err)
 			lastError = err
@@ -200,13 +215,27 @@ func (h *SyncHandler) SyncFolder(ctx context.Context, req *pb.SyncFolderRequest)
 			}
 		}
 		
+		// Peer başına sync mode bilgisini map'e çevir (hızlı erişim için)
+		peerSyncModes := make(map[string]*pb.PeerSyncMode)
+		for _, psm := range req.PeerSyncModes {
+			peerSyncModes[psm.PeerId] = psm
+		}
+		
 		// Her peer'a gönder
 		fileSynced := false
 		for _, peerID := range req.TargetPeerIds {
 			log.Printf("  📤 Dosya gönderiliyor: %s -> %s", file.RelativePath, peerID[:8])
 			
+			// Peer için sync mode'ları al (varsayılan: BIDIRECTIONAL)
+			senderMode := pb.SyncMode_SYNC_MODE_BIDIRECTIONAL
+			receiverMode := pb.SyncMode_SYNC_MODE_BIDIRECTIONAL
+			if psm, exists := peerSyncModes[peerID]; exists {
+				senderMode = psm.SenderMode
+				receiverMode = psm.ReceiverMode
+			}
+			
 			// Transfer durumunu takip ederek senkronize et
-			err := h.container.SyncFileWithPeerTracked(ctx, peerID, file.ID)
+			err := h.container.SyncFileWithPeerTracked(ctx, peerID, file.ID, senderMode, receiverMode)
 			if err != nil {
 				log.Printf("  ⚠️ Dosya gönderilemedi (%s -> %s): %v", file.RelativePath, peerID[:8], err)
 				lastError = err

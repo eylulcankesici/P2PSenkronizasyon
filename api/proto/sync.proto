@@ -31,6 +31,13 @@ service SyncService {
 message SyncFileRequest {
   string file_id = 1;
   repeated string target_peer_ids = 2;
+  repeated PeerSyncMode peer_sync_modes = 3;  // Her peer için sync mode bilgisi
+}
+
+message PeerSyncMode {
+  string peer_id = 1;  // Peer ID
+  SyncMode sender_mode = 2;  // Gönderen tarafın sync mode'u
+  SyncMode receiver_mode = 3;  // Alıcı tarafın sync mode'u
 }
 
 message SyncFileResponse {
@@ -41,6 +48,7 @@ message SyncFileResponse {
 message SyncFolderRequest {
   string folder_id = 1;
   repeated string target_peer_ids = 2;
+  repeated PeerSyncMode peer_sync_modes = 3;  // Her peer için sync mode bilgisi
 }
 
 message SyncFolderResponse {

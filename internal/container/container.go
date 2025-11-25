@@ -445,8 +445,8 @@ func (c *Container) initUseCases() error {
 		})
 		
 		// Chunk received callback'ini bağla (push-based sync için - folder name ile)
-		connMgr.SetOnChunkReceived(func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string) error {
-			return c.handleIncomingChunk(context.Background(), peerID, fileID, chunkHash, chunkData, chunkIndex, totalChunks, fileName, folderName)
+		connMgr.SetOnChunkReceived(func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error {
+			return c.handleIncomingChunk(context.Background(), peerID, fileID, chunkHash, chunkData, chunkIndex, totalChunks, fileName, folderName, senderSyncMode, receiverSyncMode)
 		})
 		
 		log.Println("✓ Chunk received callback bağlandı")
@@ -620,10 +620,10 @@ func (c *Container) initP2PTransport() error {
 }
 
 	// handleIncomingChunk gelen chunk'ı işler (push-based sync)
-func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string) error {
+func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error {
 	// Log azaltıldı - sadece her 50 chunk'ta bir log
 	if chunkIndex%50 == 0 || chunkIndex == 0 || chunkIndex == totalChunks-1 {
-		log.Printf("📥 Incoming chunk: file=%s, folder=%s, chunk=%d/%d, hash=%s", fileID[:8], folderName, chunkIndex+1, totalChunks, chunkHash[:8])
+		log.Printf("📥 Incoming chunk: file=%s, folder=%s, chunk=%d/%d, hash=%s, receiver_sync_mode=%v", fileID[:8], folderName, chunkIndex+1, totalChunks, chunkHash[:8], receiverSyncMode)
 	}
 	
 	// İlk chunk ise dosyayı initialize et ve transfer durumunu başlat
@@ -991,7 +991,9 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 				}
 			} else {
 				// Yeni folder oluştur (alıcı taraf için - received source)
-				folder = entity.NewReceivedFolder(syncDir, entity.SyncModeBidirectional)
+				// Gelen sync mode'u kullan (eğer UNSPECIFIED ise BIDIRECTIONAL kullan - geriye dönük uyumluluk)
+				receiverSyncModeEntity := convertProtoSyncModeToEntity(receiverSyncMode)
+				folder = entity.NewReceivedFolder(syncDir, receiverSyncModeEntity)
 				folder.ID = folderID
 				if err := c.folderRepo.Create(ctx, folder); err != nil {
 					log.Printf("  ⚠️ Folder entity oluşturulamadı: %v", err)
@@ -1183,14 +1185,15 @@ func (c *Container) retryChunkRequest(ctx context.Context, peerID, chunkHash, fi
 		
 		// Tekrar handleIncomingChunk çağır (recursive retry - folder name ile)
 		log.Printf("  ✅ Chunk retry alındı, tekrar doğrulanıyor: %s", chunkHash[:8])
-		return c.handleIncomingChunk(ctx, peerID, fileID, chunkHash, retryChunkData, chunkIndex, totalChunks, fileName, folderName)
+		// Retry durumunda sync mode bilgisi olmayabilir, default değerler kullan
+		return c.handleIncomingChunk(ctx, peerID, fileID, chunkHash, retryChunkData, chunkIndex, totalChunks, fileName, folderName, pb.SyncMode_SYNC_MODE_UNSPECIFIED, pb.SyncMode_SYNC_MODE_UNSPECIFIED)
 	}
 	
 	return fmt.Errorf("retry desteği yok (connection type: %T)", conn)
 }
 
 // SyncFileWithPeerTracked dosyayı peer'a gönderir ve transfer durumunu takip eder
-func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID string) error {
+func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID string, senderSyncMode, receiverSyncMode pb.SyncMode) error {
 	log.Printf("🔄🔄🔄 SyncFileWithPeerTracked BAŞLATILIYOR - YENİ TRANSFER HAZIRLAMA: fileID=%s, peerID=%s", fileID[:8], peerID[:8])
 	
 	// Önceki transfer varsa explicit olarak temizle (CANCELLED, FAILED, ACTIVE hepsi)
@@ -1307,7 +1310,7 @@ func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID 
 	// Dosyayı peer'a gönder (progress callback ile)
 	// Type assertion ile SyncFileWithPeerWithProgress metoduna eriş
 	if useCaseImpl, ok := c.p2pTransferUseCase.(interface {
-		SyncFileWithPeerWithProgress(ctx context.Context, peerID, fileID string, progressCallback func(completedChunks, totalChunks int, transferredBytes int64)) error
+		SyncFileWithPeerWithProgress(ctx context.Context, peerID, fileID string, progressCallback func(completedChunks, totalChunks int, transferredBytes int64), senderSyncMode, receiverSyncMode pb.SyncMode) error
 	}); ok {
 		err = useCaseImpl.SyncFileWithPeerWithProgress(transferCtx, peerID, fileID, func(completedChunks, totalChunks int, transferredBytes int64) {
 			// Context iptal kontrolü (progress güncellemeden önce)
@@ -1317,7 +1320,7 @@ func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID 
 			}
 			// Her chunk gönderildiğinde progress güncelle
 			c.transferManager.UpdateChunkProgress(fileID, int32(completedChunks), transferredBytes)
-		})
+		}, senderSyncMode, receiverSyncMode)
 	} else {
 		// Fallback: progress callback olmadan
 		err = c.p2pTransferUseCase.SyncFileWithPeer(transferCtx, peerID, fileID)
@@ -1466,10 +1469,14 @@ func (c *Container) syncFileToAllPeers(fileID, folderID string) error {
 	log.Printf("🔄 Dosya otomatik sync ediliyor: %s -> %d peer", fileID[:8], len(allConnections))
 	
 	// Her peer'a sync et
+	// Otomatik sync için: gönderen mod = folder'ın sync mode'u, alıcı mod = BIDIRECTIONAL (varsayılan)
+	senderModeProto := convertEntitySyncModeToProto(folder.SyncMode)
+	receiverModeProto := pb.SyncMode_SYNC_MODE_BIDIRECTIONAL
+	
 	for _, conn := range allConnections {
 		peerID := conn.GetPeerID()
 		go func(pid string) {
-			if err := c.SyncFileWithPeerTracked(ctx, pid, fileID); err != nil {
+			if err := c.SyncFileWithPeerTracked(ctx, pid, fileID, senderModeProto, receiverModeProto); err != nil {
 				log.Printf("⚠️ Otomatik sync hatası (peer: %s, file: %s): %v", pid[:8], fileID[:8], err)
 			} else {
 				log.Printf("✅ Otomatik sync başarılı (peer: %s, file: %s)", pid[:8], fileID[:8])
@@ -1516,10 +1523,14 @@ func (c *Container) syncChangedChunksToAllPeers(fileID, folderID string, changed
 	log.Printf("🔄 DELTA SYNC: %d chunk değişikliği -> %d peer", len(changedChunkIndices), len(allConnections))
 	
 	// Her peer'a sadece değişen chunk'ları gönder
+	// Otomatik sync için: gönderen mod = folder'ın sync mode'u, alıcı mod = BIDIRECTIONAL (varsayılan)
+	senderModeProto := convertEntitySyncModeToProto(folder.SyncMode)
+	receiverModeProto := pb.SyncMode_SYNC_MODE_BIDIRECTIONAL
+	
 	for _, conn := range allConnections {
 		peerID := conn.GetPeerID()
 		go func(pid string, indices []int) {
-			if err := c.syncSpecificChunksToPeer(ctx, pid, fileID, indices); err != nil {
+			if err := c.syncSpecificChunksToPeer(ctx, pid, fileID, indices, senderModeProto, receiverModeProto); err != nil {
 				log.Printf("⚠️ Delta sync hatası (peer: %s, file: %s): %v", pid[:8], fileID[:8], err)
 			} else {
 				log.Printf("✅ Delta sync başarılı (peer: %s, %d chunk)", pid[:8], len(indices))
@@ -1531,7 +1542,7 @@ func (c *Container) syncChangedChunksToAllPeers(fileID, folderID string, changed
 }
 
 // syncSpecificChunksToPeer belirli chunk'ları peer'a gönderir
-func (c *Container) syncSpecificChunksToPeer(ctx context.Context, peerID, fileID string, chunkIndices []int) error {
+func (c *Container) syncSpecificChunksToPeer(ctx context.Context, peerID, fileID string, chunkIndices []int, senderSyncMode, receiverSyncMode pb.SyncMode) error {
 	// Dosya bilgisini al
 	file, err := c.fileRepo.GetByID(ctx, fileID)
 	if err != nil {
@@ -1580,9 +1591,9 @@ func (c *Container) syncSpecificChunksToPeer(ctx context.Context, peerID, fileID
 			return fmt.Errorf("chunk verisi alınamadı: %w", err)
 		}
 		
-		// Chunk'ı gönder (file + folder bilgisiyle)
+		// Chunk'ı gönder (file + folder bilgisiyle + sync mode)
 		if tcpConn, ok := conn.(interface {
-			SendChunkWithFileInfo(ctx context.Context, chunkHash string, data []byte, fileID string, chunkIndex, totalChunks int, fileName, folderName string) error
+			SendChunkWithFileInfo(ctx context.Context, chunkHash string, data []byte, fileID string, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error
 		}); ok {
 			if err := tcpConn.SendChunkWithFileInfo(
 				ctx,
@@ -1593,6 +1604,8 @@ func (c *Container) syncSpecificChunksToPeer(ctx context.Context, peerID, fileID
 				len(allChunks),
 				file.RelativePath,
 				folderName,  // Folder adı eklendi
+				senderSyncMode,  // Gönderen sync mode
+				receiverSyncMode,  // Alıcı sync mode
 			); err != nil {
 				return fmt.Errorf("chunk gönderilemedi [%d]: %w", fc.ChunkIndex, err)
 			}
@@ -1680,4 +1693,33 @@ func (c *Container) sendDeleteFileToPeer(ctx context.Context, peerID, fileID str
 	}
 	
 	return fmt.Errorf("connection SendFileDelete desteklemiyor")
+}
+
+// convertProtoSyncModeToEntity protobuf SyncMode'u entity SyncMode'a çevirir
+func convertProtoSyncModeToEntity(mode pb.SyncMode) entity.SyncMode {
+	switch mode {
+	case pb.SyncMode_SYNC_MODE_BIDIRECTIONAL:
+		return entity.SyncModeBidirectional
+	case pb.SyncMode_SYNC_MODE_SEND_ONLY:
+		return entity.SyncModeSendOnly
+	case pb.SyncMode_SYNC_MODE_RECEIVE_ONLY:
+		return entity.SyncModeReceiveOnly
+	default:
+		// UNSPECIFIED veya bilinmeyen değer için varsayılan: BIDIRECTIONAL (geriye dönük uyumluluk)
+		return entity.SyncModeBidirectional
+	}
+}
+
+// convertEntitySyncModeToProto entity SyncMode'u protobuf SyncMode'a çevirir
+func convertEntitySyncModeToProto(mode entity.SyncMode) pb.SyncMode {
+	switch mode {
+	case entity.SyncModeBidirectional:
+		return pb.SyncMode_SYNC_MODE_BIDIRECTIONAL
+	case entity.SyncModeSendOnly:
+		return pb.SyncMode_SYNC_MODE_SEND_ONLY
+	case entity.SyncModeReceiveOnly:
+		return pb.SyncMode_SYNC_MODE_RECEIVE_ONLY
+	default:
+		return pb.SyncMode_SYNC_MODE_BIDIRECTIONAL
+	}
 }

@@ -8,6 +8,7 @@ import (
 	"log"
 	"path/filepath"
 	
+	pb "github.com/aether/sync/api/proto"
 	"github.com/aether/sync/internal/domain/repository"
 	"github.com/aether/sync/internal/domain/transport"
 	"github.com/aether/sync/internal/domain/usecase"
@@ -92,11 +93,11 @@ func (uc *P2PTransferUseCaseImpl) RequestChunkFromPeer(ctx context.Context, peer
 // SyncFileWithPeer dosyayı peer ile senkronize eder
 // progressCallback her chunk gönderildiğinde çağrılır (opsiyonel)
 func (uc *P2PTransferUseCaseImpl) SyncFileWithPeer(ctx context.Context, peerID, fileID string) error {
-	return uc.SyncFileWithPeerWithProgress(ctx, peerID, fileID, nil)
+	return uc.SyncFileWithPeerWithProgress(ctx, peerID, fileID, nil, pb.SyncMode_SYNC_MODE_BIDIRECTIONAL, pb.SyncMode_SYNC_MODE_BIDIRECTIONAL)
 }
 
 // SyncFileWithPeerWithProgress dosyayı peer ile senkronize eder ve progress callback'i ile bildirim yapar
-func (uc *P2PTransferUseCaseImpl) SyncFileWithPeerWithProgress(ctx context.Context, peerID, fileID string, progressCallback func(completedChunks, totalChunks int, transferredBytes int64)) error {
+func (uc *P2PTransferUseCaseImpl) SyncFileWithPeerWithProgress(ctx context.Context, peerID, fileID string, progressCallback func(completedChunks, totalChunks int, transferredBytes int64), senderSyncMode, receiverSyncMode pb.SyncMode) error {
 	log.Printf("🔄 Dosya senkronize ediliyor: %s <-> %s", fileID, peerID[:8])
 	
 	// Dosya bilgisini al (fileName için)
@@ -210,14 +211,14 @@ func (uc *P2PTransferUseCaseImpl) SyncFileWithPeerWithProgress(ctx context.Conte
 		default:
 		}
 		
-		// Chunk'ı file + folder bilgisiyle gönder
+		// Chunk'ı file + folder bilgisiyle + sync mode ile gönder
 		var chunkSentBytes int64
 		if tcpConn, ok := conn.(interface {
-			SendChunkWithFileInfo(ctx context.Context, chunkHash string, data []byte, fileID string, chunkIndex, totalChunks int, fileName, folderName string) error
+			SendChunkWithFileInfo(ctx context.Context, chunkHash string, data []byte, fileID string, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error
 		}); ok {
 			// Log azaltıldı - sadece her 50 chunk'ta bir log
 			// log.Printf("  📤 Chunk %d/%d gönderiliyor (fileID: %s, fileName: %s, folderName: %s): %s", fc.ChunkIndex+1, len(fileChunks), fileID, file.RelativePath, folderName, fc.ChunkHash[:8])
-			if err := tcpConn.SendChunkWithFileInfo(ctx, fc.ChunkHash, chunkData, fileID, fc.ChunkIndex, len(fileChunks), file.RelativePath, folderName); err != nil {
+			if err := tcpConn.SendChunkWithFileInfo(ctx, fc.ChunkHash, chunkData, fileID, fc.ChunkIndex, len(fileChunks), file.RelativePath, folderName, senderSyncMode, receiverSyncMode); err != nil {
 				// Context iptal edilmişse özel hata döndür
 				if ctx.Err() != nil {
 					log.Printf("  🛑 Transfer iptal edildi, chunk gönderimi durduruluyor: %s (chunk %d/%d)", fileID, i+1, len(fileChunks))
