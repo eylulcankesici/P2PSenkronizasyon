@@ -111,6 +111,7 @@ class ChunkResponse extends $pb.GeneratedMessage {
     $core.int? chunkIndex,
     $core.int? totalChunks,
     $core.String? fileName,
+    $core.String? folderName,
   }) {
     final result = create();
     if (status != null) result.status = status;
@@ -121,6 +122,7 @@ class ChunkResponse extends $pb.GeneratedMessage {
     if (chunkIndex != null) result.chunkIndex = chunkIndex;
     if (totalChunks != null) result.totalChunks = totalChunks;
     if (fileName != null) result.fileName = fileName;
+    if (folderName != null) result.folderName = folderName;
     return result;
   }
 
@@ -147,6 +149,7 @@ class ChunkResponse extends $pb.GeneratedMessage {
     ..aI(6, _omitFieldNames ? '' : 'chunkIndex')
     ..aI(7, _omitFieldNames ? '' : 'totalChunks')
     ..aOS(8, _omitFieldNames ? '' : 'fileName')
+    ..aOS(9, _omitFieldNames ? '' : 'folderName')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -242,6 +245,15 @@ class ChunkResponse extends $pb.GeneratedMessage {
   $core.bool hasFileName() => $_has(7);
   @$pb.TagNumber(8)
   void clearFileName() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.String get folderName => $_getSZ(8);
+  @$pb.TagNumber(9)
+  set folderName($core.String value) => $_setString(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasFolderName() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearFolderName() => $_clearField(9);
 }
 
 class ChunkData extends $pb.GeneratedMessage {
@@ -1075,6 +1087,75 @@ class CancelTransferRequest extends $pb.GeneratedMessage {
   $core.bool hasFileId() => $_has(0);
   @$pb.TagNumber(1)
   void clearFileId() => $_clearField(1);
+}
+
+/// Transfer iptal bildirimi (peer'dan peer'a)
+class TransferCancelNotification extends $pb.GeneratedMessage {
+  factory TransferCancelNotification({
+    $core.String? fileId,
+    $core.String? reason,
+  }) {
+    final result = create();
+    if (fileId != null) result.fileId = fileId;
+    if (reason != null) result.reason = reason;
+    return result;
+  }
+
+  TransferCancelNotification._();
+
+  factory TransferCancelNotification.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory TransferCancelNotification.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'TransferCancelNotification',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'fileId')
+    ..aOS(2, _omitFieldNames ? '' : 'reason')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TransferCancelNotification clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TransferCancelNotification copyWith(
+          void Function(TransferCancelNotification) updates) =>
+      super.copyWith(
+              (message) => updates(message as TransferCancelNotification))
+          as TransferCancelNotification;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static TransferCancelNotification create() => TransferCancelNotification._();
+  @$core.override
+  TransferCancelNotification createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static TransferCancelNotification getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<TransferCancelNotification>(create);
+  static TransferCancelNotification? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get fileId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set fileId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasFileId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFileId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get reason => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set reason($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasReason() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearReason() => $_clearField(2);
 }
 
 /// Transfer bilgisi

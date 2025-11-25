@@ -177,12 +177,20 @@ const DeleteFolderRequest$json = {
   '1': 'DeleteFolderRequest',
   '2': [
     {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {
+      '1': 'delete_physically',
+      '3': 2,
+      '4': 1,
+      '5': 8,
+      '10': 'deletePhysically'
+    },
   ],
 };
 
 /// Descriptor for `DeleteFolderRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List deleteFolderRequestDescriptor = $convert
-    .base64Decode('ChNEZWxldGVGb2xkZXJSZXF1ZXN0Eg4KAmlkGAEgASgJUgJpZA==');
+final $typed_data.Uint8List deleteFolderRequestDescriptor = $convert.base64Decode(
+    'ChNEZWxldGVGb2xkZXJSZXF1ZXN0Eg4KAmlkGAEgASgJUgJpZBIrChFkZWxldGVfcGh5c2ljYW'
+    'xseRgCIAEoCFIQZGVsZXRlUGh5c2ljYWxseQ==');
 
 @$core.Deprecated('Use toggleFolderActiveRequestDescriptor instead')
 const ToggleFolderActiveRequest$json = {

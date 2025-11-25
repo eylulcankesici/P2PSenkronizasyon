@@ -89,6 +89,7 @@ const ChunkResponse$json = {
     {'1': 'chunk_index', '3': 6, '4': 1, '5': 5, '10': 'chunkIndex'},
     {'1': 'total_chunks', '3': 7, '4': 1, '5': 5, '10': 'totalChunks'},
     {'1': 'file_name', '3': 8, '4': 1, '5': 9, '10': 'fileName'},
+    {'1': 'folder_name', '3': 9, '4': 1, '5': 9, '10': 'folderName'},
   ],
 };
 
@@ -98,7 +99,8 @@ final $typed_data.Uint8List chunkResponseDescriptor = $convert.base64Decode(
     'F0dXMSHQoKY2h1bmtfZGF0YRgCIAEoDFIJY2h1bmtEYXRhEh0KCmNodW5rX2hhc2gYAyABKAlS'
     'CWNodW5rSGFzaBIdCgpjaHVua19zaXplGAQgASgDUgljaHVua1NpemUSFwoHZmlsZV9pZBgFIA'
     'EoCVIGZmlsZUlkEh8KC2NodW5rX2luZGV4GAYgASgFUgpjaHVua0luZGV4EiEKDHRvdGFsX2No'
-    'dW5rcxgHIAEoBVILdG90YWxDaHVua3MSGwoJZmlsZV9uYW1lGAggASgJUghmaWxlTmFtZQ==');
+    'dW5rcxgHIAEoBVILdG90YWxDaHVua3MSGwoJZmlsZV9uYW1lGAggASgJUghmaWxlTmFtZRIfCg'
+    'tmb2xkZXJfbmFtZRgJIAEoCVIKZm9sZGVyTmFtZQ==');
 
 @$core.Deprecated('Use chunkDataDescriptor instead')
 const ChunkData$json = {
@@ -318,6 +320,21 @@ const CancelTransferRequest$json = {
 final $typed_data.Uint8List cancelTransferRequestDescriptor =
     $convert.base64Decode(
         'ChVDYW5jZWxUcmFuc2ZlclJlcXVlc3QSFwoHZmlsZV9pZBgBIAEoCVIGZmlsZUlk');
+
+@$core.Deprecated('Use transferCancelNotificationDescriptor instead')
+const TransferCancelNotification$json = {
+  '1': 'TransferCancelNotification',
+  '2': [
+    {'1': 'file_id', '3': 1, '4': 1, '5': 9, '10': 'fileId'},
+    {'1': 'reason', '3': 2, '4': 1, '5': 9, '10': 'reason'},
+  ],
+};
+
+/// Descriptor for `TransferCancelNotification`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List transferCancelNotificationDescriptor =
+    $convert.base64Decode(
+        'ChpUcmFuc2ZlckNhbmNlbE5vdGlmaWNhdGlvbhIXCgdmaWxlX2lkGAEgASgJUgZmaWxlSWQSFg'
+        'oGcmVhc29uGAIgASgJUgZyZWFzb24=');
 
 @$core.Deprecated('Use transferInfoDescriptor instead')
 const TransferInfo$json = {

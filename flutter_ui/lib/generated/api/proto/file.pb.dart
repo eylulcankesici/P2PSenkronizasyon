@@ -805,9 +805,11 @@ class FileInfoResponse extends $pb.GeneratedMessage {
 class DeleteFileRequest extends $pb.GeneratedMessage {
   factory DeleteFileRequest({
     $core.String? fileId,
+    $core.bool? deletePhysically,
   }) {
     final result = create();
     if (fileId != null) result.fileId = fileId;
+    if (deletePhysically != null) result.deletePhysically = deletePhysically;
     return result;
   }
 
@@ -825,6 +827,7 @@ class DeleteFileRequest extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'fileId')
+    ..aOB(2, _omitFieldNames ? '' : 'deletePhysically')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -854,6 +857,15 @@ class DeleteFileRequest extends $pb.GeneratedMessage {
   $core.bool hasFileId() => $_has(0);
   @$pb.TagNumber(1)
   void clearFileId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get deletePhysically => $_getBF(1);
+  @$pb.TagNumber(2)
+  set deletePhysically($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasDeletePhysically() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDeletePhysically() => $_clearField(2);
 }
 
 class GetFileVersionsRequest extends $pb.GeneratedMessage {

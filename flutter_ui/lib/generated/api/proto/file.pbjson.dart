@@ -255,12 +255,20 @@ const DeleteFileRequest$json = {
   '1': 'DeleteFileRequest',
   '2': [
     {'1': 'file_id', '3': 1, '4': 1, '5': 9, '10': 'fileId'},
+    {
+      '1': 'delete_physically',
+      '3': 2,
+      '4': 1,
+      '5': 8,
+      '10': 'deletePhysically'
+    },
   ],
 };
 
 /// Descriptor for `DeleteFileRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List deleteFileRequestDescriptor = $convert.base64Decode(
-    'ChFEZWxldGVGaWxlUmVxdWVzdBIXCgdmaWxlX2lkGAEgASgJUgZmaWxlSWQ=');
+    'ChFEZWxldGVGaWxlUmVxdWVzdBIXCgdmaWxlX2lkGAEgASgJUgZmaWxlSWQSKwoRZGVsZXRlX3'
+    'BoeXNpY2FsbHkYAiABKAhSEGRlbGV0ZVBoeXNpY2FsbHk=');
 
 @$core.Deprecated('Use getFileVersionsRequestDescriptor instead')
 const GetFileVersionsRequest$json = {

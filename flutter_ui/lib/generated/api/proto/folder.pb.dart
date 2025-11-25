@@ -490,9 +490,11 @@ class UpdateFolderRequest extends $pb.GeneratedMessage {
 class DeleteFolderRequest extends $pb.GeneratedMessage {
   factory DeleteFolderRequest({
     $core.String? id,
+    $core.bool? deletePhysically,
   }) {
     final result = create();
     if (id != null) result.id = id;
+    if (deletePhysically != null) result.deletePhysically = deletePhysically;
     return result;
   }
 
@@ -510,6 +512,7 @@ class DeleteFolderRequest extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..aOB(2, _omitFieldNames ? '' : 'deletePhysically')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -539,6 +542,15 @@ class DeleteFolderRequest extends $pb.GeneratedMessage {
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
   void clearId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get deletePhysically => $_getBF(1);
+  @$pb.TagNumber(2)
+  set deletePhysically($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasDeletePhysically() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDeletePhysically() => $_clearField(2);
 }
 
 class ToggleFolderActiveRequest extends $pb.GeneratedMessage {
