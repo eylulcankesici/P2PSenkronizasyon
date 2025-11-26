@@ -1493,8 +1493,13 @@ func (c *Container) syncFileToAllPeers(fileID, folderID string) error {
 	}
 	
 	// Sync mode kontrolü
-	// SEND_ONLY veya BIDIRECTIONAL ise karşıya gönder
+	// UNSPECIFIED ise sync atla (henüz senkronizasyon modu belirlenmemiş)
 	// RECEIVE_ONLY ise karşıya gönderme
+	// SEND_ONLY veya BIDIRECTIONAL ise karşıya gönder
+	if folder.SyncMode == entity.SyncModeUnspecified {
+		log.Printf("  ℹ️  Folder sync mode henüz belirlenmemiş, yeni dosya sync atlanıyor: %s", folderID[:8])
+		return nil
+	}
 	if folder.SyncMode == entity.SyncModeReceiveOnly {
 		log.Printf("  ℹ️  Folder receive-only mode'da, yeni dosya sync atlanıyor: %s", folderID[:8])
 		return nil
@@ -1600,8 +1605,13 @@ func (c *Container) syncChangedChunksToAllPeers(fileID, folderID string, changed
 	}
 	
 	// Sync mode kontrolü
-	// SEND_ONLY veya BIDIRECTIONAL ise karşıya gönder
+	// UNSPECIFIED ise sync atla (henüz senkronizasyon modu belirlenmemiş)
 	// RECEIVE_ONLY ise karşıya gönderme
+	// SEND_ONLY veya BIDIRECTIONAL ise karşıya gönder
+	if folder.SyncMode == entity.SyncModeUnspecified {
+		log.Printf("  ℹ️  Folder sync mode henüz belirlenmemiş, değişiklik sync atlanıyor: %s", folderID[:8])
+		return nil
+	}
 	if folder.SyncMode == entity.SyncModeReceiveOnly {
 		log.Printf("  ℹ️  Folder receive-only mode'da, değişiklik sync atlanıyor: %s", folderID[:8])
 		return nil
@@ -1788,8 +1798,13 @@ func (c *Container) deleteFileFromAllPeers(fileID, folderID string) error {
 	}
 	
 	// Sync mode kontrolü
-	// SEND_ONLY veya BIDIRECTIONAL ise karşıya gönder
+	// UNSPECIFIED ise sync atla (henüz senkronizasyon modu belirlenmemiş)
 	// RECEIVE_ONLY ise karşıya gönderme
+	// SEND_ONLY veya BIDIRECTIONAL ise karşıya gönder
+	if folder.SyncMode == entity.SyncModeUnspecified {
+		log.Printf("  ℹ️  Folder sync mode henüz belirlenmemiş, silme sync atlanıyor: %s", folderID[:8])
+		return nil
+	}
 	if folder.SyncMode == entity.SyncModeReceiveOnly {
 		log.Printf("  ℹ️  Folder receive-only mode'da, silme sync atlanıyor: %s", folderID[:8])
 		return nil
@@ -1915,9 +1930,11 @@ func convertProtoSyncModeToEntity(mode pb.SyncMode) entity.SyncMode {
 		return entity.SyncModeSendOnly
 	case pb.SyncMode_SYNC_MODE_RECEIVE_ONLY:
 		return entity.SyncModeReceiveOnly
+	case pb.SyncMode_SYNC_MODE_UNSPECIFIED:
+		return entity.SyncModeUnspecified
 	default:
-		// UNSPECIFIED veya bilinmeyen değer için varsayılan: BIDIRECTIONAL (geriye dönük uyumluluk)
-		return entity.SyncModeBidirectional
+		// Bilinmeyen değer için UNSPECIFIED
+		return entity.SyncModeUnspecified
 	}
 }
 
@@ -1930,7 +1947,10 @@ func convertEntitySyncModeToProto(mode entity.SyncMode) pb.SyncMode {
 		return pb.SyncMode_SYNC_MODE_SEND_ONLY
 	case entity.SyncModeReceiveOnly:
 		return pb.SyncMode_SYNC_MODE_RECEIVE_ONLY
+	case entity.SyncModeUnspecified:
+		return pb.SyncMode_SYNC_MODE_UNSPECIFIED
 	default:
-		return pb.SyncMode_SYNC_MODE_BIDIRECTIONAL
+		// Boş veya bilinmeyen değer için UNSPECIFIED
+		return pb.SyncMode_SYNC_MODE_UNSPECIFIED
 	}
 }

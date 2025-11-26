@@ -504,6 +504,8 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
         return '⬆️ Sadece Gönder';
       case SyncMode.SYNC_MODE_RECEIVE_ONLY:
         return '⬇️ Sadece Al';
+      case SyncMode.SYNC_MODE_UNSPECIFIED:
+        return '❓ Henüz Belirlenmemiş';
       default:
         return 'Bilinmiyor';
     }

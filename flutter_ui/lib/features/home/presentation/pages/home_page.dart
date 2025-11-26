@@ -425,6 +425,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         return '⬇️ Sadece Al';
       case SyncMode.SYNC_MODE_SEND_ONLY:
         return '⬆️ Sadece Gönder';
+      case SyncMode.SYNC_MODE_UNSPECIFIED:
+        return '❓ Henüz Belirlenmemiş';
       default:
         return 'Bilinmiyor';
     }
@@ -626,10 +628,10 @@ class _AddFolderDialogState extends ConsumerState<_AddFolderDialog> {
     setState(() => _isLoading = true);
 
     try {
-      // Varsayılan olarak BIDIRECTIONAL kullan (senkronizasyon modu gönderirken seçilecek)
+      // Henüz senkronizasyon modu belirlenmemiş (senkronizasyon modu gönderirken seçilecek)
       await ref.read(folderNotifierProvider.notifier).addFolder(
             widget.folderPath,
-            SyncMode.SYNC_MODE_BIDIRECTIONAL,
+            SyncMode.SYNC_MODE_UNSPECIFIED,
           );
 
       if (mounted) {

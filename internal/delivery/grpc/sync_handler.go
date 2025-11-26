@@ -8,6 +8,7 @@ import (
 
 	pb "github.com/aether/sync/api/proto"
 	"github.com/aether/sync/internal/container"
+	"github.com/aether/sync/internal/domain/entity"
 )
 
 // SyncHandler SyncService implementasyonu
@@ -248,6 +249,38 @@ func (h *SyncHandler) SyncFolder(ctx context.Context, req *pb.SyncFolderRequest)
 		if fileSynced {
 			syncedFiles++
 			log.Printf("  ✅ Dosya senkronize edildi: %s", file.RelativePath)
+		}
+	}
+	
+	// Folder'ın sync mode'unu güncelle (eğer henüz belirlenmemişse veya güncelleme gerekliyse)
+	if len(req.PeerSyncModes) > 0 {
+		// Tüm peer'lar için aynı sender mode mu kontrol et
+		firstSenderMode := req.PeerSyncModes[0].SenderMode
+		allSameMode := true
+		for _, psm := range req.PeerSyncModes {
+			if psm.SenderMode != firstSenderMode {
+				allSameMode = false
+				break
+			}
+		}
+		
+		var newSyncMode entity.SyncMode
+		if allSameMode {
+			// Tüm peer'lar için aynı sender mode → folder'ın sync mode'unu bu mode'a güncelle
+			newSyncMode = convertSyncMode(firstSenderMode)
+		} else {
+			// Farklı sender mode'lar varsa → BIDIRECTIONAL kullan (en güvenli seçenek)
+			newSyncMode = entity.SyncModeBidirectional
+		}
+		
+		// Folder'ın sync mode'unu güncelle (eğer değiştiyse veya henüz belirlenmemişse)
+		if folder.SyncMode == entity.SyncModeUnspecified || folder.SyncMode != newSyncMode {
+			folder.SyncMode = newSyncMode
+			if err := h.container.FolderRepository().Update(ctx, folder); err != nil {
+				log.Printf("  ⚠️ Folder sync mode güncellenemedi: %v", err)
+			} else {
+				log.Printf("  ✅ Folder sync mode güncellendi: %s", string(newSyncMode))
+			}
 		}
 	}
 	

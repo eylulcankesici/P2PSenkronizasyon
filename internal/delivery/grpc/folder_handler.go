@@ -372,8 +372,11 @@ func convertSyncMode(mode pb.SyncMode) entity.SyncMode {
 		return entity.SyncModeSendOnly
 	case pb.SyncMode_SYNC_MODE_RECEIVE_ONLY:
 		return entity.SyncModeReceiveOnly
+	case pb.SyncMode_SYNC_MODE_UNSPECIFIED:
+		return entity.SyncModeUnspecified
 	default:
-		return entity.SyncModeBidirectional
+		// Bilinmeyen değer için UNSPECIFIED döndür (varsayılan olarak belirlenmemiş)
+		return entity.SyncModeUnspecified
 	}
 }
 
@@ -385,8 +388,11 @@ func convertSyncModeToProto(mode entity.SyncMode) pb.SyncMode {
 		return pb.SyncMode_SYNC_MODE_SEND_ONLY
 	case entity.SyncModeReceiveOnly:
 		return pb.SyncMode_SYNC_MODE_RECEIVE_ONLY
+	case entity.SyncModeUnspecified:
+		return pb.SyncMode_SYNC_MODE_UNSPECIFIED
 	default:
-		return pb.SyncMode_SYNC_MODE_BIDIRECTIONAL
+		// Boş veya bilinmeyen değer için UNSPECIFIED döndür
+		return pb.SyncMode_SYNC_MODE_UNSPECIFIED
 	}
 }
 
