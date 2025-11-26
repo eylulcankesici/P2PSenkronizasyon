@@ -169,3 +169,34 @@ func (r *FilePeerSyncRepository) DeleteByFileID(ctx context.Context, fileID stri
 	return nil
 }
 
+// GetPeerIDsByFolderID belirli bir folder'daki dosyaların sync edildiği tüm peer ID'lerini getirir (DISTINCT)
+func (r *FilePeerSyncRepository) GetPeerIDsByFolderID(ctx context.Context, folderID string) ([]string, error) {
+	query := `
+		SELECT DISTINCT fps.peer_id
+		FROM file_peer_sync fps
+		INNER JOIN files f ON fps.file_id = f.id
+		WHERE f.folder_id = ? AND f.is_deleted = 0
+	`
+
+	rows, err := r.conn.DB().QueryContext(ctx, query, folderID)
+	if err != nil {
+		return nil, fmt.Errorf("peer ID'leri getirilemedi: %w", err)
+	}
+	defer rows.Close()
+
+	peerIDs := make([]string, 0)
+	for rows.Next() {
+		var peerID string
+		if err := rows.Scan(&peerID); err != nil {
+			return nil, fmt.Errorf("peer ID okunamadı: %w", err)
+		}
+		peerIDs = append(peerIDs, peerID)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows iteration hatası: %w", err)
+	}
+
+	return peerIDs, nil
+}
+

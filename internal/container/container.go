@@ -1512,19 +1512,58 @@ func (c *Container) syncFileToAllPeers(fileID, folderID string) error {
 	senderModeProto := convertEntitySyncModeToProto(folder.SyncMode)
 	receiverModeProto := pb.SyncMode_SYNC_MODE_BIDIRECTIONAL
 	
+	// Dosyanın daha önce sync edilip edilmediğini kontrol et
+	existingSyncs, err := c.filePeerSyncRepo.GetByFileID(ctx, fileID)
+	if err != nil {
+		log.Printf("  ⚠️ Dosya sync kayıtları alınamadı: %v", err)
+		existingSyncs = []*entity.FilePeerSync{}
+	}
+	
+	// Eğer dosya hiç sync edilmemişse, aynı folder'daki diğer dosyaların sync edildiği peer'ları bul
+	syncedPeerIDsMap := make(map[string]bool) // Zaten sync edilmiş peer'lar
+	for _, sync := range existingSyncs {
+		syncedPeerIDsMap[sync.PeerID] = true
+	}
+	
+	// Eğer dosya hiç sync edilmemişse ve folder BIDIRECTIONAL ise, folder'daki diğer dosyaların sync edildiği peer'ları bul
+	if len(existingSyncs) == 0 && (folder.SyncMode == entity.SyncModeBidirectional || folder.SyncMode == entity.SyncModeSendOnly) {
+		log.Printf("  🔍 Dosya daha önce sync edilmemiş, aynı folder'daki diğer dosyaların sync edildiği peer'lar aranıyor: folder=%s", folderID[:8])
+		
+		folderPeerIDs, err := c.filePeerSyncRepo.GetPeerIDsByFolderID(ctx, folderID)
+		if err != nil {
+			log.Printf("  ⚠️ Folder peer ID'leri alınamadı: %v", err)
+		} else if len(folderPeerIDs) > 0 {
+			log.Printf("  ✅ Folder'daki diğer dosyaların sync edildiği %d peer bulundu, file_peer_sync kayıtları oluşturuluyor", len(folderPeerIDs))
+			
+			// Mevcut device ID'mizi al (sender olarak kullanılacak)
+			currentDeviceID, err := c.getOrCreateDeviceID()
+			if err != nil {
+				log.Printf("  ⚠️ Device ID alınamadı: %v", err)
+				currentDeviceID = "" // Fallback
+			}
+			
+			// Her peer için file_peer_sync kaydı oluştur (pre-sync kayıtları)
+			for _, folderPeerID := range folderPeerIDs {
+				// Sadece bağlı olan peer'lar için kayıt oluştur
+				if conn, exists := c.transportProvider.GetConnection(folderPeerID); exists && conn != nil {
+					sync := entity.NewFilePeerSync(fileID, folderPeerID, currentDeviceID)
+					if err := c.filePeerSyncRepo.CreateOrUpdate(ctx, sync); err != nil {
+						log.Printf("  ⚠️ Pre-sync kaydı oluşturulamadı (peer: %s, file: %s): %v", folderPeerID[:8], fileID[:8], err)
+					} else {
+						syncedPeerIDsMap[folderPeerID] = true // Artık sync edilebilir
+						log.Printf("  ✅ Pre-sync kaydı oluşturuldu (peer: %s, file: %s)", folderPeerID[:8], fileID[:8])
+					}
+				}
+			}
+		}
+	}
+	
 	for _, conn := range allConnections {
 		peerID := conn.GetPeerID()
 		
-		// Dosyanın bu peer ile daha önce senkronize edilip edilmediğini kontrol et
-		isSynced, err := c.filePeerSyncRepo.IsFileSyncedWithPeer(ctx, fileID, peerID)
-		if err != nil {
-			log.Printf("  ⚠️ Sync kontrolü yapılamadı (peer: %s, file: %s): %v", peerID[:8], fileID[:8], err)
-			continue
-		}
-		
-		// Sadece daha önce senkronize edilmiş dosyalar için otomatik sync yap
-		if !isSynced {
-			log.Printf("  ℹ️  Dosya daha önce senkronize edilmemiş, otomatik sync atlanıyor: file=%s, peer=%s", fileID[:8], peerID[:8])
+		// Dosya bu peer ile sync edilebilir mi? (daha önce sync edilmiş veya pre-sync kaydı oluşturulmuş)
+		if !syncedPeerIDsMap[peerID] {
+			log.Printf("  ℹ️  Dosya bu peer ile sync edilemez (daha önce sync edilmemiş ve folder'daki diğer dosyalar da sync edilmemiş): file=%s, peer=%s", fileID[:8], peerID[:8])
 			continue
 		}
 		
@@ -1575,7 +1614,52 @@ func (c *Container) syncChangedChunksToAllPeers(fileID, folderID string, changed
 	
 	log.Printf("🔄 DELTA SYNC: %d chunk değişikliği -> %d peer", len(changedChunkIndices), len(allConnections))
 	
-	// Her peer'a sadece değişen chunk'ları gönder - SADECE DAHA ÖNCE SENKRONİZE EDİLMİŞ DOSYALAR İÇİN
+	// Dosyanın daha önce sync edilip edilmediğini kontrol et
+	existingSyncs, err := c.filePeerSyncRepo.GetByFileID(ctx, fileID)
+	if err != nil {
+		log.Printf("  ⚠️ Dosya sync kayıtları alınamadı: %v", err)
+		existingSyncs = []*entity.FilePeerSync{}
+	}
+	
+	// Eğer dosya hiç sync edilmemişse, aynı folder'daki diğer dosyaların sync edildiği peer'ları bul
+	syncedPeerIDsMap := make(map[string]bool) // Zaten sync edilmiş peer'lar
+	for _, sync := range existingSyncs {
+		syncedPeerIDsMap[sync.PeerID] = true
+	}
+	
+	// Eğer dosya hiç sync edilmemişse ve folder BIDIRECTIONAL ise, folder'daki diğer dosyaların sync edildiği peer'ları bul
+	if len(existingSyncs) == 0 && (folder.SyncMode == entity.SyncModeBidirectional || folder.SyncMode == entity.SyncModeSendOnly) {
+		log.Printf("  🔍 Dosya daha önce sync edilmemiş (delta sync), aynı folder'daki diğer dosyaların sync edildiği peer'lar aranıyor: folder=%s", folderID[:8])
+		
+		folderPeerIDs, err := c.filePeerSyncRepo.GetPeerIDsByFolderID(ctx, folderID)
+		if err != nil {
+			log.Printf("  ⚠️ Folder peer ID'leri alınamadı: %v", err)
+		} else if len(folderPeerIDs) > 0 {
+			log.Printf("  ✅ Folder'daki diğer dosyaların sync edildiği %d peer bulundu, file_peer_sync kayıtları oluşturuluyor", len(folderPeerIDs))
+			
+			// Mevcut device ID'mizi al (sender olarak kullanılacak)
+			currentDeviceID, err := c.getOrCreateDeviceID()
+			if err != nil {
+				log.Printf("  ⚠️ Device ID alınamadı: %v", err)
+				currentDeviceID = "" // Fallback
+			}
+			
+			// Her peer için file_peer_sync kaydı oluştur (pre-sync kayıtları)
+			for _, folderPeerID := range folderPeerIDs {
+				// Sadece bağlı olan peer'lar için kayıt oluştur
+				if conn, exists := c.transportProvider.GetConnection(folderPeerID); exists && conn != nil {
+					sync := entity.NewFilePeerSync(fileID, folderPeerID, currentDeviceID)
+					if err := c.filePeerSyncRepo.CreateOrUpdate(ctx, sync); err != nil {
+						log.Printf("  ⚠️ Pre-sync kaydı oluşturulamadı (peer: %s, file: %s): %v", folderPeerID[:8], fileID[:8], err)
+					} else {
+						syncedPeerIDsMap[folderPeerID] = true // Artık sync edilebilir
+						log.Printf("  ✅ Pre-sync kaydı oluşturuldu (peer: %s, file: %s)", folderPeerID[:8], fileID[:8])
+					}
+				}
+			}
+		}
+	}
+	
 	// Otomatik sync için: gönderen mod = folder'ın sync mode'u, alıcı mod = BIDIRECTIONAL (varsayılan)
 	senderModeProto := convertEntitySyncModeToProto(folder.SyncMode)
 	receiverModeProto := pb.SyncMode_SYNC_MODE_BIDIRECTIONAL
@@ -1583,16 +1667,9 @@ func (c *Container) syncChangedChunksToAllPeers(fileID, folderID string, changed
 	for _, conn := range allConnections {
 		peerID := conn.GetPeerID()
 		
-		// Dosyanın bu peer ile daha önce senkronize edilip edilmediğini kontrol et
-		isSynced, err := c.filePeerSyncRepo.IsFileSyncedWithPeer(ctx, fileID, peerID)
-		if err != nil {
-			log.Printf("  ⚠️ Sync kontrolü yapılamadı (peer: %s, file: %s): %v", peerID[:8], fileID[:8], err)
-			continue
-		}
-		
-		// Sadece daha önce senkronize edilmiş dosyalar için delta sync yap
-		if !isSynced {
-			log.Printf("  ℹ️  Dosya daha önce senkronize edilmemiş, delta sync atlanıyor: file=%s, peer=%s", fileID[:8], peerID[:8])
+		// Dosya bu peer ile sync edilebilir mi? (daha önce sync edilmiş veya pre-sync kaydı oluşturulmuş)
+		if !syncedPeerIDsMap[peerID] {
+			log.Printf("  ℹ️  Dosya bu peer ile sync edilemez (daha önce sync edilmemiş ve folder'daki diğer dosyalar da sync edilmemiş): file=%s, peer=%s", fileID[:8], peerID[:8])
 			continue
 		}
 		
@@ -1720,9 +1797,48 @@ func (c *Container) deleteFileFromAllPeers(fileID, folderID string) error {
 	
 	log.Printf("🗑️ Dosya silme bildirimi gönderiliyor: %s -> %d peer", fileID[:8], len(allConnections))
 	
-	// Her peer'a silme bildirimi gönder
+	// Dosyanın daha önce sync edilip edilmediğini kontrol et
+	existingSyncs, err := c.filePeerSyncRepo.GetByFileID(ctx, fileID)
+	if err != nil {
+		log.Printf("  ⚠️ Dosya sync kayıtları alınamadı: %v", err)
+		existingSyncs = []*entity.FilePeerSync{}
+	}
+	
+	// Eğer dosya hiç sync edilmemişse, aynı folder'daki diğer dosyaların sync edildiği peer'ları bul
+	syncedPeerIDsMap := make(map[string]bool) // Zaten sync edilmiş peer'lar
+	for _, sync := range existingSyncs {
+		syncedPeerIDsMap[sync.PeerID] = true
+	}
+	
+	// Eğer dosya hiç sync edilmemişse ve folder BIDIRECTIONAL ise, folder'daki diğer dosyaların sync edildiği peer'ları bul
+	if len(existingSyncs) == 0 && (folder.SyncMode == entity.SyncModeBidirectional || folder.SyncMode == entity.SyncModeSendOnly) {
+		log.Printf("  🔍 Dosya daha önce sync edilmemiş (silme bildirimi), aynı folder'daki diğer dosyaların sync edildiği peer'lar aranıyor: folder=%s", folderID[:8])
+		
+		folderPeerIDs, err := c.filePeerSyncRepo.GetPeerIDsByFolderID(ctx, folderID)
+		if err != nil {
+			log.Printf("  ⚠️ Folder peer ID'leri alınamadı: %v", err)
+		} else if len(folderPeerIDs) > 0 {
+			log.Printf("  ✅ Folder'daki diğer dosyaların sync edildiği %d peer bulundu, silme bildirimi gönderilecek", len(folderPeerIDs))
+			
+			// Bu peer'lar için de silme bildirimi gönder (dosya zaten silindi, sadece bildirim)
+			for _, folderPeerID := range folderPeerIDs {
+				if _, exists := c.transportProvider.GetConnection(folderPeerID); exists {
+					syncedPeerIDsMap[folderPeerID] = true // Bildirim gönderilebilir
+				}
+			}
+		}
+	}
+	
+	// Her peer'a silme bildirimi gönder (daha önce sync edilmiş veya folder'daki diğer dosyalar sync edilmiş)
 	for _, conn := range allConnections {
 		peerID := conn.GetPeerID()
+		
+		// Dosya bu peer ile sync edilmiş mi? (daha önce sync edilmiş veya folder'daki diğer dosyalar sync edilmiş)
+		if !syncedPeerIDsMap[peerID] {
+			log.Printf("  ℹ️  Dosya bu peer ile sync edilmemiş, silme bildirimi gönderilmiyor: file=%s, peer=%s", fileID[:8], peerID[:8])
+			continue
+		}
+		
 		go func(pid string) {
 			if err := c.sendDeleteFileToPeer(ctx, pid, fileID); err != nil {
 				log.Printf("⚠️ Silme bildirimi hatası (peer: %s, file: %s): %v", pid[:8], fileID[:8], err)

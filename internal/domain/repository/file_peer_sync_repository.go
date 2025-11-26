@@ -24,5 +24,8 @@ type FilePeerSyncRepository interface {
 	
 	// DeleteByFileID dosyanın tüm sync kayıtlarını siler
 	DeleteByFileID(ctx context.Context, fileID string) error
+
+	// GetPeerIDsByFolderID belirli bir folder'daki dosyaların sync edildiği tüm peer ID'lerini getirir (DISTINCT)
+	GetPeerIDsByFolderID(ctx context.Context, folderID string) ([]string, error)
 }
 
