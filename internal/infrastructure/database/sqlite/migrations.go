@@ -257,8 +257,23 @@ func (m *Migration) createFilePeerSyncTable(db *sql.DB) error {
 		FOREIGN KEY (peer_id) REFERENCES peers(device_id) ON DELETE CASCADE
 	)`
 	
-	_, err := db.Exec(query)
-	return err
+	if _, err := db.Exec(query); err != nil {
+		return err
+	}
+	
+	// file_peer_sync tablosu için index'ler
+	indexes := []string{
+		"CREATE INDEX IF NOT EXISTS idx_file_peer_sync_file_id ON file_peer_sync(file_id)",
+		"CREATE INDEX IF NOT EXISTS idx_file_peer_sync_peer_id ON file_peer_sync(peer_id)",
+	}
+	
+	for _, indexQuery := range indexes {
+		if _, err := db.Exec(indexQuery); err != nil {
+			return err
+		}
+	}
+	
+	return nil
 }
 
 // createIndexes performans için index'ler oluşturur
@@ -274,8 +289,7 @@ func (m *Migration) createIndexes(db *sql.DB) error {
 		"CREATE INDEX IF NOT EXISTS idx_peer_folder_status_peer_id ON peer_folder_status(peer_id)",
 		"CREATE INDEX IF NOT EXISTS idx_peers_is_trusted ON peers(is_trusted)",
 		"CREATE INDEX IF NOT EXISTS idx_file_versions_file_id ON file_versions(file_id)",
-		"CREATE INDEX IF NOT EXISTS idx_file_peer_sync_file_id ON file_peer_sync(file_id)",
-		"CREATE INDEX IF NOT EXISTS idx_file_peer_sync_peer_id ON file_peer_sync(peer_id)",
+		// file_peer_sync index'leri createFilePeerSyncTable'dan sonra eklenecek (migration 12)
 	}
 	
 	for _, indexQuery := range indexes {
