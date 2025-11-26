@@ -217,12 +217,53 @@ func (h *FolderHandler) DeleteFolder(ctx context.Context, req *pb.DeleteFolderRe
 		}
 	}
 
+	// ÖNEMLİ: Klasör silinmeden ÖNCE içindeki tüm dosyaları manuel olarak sil
+	// (CASCADE DELETE güvenilir değil, manuel silme daha güvenli)
+	files, err := h.container.FileRepository().GetByFolderID(ctx, req.Id)
+	if err != nil {
+		log.Printf("⚠️ Klasördeki dosyalar alınamadı: %v (devam ediliyor)", err)
+		files = []*entity.File{}
+	}
+	
+	if len(files) > 0 {
+		log.Printf("🗑️ Klasördeki %d dosya siliniyor: %s", len(files), req.Id[:8])
+		
+		for _, file := range files {
+			// Peer'lara silme bildirimi gönder (dosya silinmeden önce)
+			if err := h.container.DeleteFileFromAllPeers(file.ID, file.FolderID); err != nil {
+				log.Printf("⚠️ Dosya için peer'lara silme bildirimi gönderilemedi (%s): %v (devam ediliyor)", file.ID[:8], err)
+			}
+			
+			// Dosyayı veritabanından tamamen sil (HARD DELETE)
+			if err := h.container.FileRepository().HardDelete(ctx, file.ID); err != nil {
+				log.Printf("⚠️ Dosya silinemedi (%s): %v (devam ediliyor)", file.ID[:8], err)
+				continue
+			}
+			
+			// Eğer fiziksel dosya korunacaksa (deletePhysically = false), ignore listesine ekle
+			if !req.DeletePhysically && file.RelativePath != "" {
+				if eventHandler := h.container.EventHandler(); eventHandler != nil {
+					eventHandler.IgnoreFile(file.FolderID, file.RelativePath)
+				}
+			}
+		}
+		
+		// Yetim chunk'ları temizle (hiçbir dosya tarafından kullanılmayan chunk'lar)
+		if deletedCount, err := h.container.ChunkingUseCase().DeleteOrphanedChunks(ctx); err != nil {
+			log.Printf("⚠️ Yetim chunk'lar temizlenemedi: %v", err)
+		} else if deletedCount > 0 {
+			log.Printf("🧹 %d yetim chunk temizlendi (disk + DB)", deletedCount)
+		}
+		
+		log.Printf("✅ %d dosya silindi: %s", len(files), req.Id[:8])
+	}
+
 	// FİZİKSEL klasörü SİL mi yoksa KORU mu?
 	// KURAL: Kullanıcı seçimine göre karar ver (req.DeletePhysically)
 	//   - delete_physically = true → Bilgisayardan tamamen kaldır (hem fiziksel klasör hem veritabanından tamamen sil)
 	//   - delete_physically = false → Sadece uygulamadan kaldır (veritabanından tamamen sil, fiziksel klasör korunur)
 	
-	// Veritabanından tamamen sil (HARD DELETE) - CASCADE olduğu için files ve chunks da silinir
+	// Veritabanından tamamen sil (HARD DELETE) - Dosyalar zaten silindi
 	if err := h.container.FolderRepository().Delete(ctx, req.Id); err != nil {
 		return &pb.Status{
 			Success: false,

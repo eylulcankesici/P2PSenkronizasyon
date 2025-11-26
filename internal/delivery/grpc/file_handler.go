@@ -88,6 +88,10 @@ func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest)
 		// Devam et, sadece veritabanından sil
 	}
 	
+	// Dosya bilgilerini sakla (silme işleminden sonra kullanmak için)
+	folderID := file.FolderID
+	relativePath := file.RelativePath
+	
 	// ÖNEMLİ: Dosya silinmeden ÖNCE peer'lara silme bildirimi gönder
 	// (dosya silindikten sonra file_peer_sync kayıtları CASCADE ile silinir)
 	// Bu, hem gönderici hem de alıcı tarafında çift yönlü senkronizasyon için gereklidir
@@ -127,12 +131,8 @@ func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest)
 		}
 		log.Printf("✅ Dosya veritabanından tamamen silindi (hard delete): %s", req.FileId[:8])
 		
-		// Fiziksel dosya hala disk'te olduğu için, file watcher'ın onu tekrar eklememesi için ignore listesine ekle
-		if folder != nil && file.RelativePath != "" {
-			if eventHandler := h.container.EventHandler(); eventHandler != nil {
-				eventHandler.IgnoreFile(file.FolderID, file.RelativePath)
-			}
-		}
+		// Fiziksel dosya zaten silindi (req.DeletePhysically = true), ignore listesine eklemeye gerek yok
+		// Çünkü fiziksel dosya yok, file watcher CREATE event'i tetiklenmez
 		
 		// Yetim chunk'ları temizle (hiçbir dosya tarafından kullanılmayan chunk'lar) - hem disk hem DB'den
 		if deletedCount, err := h.container.ChunkingUseCase().DeleteOrphanedChunks(ctx); err != nil {
@@ -161,9 +161,12 @@ func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest)
 		log.Printf("✅ Dosya veritabanından tamamen silindi (fiziksel dosya korundu): %s", req.FileId[:8])
 		
 		// Fiziksel dosya hala disk'te olduğu için, file watcher'ın onu tekrar eklememesi için ignore listesine ekle
-		if folder != nil && file.RelativePath != "" {
+		// (Dosya silindikten sonra file değişkeni kullanılamaz, bu yüzden önceden saklanan değerleri kullan)
+		if relativePath != "" {
 			if eventHandler := h.container.EventHandler(); eventHandler != nil {
-				eventHandler.IgnoreFile(file.FolderID, file.RelativePath)
+				eventHandler.IgnoreFile(folderID, relativePath)
+			} else {
+				log.Printf("⚠️ EventHandler nil, ignore listesine eklenemedi: %s", relativePath)
 			}
 		}
 		
