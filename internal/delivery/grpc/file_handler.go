@@ -155,14 +155,67 @@ func (h *FileHandler) RestoreFile(ctx context.Context, req *pb.RestoreFileReques
 	}, nil
 }
 
-// GetFileInfo dosya detay bilgisi getirir (placeholder)
+// GetFileInfo dosya detay bilgisi getirir
 func (h *FileHandler) GetFileInfo(ctx context.Context, req *pb.GetFileInfoRequest) (*pb.FileInfoResponse, error) {
+	// Dosya bilgisini al
+	file, err := h.container.FileRepository().GetByID(ctx, req.FileId)
+	if err != nil {
+		return &pb.FileInfoResponse{
+			Status: &pb.Status{
+				Success: false,
+				Message: fmt.Sprintf("Dosya bulunamadı: %v", err),
+				Code:    404,
+			},
+		}, nil
+	}
+
+	// Sync bilgilerini al (hangi peer'larla senkronize edilmiş)
+	syncs, err := h.container.FilePeerSyncRepository().GetByFileID(ctx, req.FileId)
+	if err != nil {
+		log.Printf("⚠️ Sync bilgileri alınamadı: %v", err)
+		syncs = []*entity.FilePeerSync{} // Boş liste döndür
+	}
+
+	// Sync bilgilerini proto'ya dönüştür
+	syncInfos := make([]*pb.FilePeerSyncInfo, 0, len(syncs))
+	for _, sync := range syncs {
+		// Peer bilgisini al
+		peer, err := h.container.PeerRepository().GetByID(ctx, sync.PeerID)
+		peerName := sync.PeerID[:8] // Fallback
+		if err == nil && peer != nil {
+			peerName = peer.Name
+		}
+
+		// Sender device bilgisini al
+		senderPeer, err := h.container.PeerRepository().GetByID(ctx, sync.SenderDeviceID)
+		senderDeviceName := sync.SenderDeviceID[:8] // Fallback
+		if err == nil && senderPeer != nil {
+			senderDeviceName = senderPeer.Name
+		} else {
+			// Kendi device ID'miz olabilir - container'dan device bilgilerini al
+			deviceID, err := h.container.GetDeviceID()
+			if err == nil && deviceID == sync.SenderDeviceID {
+				senderDeviceName = h.container.GetDeviceName()
+			}
+		}
+
+		syncInfos = append(syncInfos, &pb.FilePeerSyncInfo{
+			PeerId:           sync.PeerID,
+			PeerName:         peerName,
+			SenderDeviceId:   sync.SenderDeviceID,
+			SenderDeviceName: senderDeviceName,
+			SyncedAt:         timestamppb.New(sync.SyncedAt),
+		})
+	}
+
 	return &pb.FileInfoResponse{
 		Status: &pb.Status{
 			Success: true,
-			Message: "FileHandler - yakında implement edilecek",
-			Code:    501,
+			Message: "Dosya bilgileri başarıyla getirildi",
+			Code:    200,
 		},
+		File:     convertFileToProto(file),
+		SyncInfo: syncInfos,
 	}, nil
 }
 

@@ -8,7 +8,8 @@
 // ignore_for_file: constant_identifier_names
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names, unused_import
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: unused_import
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
@@ -199,6 +200,38 @@ final $typed_data.Uint8List getFileInfoRequestDescriptor =
     $convert.base64Decode(
         'ChJHZXRGaWxlSW5mb1JlcXVlc3QSFwoHZmlsZV9pZBgBIAEoCVIGZmlsZUlk');
 
+@$core.Deprecated('Use filePeerSyncInfoDescriptor instead')
+const FilePeerSyncInfo$json = {
+  '1': 'FilePeerSyncInfo',
+  '2': [
+    {'1': 'peer_id', '3': 1, '4': 1, '5': 9, '10': 'peerId'},
+    {'1': 'peer_name', '3': 2, '4': 1, '5': 9, '10': 'peerName'},
+    {'1': 'sender_device_id', '3': 3, '4': 1, '5': 9, '10': 'senderDeviceId'},
+    {
+      '1': 'sender_device_name',
+      '3': 4,
+      '4': 1,
+      '5': 9,
+      '10': 'senderDeviceName'
+    },
+    {
+      '1': 'synced_at',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'syncedAt'
+    },
+  ],
+};
+
+/// Descriptor for `FilePeerSyncInfo`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List filePeerSyncInfoDescriptor = $convert.base64Decode(
+    'ChBGaWxlUGVlclN5bmNJbmZvEhcKB3BlZXJfaWQYASABKAlSBnBlZXJJZBIbCglwZWVyX25hbW'
+    'UYAiABKAlSCHBlZXJOYW1lEigKEHNlbmRlcl9kZXZpY2VfaWQYAyABKAlSDnNlbmRlckRldmlj'
+    'ZUlkEiwKEnNlbmRlcl9kZXZpY2VfbmFtZRgEIAEoCVIQc2VuZGVyRGV2aWNlTmFtZRI3CglzeW'
+    '5jZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUghzeW5jZWRBdA==');
+
 @$core.Deprecated('Use fileInfoResponseDescriptor instead')
 const FileInfoResponse$json = {
   '1': 'FileInfoResponse',
@@ -238,6 +271,14 @@ const FileInfoResponse$json = {
       '6': '.google.protobuf.Timestamp',
       '10': 'lastSyncTime'
     },
+    {
+      '1': 'sync_info',
+      '3': 8,
+      '4': 3,
+      '5': 11,
+      '6': '.aether.api.FilePeerSyncInfo',
+      '10': 'syncInfo'
+    },
   ],
 };
 
@@ -248,7 +289,8 @@ final $typed_data.Uint8List fileInfoResponseDescriptor = $convert.base64Decode(
     'AyADKAsyES5hZXRoZXIuYXBpLkNodW5rUgZjaHVua3MSJwoPYXZhaWxhYmxlX3BlZXJzGAQgAy'
     'gJUg5hdmFpbGFibGVQZWVycxIjCg12ZXJzaW9uX2NvdW50GAUgASgFUgx2ZXJzaW9uQ291bnQS'
     'JwoPc3luY19wZXJjZW50YWdlGAYgASgCUg5zeW5jUGVyY2VudGFnZRJACg5sYXN0X3N5bmNfdG'
-    'ltZRgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSDGxhc3RTeW5jVGltZQ==');
+    'ltZRgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSDGxhc3RTeW5jVGltZRI5Cglz'
+    'eW5jX2luZm8YCCADKAsyHC5hZXRoZXIuYXBpLkZpbGVQZWVyU3luY0luZm9SCHN5bmNJbmZv');
 
 @$core.Deprecated('Use deleteFileRequestDescriptor instead')
 const DeleteFileRequest$json = {

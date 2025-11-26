@@ -49,6 +49,7 @@ func (m *Migration) RunMigrations() error {
 		{9, "create_indexes", m.createIndexes},
 		{10, "fix_cascade_delete", m.fixCascadeDelete},
 		{11, "add_folder_source", m.addFolderSource},
+		{12, "create_file_peer_sync_table", m.createFilePeerSyncTable},
 	}
 	
 	for _, migration := range migrations {
@@ -242,6 +243,24 @@ func (m *Migration) createVersionsTable(db *sql.DB) error {
 	return err
 }
 
+// createFilePeerSyncTable file_peer_sync tablosunu oluşturur
+// Bu tablo hangi dosyanın hangi peer'a gönderildiğini/alandığını takip eder
+func (m *Migration) createFilePeerSyncTable(db *sql.DB) error {
+	query := `
+	CREATE TABLE IF NOT EXISTS file_peer_sync (
+		file_id TEXT NOT NULL,
+		peer_id TEXT NOT NULL,
+		sender_device_id TEXT NOT NULL,
+		synced_at INTEGER NOT NULL,
+		PRIMARY KEY(file_id, peer_id),
+		FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
+		FOREIGN KEY (peer_id) REFERENCES peers(device_id) ON DELETE CASCADE
+	)`
+	
+	_, err := db.Exec(query)
+	return err
+}
+
 // createIndexes performans için index'ler oluşturur
 func (m *Migration) createIndexes(db *sql.DB) error {
 	indexes := []string{
@@ -255,6 +274,8 @@ func (m *Migration) createIndexes(db *sql.DB) error {
 		"CREATE INDEX IF NOT EXISTS idx_peer_folder_status_peer_id ON peer_folder_status(peer_id)",
 		"CREATE INDEX IF NOT EXISTS idx_peers_is_trusted ON peers(is_trusted)",
 		"CREATE INDEX IF NOT EXISTS idx_file_versions_file_id ON file_versions(file_id)",
+		"CREATE INDEX IF NOT EXISTS idx_file_peer_sync_file_id ON file_peer_sync(file_id)",
+		"CREATE INDEX IF NOT EXISTS idx_file_peer_sync_peer_id ON file_peer_sync(peer_id)",
 	}
 	
 	for _, indexQuery := range indexes {

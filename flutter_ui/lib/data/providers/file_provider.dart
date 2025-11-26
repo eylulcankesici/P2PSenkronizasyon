@@ -56,3 +56,22 @@ final fileNotifierProvider = StateNotifierProvider<FileNotifier, AsyncValue<void
   return FileNotifier(ref);
 });
 
+/// Dosya detay bilgisi getiren provider
+final fileInfoProvider = FutureProvider.family<FileInfoResponse?, String>((ref, fileId) async {
+  final client = ref.watch(grpcClientProvider);
+  
+  try {
+    final request = GetFileInfoRequest()..fileId = fileId;
+    final response = await client.fileService.getFileInfo(request);
+    
+    if (response.status.success) {
+      return response;
+    } else {
+      return null;
+    }
+  } catch (e) {
+    print('Dosya bilgisi yüklenirken hata: $e');
+    return null;
+  }
+});
+

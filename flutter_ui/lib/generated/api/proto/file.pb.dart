@@ -8,14 +8,15 @@
 // ignore_for_file: constant_identifier_names
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
 
 import 'dart:core' as $core;
 
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
+import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart'
+    as $2;
 
-import '../../google/protobuf/timestamp.pb.dart' as $2;
 import 'common.pb.dart' as $1;
 
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
@@ -679,6 +680,111 @@ class GetFileInfoRequest extends $pb.GeneratedMessage {
   void clearFileId() => $_clearField(1);
 }
 
+class FilePeerSyncInfo extends $pb.GeneratedMessage {
+  factory FilePeerSyncInfo({
+    $core.String? peerId,
+    $core.String? peerName,
+    $core.String? senderDeviceId,
+    $core.String? senderDeviceName,
+    $2.Timestamp? syncedAt,
+  }) {
+    final result = create();
+    if (peerId != null) result.peerId = peerId;
+    if (peerName != null) result.peerName = peerName;
+    if (senderDeviceId != null) result.senderDeviceId = senderDeviceId;
+    if (senderDeviceName != null) result.senderDeviceName = senderDeviceName;
+    if (syncedAt != null) result.syncedAt = syncedAt;
+    return result;
+  }
+
+  FilePeerSyncInfo._();
+
+  factory FilePeerSyncInfo.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory FilePeerSyncInfo.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'FilePeerSyncInfo',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'peerId')
+    ..aOS(2, _omitFieldNames ? '' : 'peerName')
+    ..aOS(3, _omitFieldNames ? '' : 'senderDeviceId')
+    ..aOS(4, _omitFieldNames ? '' : 'senderDeviceName')
+    ..aOM<$2.Timestamp>(5, _omitFieldNames ? '' : 'syncedAt',
+        subBuilder: $2.Timestamp.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  FilePeerSyncInfo clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  FilePeerSyncInfo copyWith(void Function(FilePeerSyncInfo) updates) =>
+      super.copyWith((message) => updates(message as FilePeerSyncInfo))
+          as FilePeerSyncInfo;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static FilePeerSyncInfo create() => FilePeerSyncInfo._();
+  @$core.override
+  FilePeerSyncInfo createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static FilePeerSyncInfo getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<FilePeerSyncInfo>(create);
+  static FilePeerSyncInfo? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get peerId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set peerId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPeerId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPeerId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get peerName => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set peerName($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasPeerName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPeerName() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get senderDeviceId => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set senderDeviceId($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasSenderDeviceId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSenderDeviceId() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get senderDeviceName => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set senderDeviceName($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasSenderDeviceName() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearSenderDeviceName() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $2.Timestamp get syncedAt => $_getN(4);
+  @$pb.TagNumber(5)
+  set syncedAt($2.Timestamp value) => $_setField(5, value);
+  @$pb.TagNumber(5)
+  $core.bool hasSyncedAt() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearSyncedAt() => $_clearField(5);
+  @$pb.TagNumber(5)
+  $2.Timestamp ensureSyncedAt() => $_ensure(4);
+}
+
 class FileInfoResponse extends $pb.GeneratedMessage {
   factory FileInfoResponse({
     $1.Status? status,
@@ -688,6 +794,7 @@ class FileInfoResponse extends $pb.GeneratedMessage {
     $core.int? versionCount,
     $core.double? syncPercentage,
     $2.Timestamp? lastSyncTime,
+    $core.Iterable<FilePeerSyncInfo>? syncInfo,
   }) {
     final result = create();
     if (status != null) result.status = status;
@@ -697,6 +804,7 @@ class FileInfoResponse extends $pb.GeneratedMessage {
     if (versionCount != null) result.versionCount = versionCount;
     if (syncPercentage != null) result.syncPercentage = syncPercentage;
     if (lastSyncTime != null) result.lastSyncTime = lastSyncTime;
+    if (syncInfo != null) result.syncInfo.addAll(syncInfo);
     return result;
   }
 
@@ -723,6 +831,8 @@ class FileInfoResponse extends $pb.GeneratedMessage {
         fieldType: $pb.PbFieldType.OF)
     ..aOM<$2.Timestamp>(7, _omitFieldNames ? '' : 'lastSyncTime',
         subBuilder: $2.Timestamp.create)
+    ..pPM<FilePeerSyncInfo>(8, _omitFieldNames ? '' : 'syncInfo',
+        subBuilder: FilePeerSyncInfo.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -800,6 +910,9 @@ class FileInfoResponse extends $pb.GeneratedMessage {
   void clearLastSyncTime() => $_clearField(7);
   @$pb.TagNumber(7)
   $2.Timestamp ensureLastSyncTime() => $_ensure(6);
+
+  @$pb.TagNumber(8)
+  $pb.PbList<FilePeerSyncInfo> get syncInfo => $_getList(7);
 }
 
 class DeleteFileRequest extends $pb.GeneratedMessage {

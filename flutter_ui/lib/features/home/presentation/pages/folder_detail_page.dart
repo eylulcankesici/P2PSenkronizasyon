@@ -206,10 +206,65 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               _getFileIcon(file.relativePath),
               color: Theme.of(context).primaryColor,
             ),
-            title: Text(
-              file.relativePath,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  file.relativePath,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                // Sync bilgilerini göster
+                Consumer(
+                  builder: (context, ref, child) {
+                    final fileInfoAsync = ref.watch(fileInfoProvider(file.id));
+                    return fileInfoAsync.when(
+                      data: (fileInfo) {
+                        if (fileInfo == null || fileInfo.syncInfo.isEmpty) {
+                          return SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: EdgeInsets.only(top: 4),
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: fileInfo.syncInfo.map((syncInfo) {
+                              return Container(
+                                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(LucideIcons.userCheck, size: 10, color: Colors.blue),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Gönderen: ${syncInfo.senderDeviceName.isEmpty ? syncInfo.senderDeviceId.substring(0, 8) : syncInfo.senderDeviceName}',
+                                      style: TextStyle(fontSize: 10, color: Colors.blue.shade700),
+                                    ),
+                                    SizedBox(width: 6),
+                                    Icon(LucideIcons.user, size: 10, color: Colors.green),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Alan: ${syncInfo.peerName.isEmpty ? syncInfo.peerId.substring(0, 8) : syncInfo.peerName}',
+                                      style: TextStyle(fontSize: 10, color: Colors.green.shade700),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        );
+                      },
+                      loading: () => SizedBox.shrink(),
+                      error: (_, __) => SizedBox.shrink(),
+                    );
+                  },
+                ),
+              ],
             ),
             subtitle: Row(
               children: [

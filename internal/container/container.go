@@ -40,13 +40,14 @@ type Container struct {
 	boltdbConn *boltdb.Connection
 	
 	// Repositories
-	folderRepo  repository.FolderRepository
-	fileRepo    repository.FileRepository
-	chunkRepo   repository.ChunkRepository
-	peerRepo    repository.PeerRepository
-	userRepo    repository.UserRepository
-	versionRepo repository.VersionRepository
-	configRepo  repository.ConfigRepository
+	folderRepo         repository.FolderRepository
+	fileRepo           repository.FileRepository
+	chunkRepo          repository.ChunkRepository
+	peerRepo           repository.PeerRepository
+	userRepo           repository.UserRepository
+	versionRepo        repository.VersionRepository
+	filePeerSyncRepo   repository.FilePeerSyncRepository
+	configRepo         repository.ConfigRepository
 	
 	// Use cases
 	chunkingUseCase      usecase.ChunkingUseCase
@@ -151,6 +152,7 @@ func (c *Container) initRepositories() {
 	c.peerRepo = sqlite.NewPeerRepository(c.sqliteConn)
 	c.userRepo = sqlite.NewUserRepository(c.sqliteConn)
 	c.versionRepo = sqlite.NewVersionRepository(c.sqliteConn)
+	c.filePeerSyncRepo = sqlite.NewFilePeerSyncRepository(c.sqliteConn)
 	
 	// Config repository BoltDB üzerinde
 	c.configRepo = boltdb.NewConfigRepository(c.boltdbConn)
@@ -246,6 +248,10 @@ func (c *Container) VersionRepository() repository.VersionRepository {
 	return c.versionRepo
 }
 
+func (c *Container) FilePeerSyncRepository() repository.FilePeerSyncRepository {
+	return c.filePeerSyncRepo
+}
+
 func (c *Container) ConfigRepository() repository.ConfigRepository {
 	return c.configRepo
 }
@@ -276,7 +282,12 @@ func (c *Container) FileReassembler() *reassembly.FileReassembler {
 	return c.fileReassembler
 }
 
-// getOrCreateDeviceID kalıcı device ID'yi alır veya oluşturur
+// GetDeviceID kalıcı device ID'yi alır veya oluşturur (public)
+func (c *Container) GetDeviceID() (string, error) {
+	return c.getOrCreateDeviceID()
+}
+
+// getOrCreateDeviceID kalıcı device ID'yi alır veya oluşturur (private helper)
 func (c *Container) getOrCreateDeviceID() (string, error) {
 	ctx := context.Background()
 	
@@ -323,7 +334,12 @@ func (c *Container) getOrCreateDeviceID() (string, error) {
 	return deviceID, nil
 }
 
-// getDeviceName cihaz adını alır veya oluşturur
+// GetDeviceName cihaz adını alır veya oluşturur (public)
+func (c *Container) GetDeviceName() string {
+	return c.getDeviceName()
+}
+
+// getDeviceName cihaz adını alır veya oluşturur (private helper)
 func (c *Container) getDeviceName() string {
 	ctx := context.Background()
 	
@@ -1132,6 +1148,16 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 		
 	log.Printf("  💾 Dosya kaydedildi: %s", outputPath)
 	
+	// Dosya başarıyla alındı, file_peer_sync tablosuna kayıt ekle
+	// peerID = gönderen peer'ın device ID'si (sender)
+	// Sender device ID = gönderen peer'ın device ID'si
+	sync := entity.NewFilePeerSync(fileID, peerID, peerID)
+	if err := c.filePeerSyncRepo.CreateOrUpdate(ctx, sync); err != nil {
+		log.Printf("  ⚠️ File-peer sync kaydı eklenemedi (alıcı taraf): %v", err)
+	} else {
+		log.Printf("  ✅ File-peer sync kaydı eklendi (alıcı taraf): file=%s, peer=%s", fileID[:8], peerID[:8])
+	}
+	
 	// Cleanup
 	c.fileReassembler.CleanupFile(fileID)
 }
@@ -1342,6 +1368,19 @@ func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID 
 	c.transferManager.CompleteTransfer(fileID)
 	log.Printf("  ✅ Transfer tamamlandı: %s", file.RelativePath)
 	
+	// Dosya başarıyla gönderildi, file_peer_sync tablosuna kayıt ekle
+	deviceID, err := c.getOrCreateDeviceID()
+	if err != nil {
+		log.Printf("  ⚠️ Device ID alınamadı, sync kaydı eklenemedi: %v", err)
+	} else {
+		sync := entity.NewFilePeerSync(fileID, peerID, deviceID)
+		if err := c.filePeerSyncRepo.CreateOrUpdate(ctx, sync); err != nil {
+			log.Printf("  ⚠️ File-peer sync kaydı eklenemedi: %v", err)
+		} else {
+			log.Printf("  ✅ File-peer sync kaydı eklendi: file=%s, peer=%s", fileID[:8], peerID[:8])
+		}
+	}
+	
 	return nil
 }
 
@@ -1468,13 +1507,27 @@ func (c *Container) syncFileToAllPeers(fileID, folderID string) error {
 	
 	log.Printf("🔄 Dosya otomatik sync ediliyor: %s -> %d peer", fileID[:8], len(allConnections))
 	
-	// Her peer'a sync et
+	// Her peer'a sync et - SADECE DAHA ÖNCE SENKRONİZE EDİLMİŞ DOSYALAR İÇİN
 	// Otomatik sync için: gönderen mod = folder'ın sync mode'u, alıcı mod = BIDIRECTIONAL (varsayılan)
 	senderModeProto := convertEntitySyncModeToProto(folder.SyncMode)
 	receiverModeProto := pb.SyncMode_SYNC_MODE_BIDIRECTIONAL
 	
 	for _, conn := range allConnections {
 		peerID := conn.GetPeerID()
+		
+		// Dosyanın bu peer ile daha önce senkronize edilip edilmediğini kontrol et
+		isSynced, err := c.filePeerSyncRepo.IsFileSyncedWithPeer(ctx, fileID, peerID)
+		if err != nil {
+			log.Printf("  ⚠️ Sync kontrolü yapılamadı (peer: %s, file: %s): %v", peerID[:8], fileID[:8], err)
+			continue
+		}
+		
+		// Sadece daha önce senkronize edilmiş dosyalar için otomatik sync yap
+		if !isSynced {
+			log.Printf("  ℹ️  Dosya daha önce senkronize edilmemiş, otomatik sync atlanıyor: file=%s, peer=%s", fileID[:8], peerID[:8])
+			continue
+		}
+		
 		go func(pid string) {
 			if err := c.SyncFileWithPeerTracked(ctx, pid, fileID, senderModeProto, receiverModeProto); err != nil {
 				log.Printf("⚠️ Otomatik sync hatası (peer: %s, file: %s): %v", pid[:8], fileID[:8], err)
@@ -1522,13 +1575,27 @@ func (c *Container) syncChangedChunksToAllPeers(fileID, folderID string, changed
 	
 	log.Printf("🔄 DELTA SYNC: %d chunk değişikliği -> %d peer", len(changedChunkIndices), len(allConnections))
 	
-	// Her peer'a sadece değişen chunk'ları gönder
+	// Her peer'a sadece değişen chunk'ları gönder - SADECE DAHA ÖNCE SENKRONİZE EDİLMİŞ DOSYALAR İÇİN
 	// Otomatik sync için: gönderen mod = folder'ın sync mode'u, alıcı mod = BIDIRECTIONAL (varsayılan)
 	senderModeProto := convertEntitySyncModeToProto(folder.SyncMode)
 	receiverModeProto := pb.SyncMode_SYNC_MODE_BIDIRECTIONAL
 	
 	for _, conn := range allConnections {
 		peerID := conn.GetPeerID()
+		
+		// Dosyanın bu peer ile daha önce senkronize edilip edilmediğini kontrol et
+		isSynced, err := c.filePeerSyncRepo.IsFileSyncedWithPeer(ctx, fileID, peerID)
+		if err != nil {
+			log.Printf("  ⚠️ Sync kontrolü yapılamadı (peer: %s, file: %s): %v", peerID[:8], fileID[:8], err)
+			continue
+		}
+		
+		// Sadece daha önce senkronize edilmiş dosyalar için delta sync yap
+		if !isSynced {
+			log.Printf("  ℹ️  Dosya daha önce senkronize edilmemiş, delta sync atlanıyor: file=%s, peer=%s", fileID[:8], peerID[:8])
+			continue
+		}
+		
 		go func(pid string, indices []int) {
 			if err := c.syncSpecificChunksToPeer(ctx, pid, fileID, indices, senderModeProto, receiverModeProto); err != nil {
 				log.Printf("⚠️ Delta sync hatası (peer: %s, file: %s): %v", pid[:8], fileID[:8], err)

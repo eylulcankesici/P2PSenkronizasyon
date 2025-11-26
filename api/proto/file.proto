@@ -81,6 +81,14 @@ message GetFileInfoRequest {
   string file_id = 1;
 }
 
+message FilePeerSyncInfo {
+  string peer_id = 1;
+  string peer_name = 2;
+  string sender_device_id = 3;
+  string sender_device_name = 4;
+  google.protobuf.Timestamp synced_at = 5;
+}
+
 message FileInfoResponse {
   Status status = 1;
   File file = 2;
@@ -89,6 +97,7 @@ message FileInfoResponse {
   int32 version_count = 5;
   float sync_percentage = 6;
   google.protobuf.Timestamp last_sync_time = 7;
+  repeated FilePeerSyncInfo sync_info = 8; // Dosyanın hangi peer'larla senkronize edildiği
 }
 
 message DeleteFileRequest {
