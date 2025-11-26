@@ -268,3 +268,47 @@ func (uc *ChunkingUseCaseImpl) GetDeduplicationStats(
 
 	return totalChunks, uniqueChunks, savingsBytes, nil
 }
+
+// DeleteOrphanedChunks hiçbir dosyaya referans vermeyen chunk'ları siler (DB + disk)
+func (uc *ChunkingUseCaseImpl) DeleteOrphanedChunks(ctx context.Context) (int, error) {
+	// Önce silinecek orphaned chunk'ları bul (hash'lerini)
+	orphanedHashes, err := uc.chunkRepo.GetOrphanedChunkHashes(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("orphaned chunk'lar sorgulanamadı: %w", err)
+	}
+	
+	if len(orphanedHashes) == 0 {
+		return 0, nil
+	}
+	
+	// Disk'ten sil
+	deletedFromDisk := 0
+	for _, hash := range orphanedHashes {
+		// Chunk'ın local olup olmadığını kontrol et
+		chunk, err := uc.chunkRepo.GetByHash(ctx, hash)
+		if err != nil {
+			continue
+		}
+		
+		// Sadece local chunk'ları disk'ten sil
+		if chunk.IsLocal {
+			if err := uc.storage.Delete(hash); err != nil {
+				log.Printf("  ⚠️ Chunk disk'ten silinemedi: %s - %v", hash, err)
+			} else {
+				deletedFromDisk++
+			}
+		}
+	}
+	
+	// Veritabanından sil
+	deletedCount, err := uc.chunkRepo.DeleteOrphanedChunks(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("orphaned chunk'lar veritabanından silinemedi: %w", err)
+	}
+	
+	if deletedFromDisk > 0 {
+		log.Printf("  🧹 %d orphaned chunk disk'ten temizlendi", deletedFromDisk)
+	}
+	
+	return deletedCount, nil
+}

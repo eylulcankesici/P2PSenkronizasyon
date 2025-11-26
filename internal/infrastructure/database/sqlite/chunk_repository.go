@@ -313,6 +313,31 @@ func (r *ChunkRepository) CountChunkReferences(ctx context.Context, hash string)
 	return count, nil
 }
 
+// GetOrphanedChunkHashes hiçbir dosyaya referans vermeyen chunk'ların hash'lerini getirir
+func (r *ChunkRepository) GetOrphanedChunkHashes(ctx context.Context) ([]string, error) {
+	query := `
+		SELECT hash FROM chunks
+		WHERE hash NOT IN (SELECT DISTINCT chunk_hash FROM file_chunks)
+	`
+	
+	rows, err := r.conn.DB().QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("orphaned chunk'lar sorgulanamadı: %w", err)
+	}
+	defer rows.Close()
+	
+	var hashes []string
+	for rows.Next() {
+		var hash string
+		if err := rows.Scan(&hash); err != nil {
+			continue
+		}
+		hashes = append(hashes, hash)
+	}
+	
+	return hashes, nil
+}
+
 // DeleteOrphanedChunks hiçbir dosyaya referans vermeyen chunk'ları siler
 func (r *ChunkRepository) DeleteOrphanedChunks(ctx context.Context) (int, error) {
 	query := `

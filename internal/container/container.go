@@ -520,6 +520,14 @@ func (c *Container) initUseCases() error {
 			}
 			log.Printf("  ✅ Dosya veritabanından tamamen silindi (hard delete): %s", fileID[:8])
 			
+			// Yetim chunk'ları temizle (hiçbir dosya tarafından kullanılmayan chunk'lar) - hem disk hem DB'den
+			if deletedCount, err := c.chunkingUseCase.DeleteOrphanedChunks(ctx); err != nil {
+				log.Printf("  ⚠️ Yetim chunk'lar temizlenemedi: %v", err)
+				// Hata olsa bile devam et, dosya silme işlemi başarılı
+			} else if deletedCount > 0 {
+				log.Printf("  🧹 %d yetim chunk temizlendi (disk + DB)", deletedCount)
+			}
+			
 			// FİZİKSEL dosyayı SİL kontrolü:
 			// - RECEIVED folder'lar için: Her zaman sil
 			// - USER folder'lar için: Sadece çift yönlü senkronizasyon modunda sil

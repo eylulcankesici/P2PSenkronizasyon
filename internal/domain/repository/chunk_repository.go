@@ -48,6 +48,9 @@ type ChunkRepository interface {
 	// DeleteOrphanedChunks hiçbir dosyaya referans vermeyen chunk'ları siler
 	DeleteOrphanedChunks(ctx context.Context) (int, error)
 	
+	// GetOrphanedChunkHashes hiçbir dosyaya referans vermeyen chunk'ların hash'lerini getirir
+	GetOrphanedChunkHashes(ctx context.Context) ([]string, error)
+	
 	// GetDeduplicationStats deduplication istatistiklerini döndürür
 	GetDeduplicationStats(ctx context.Context) (totalChunks, uniqueChunks int64, savingsBytes int64, err error)
 }

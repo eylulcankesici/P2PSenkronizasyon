@@ -29,6 +29,9 @@ type ChunkingUseCase interface {
 
 	// GetDeduplicationStats deduplication istatistiklerini döndürür
 	GetDeduplicationStats(ctx context.Context) (totalChunks, uniqueChunks int64, savingsBytes int64, err error)
+
+	// DeleteOrphanedChunks hiçbir dosyaya referans vermeyen chunk'ları siler (DB + disk)
+	DeleteOrphanedChunks(ctx context.Context) (int, error)
 }
 
 

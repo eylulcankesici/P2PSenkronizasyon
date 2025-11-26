@@ -127,6 +127,14 @@ func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest)
 		}
 		log.Printf("✅ Dosya veritabanından tamamen silindi (hard delete): %s", req.FileId[:8])
 		
+		// Yetim chunk'ları temizle (hiçbir dosya tarafından kullanılmayan chunk'lar) - hem disk hem DB'den
+		if deletedCount, err := h.container.ChunkingUseCase().DeleteOrphanedChunks(ctx); err != nil {
+			log.Printf("⚠️ Yetim chunk'lar temizlenemedi: %v", err)
+			// Hata olsa bile devam et, dosya silme işlemi başarılı
+		} else if deletedCount > 0 {
+			log.Printf("🧹 %d yetim chunk temizlendi (disk + DB)", deletedCount)
+		}
+		
 		return &pb.Status{
 			Success: true,
 			Message: "Dosya başarıyla silindi (veritabanı + fiziksel dosya)",
@@ -144,6 +152,14 @@ func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest)
 			}, nil
 		}
 		log.Printf("✅ Dosya veritabanından tamamen silindi (fiziksel dosya korundu): %s", req.FileId[:8])
+		
+		// Yetim chunk'ları temizle (hiçbir dosya tarafından kullanılmayan chunk'lar) - hem disk hem DB'den
+		if deletedCount, err := h.container.ChunkingUseCase().DeleteOrphanedChunks(ctx); err != nil {
+			log.Printf("⚠️ Yetim chunk'lar temizlenemedi: %v", err)
+			// Hata olsa bile devam et, dosya silme işlemi başarılı
+		} else if deletedCount > 0 {
+			log.Printf("🧹 %d yetim chunk temizlendi (disk + DB)", deletedCount)
+		}
 		
 		return &pb.Status{
 			Success: true,
