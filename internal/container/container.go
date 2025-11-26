@@ -1425,7 +1425,7 @@ func (c *Container) initFileWatcher() error {
 	// File deleted callback (DELETE için - karşı taraftan da silinmeli)
 	eventHandler.SetOnFileDeleted(func(fileID, folderID string) error {
 		// Dosya silindiğinde tüm peer'lara silme bildirimi gönder
-		return c.deleteFileFromAllPeers(fileID, folderID)
+		return c.DeleteFileFromAllPeers(fileID, folderID)
 	})
 	
 	// Error handler
@@ -1762,7 +1762,12 @@ func (c *Container) syncSpecificChunksToPeer(ctx context.Context, peerID, fileID
 	return nil
 }
 
-// deleteFileFromAllPeers dosyayı tüm peer'lardan siler (otomatik sync için)
+// DeleteFileFromAllPeers dosyayı tüm peer'lardan siler (otomatik sync için) - Public method
+func (c *Container) DeleteFileFromAllPeers(fileID, folderID string) error {
+	return c.deleteFileFromAllPeers(fileID, folderID)
+}
+
+// deleteFileFromAllPeers dosyayı tüm peer'lardan siler (otomatik sync için) - Internal method
 func (c *Container) deleteFileFromAllPeers(fileID, folderID string) error {
 	ctx := context.Background()
 	
@@ -1810,9 +1815,20 @@ func (c *Container) deleteFileFromAllPeers(fileID, folderID string) error {
 		syncedPeerIDsMap[sync.PeerID] = true
 	}
 	
-	// Eğer dosya hiç sync edilmemişse ve folder BIDIRECTIONAL ise, folder'daki diğer dosyaların sync edildiği peer'ları bul
-	if len(existingSyncs) == 0 && (folder.SyncMode == entity.SyncModeBidirectional || folder.SyncMode == entity.SyncModeSendOnly) {
-		log.Printf("  🔍 Dosya daha önce sync edilmemiş (silme bildirimi), aynı folder'daki diğer dosyaların sync edildiği peer'lar aranıyor: folder=%s", folderID[:8])
+	// ALICI TARAFINDA ÇİFT YÖNLÜ SENKRONİZASYON: Eğer dosya hiç sync edilmemişse veya 
+	// folder RECEIVED source'lu ve BIDIRECTIONAL ise, folder'daki diğer dosyaların sync edildiği peer'ları bul
+	// Bu durumda alıcının silme işlemi göndericiye iletilmelidir
+	shouldCheckFolderPeers := len(existingSyncs) == 0 && (folder.SyncMode == entity.SyncModeBidirectional || folder.SyncMode == entity.SyncModeSendOnly)
+	
+	// Ayrıca RECEIVED folder + BIDIRECTIONAL durumunda, dosya sync kayıtları silinmiş olsa bile
+	// folder'daki diğer dosyaların sync edildiği peer'ları bul (alıcının silme işlemi göndericiye iletilmeli)
+	if folder.Source == entity.FolderSourceReceived && folder.SyncMode == entity.SyncModeBidirectional {
+		shouldCheckFolderPeers = true
+		log.Printf("  🔍 RECEIVED folder + BIDIRECTIONAL: Alıcının silme işlemi göndericiye iletilmeli, folder peer'ları aranıyor: folder=%s", folderID[:8])
+	}
+	
+	if shouldCheckFolderPeers {
+		log.Printf("  🔍 Dosya silme bildirimi için folder'daki diğer dosyaların sync edildiği peer'lar aranıyor: folder=%s", folderID[:8])
 		
 		folderPeerIDs, err := c.filePeerSyncRepo.GetPeerIDsByFolderID(ctx, folderID)
 		if err != nil {
@@ -1824,8 +1840,11 @@ func (c *Container) deleteFileFromAllPeers(fileID, folderID string) error {
 			for _, folderPeerID := range folderPeerIDs {
 				if _, exists := c.transportProvider.GetConnection(folderPeerID); exists {
 					syncedPeerIDsMap[folderPeerID] = true // Bildirim gönderilebilir
+					log.Printf("  ✅ Peer eklendi (folder peer'larından): %s", folderPeerID[:8])
 				}
 			}
+		} else {
+			log.Printf("  ⚠️ Folder'daki diğer dosyaların sync edildiği peer bulunamadı")
 		}
 	}
 	

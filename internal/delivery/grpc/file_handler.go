@@ -88,6 +88,17 @@ func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest)
 		// Devam et, sadece veritabanından sil
 	}
 	
+	// ÖNEMLİ: Dosya silinmeden ÖNCE peer'lara silme bildirimi gönder
+	// (dosya silindikten sonra file_peer_sync kayıtları CASCADE ile silinir)
+	// Bu, hem gönderici hem de alıcı tarafında çift yönlü senkronizasyon için gereklidir
+	if folder != nil {
+		log.Printf("🔄 Dosya silinmeden önce peer'lara silme bildirimi gönderiliyor: %s", req.FileId[:8])
+		if err := h.container.DeleteFileFromAllPeers(req.FileId, file.FolderID); err != nil {
+			log.Printf("⚠️ Peer'lara silme bildirimi gönderilemedi: %v (devam ediliyor)", err)
+			// Hata olsa bile silme işlemine devam et
+		}
+	}
+	
 	// FİZİKSEL dosyayı SİL mi yoksa KORU mu?
 	// KURAL: Kullanıcı seçimine göre karar ver (req.DeletePhysically)
 	//   - delete_physically = true → Bilgisayardan tamamen kaldır (hem fiziksel dosya hem veritabanından tamamen sil)
