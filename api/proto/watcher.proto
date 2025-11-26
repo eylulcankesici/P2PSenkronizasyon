@@ -5,7 +5,6 @@ package aether.api;
 option go_package = "github.com/aether/sync/api/proto;proto";
 
 import "api/proto/common.proto";
-import "google/protobuf/empty.proto";
 
 // Watcher servisi - dosya izleme
 service WatcherService {
