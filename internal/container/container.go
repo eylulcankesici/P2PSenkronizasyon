@@ -520,16 +520,25 @@ func (c *Container) initUseCases() error {
 			}
 			log.Printf("  ✅ Dosya veritabanından tamamen silindi (hard delete): %s", fileID[:8])
 			
-			// FİZİKSEL dosyayı SİL (sadece received folder'lar için)
-			if folder.Source == entity.FolderSourceReceived {
+			// FİZİKSEL dosyayı SİL kontrolü:
+			// - RECEIVED folder'lar için: Her zaman sil
+			// - USER folder'lar için: Sadece çift yönlü senkronizasyon modunda sil
+			// (Alıcının silme işlemi çift yönlü senkronizasyon modunda göndericiye de yansıtılmalı)
+			shouldDeletePhysical := folder.Source == entity.FolderSourceReceived || folder.SyncMode == entity.SyncModeBidirectional
+			
+			if shouldDeletePhysical {
 				filePath := filepath.Join(folder.LocalPath, file.RelativePath)
 				if err := os.Remove(filePath); err != nil {
 					log.Printf("  ⚠️ Fiziksel dosya silinemedi (%s): %v", filePath, err)
 				} else {
-					log.Printf("  ✅ Fiziksel dosya silindi: %s", filePath)
+					if folder.SyncMode == entity.SyncModeBidirectional {
+						log.Printf("  ✅ Fiziksel dosya silindi (çift yönlü senkronizasyon): %s", filePath)
+					} else {
+						log.Printf("  ✅ Fiziksel dosya silindi: %s", filePath)
+					}
 				}
 			} else {
-				log.Printf("  ℹ️  User folder, fiziksel dosya korunuyor")
+				log.Printf("  ℹ️  User folder ve tek yönlü senkronizasyon, fiziksel dosya korunuyor")
 			}
 		})
 		
