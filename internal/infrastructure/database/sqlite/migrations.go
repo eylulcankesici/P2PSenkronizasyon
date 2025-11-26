@@ -50,6 +50,7 @@ func (m *Migration) RunMigrations() error {
 		{10, "fix_cascade_delete", m.fixCascadeDelete},
 		{11, "add_folder_source", m.addFolderSource},
 		{12, "create_file_peer_sync_table", m.createFilePeerSyncTable},
+		{13, "cleanup_duplicate_files_and_add_unique_constraint", m.cleanupDuplicateFilesAndAddUniqueConstraint},
 	}
 	
 	for _, migration := range migrations {
@@ -526,6 +527,156 @@ func (m *Migration) addFolderSource(db *sql.DB) error {
 	`)
 	if err != nil {
 		return fmt.Errorf("source değerleri güncellenemedi: %w", err)
+	}
+	
+	return nil
+}
+
+// cleanupDuplicateFilesAndAddUniqueConstraint duplicate dosyaları temizler ve UNIQUE constraint ekler (migration 13)
+func (m *Migration) cleanupDuplicateFilesAndAddUniqueConstraint(db *sql.DB) error {
+	// ÖNEMLİ: Bu migration mevcut çalışan sistemleri bozmamalı
+	// Sadece duplicate kayıtları temizler ve güvenlik için UNIQUE constraint ekler
+	
+	// 1. ADIM: Duplicate kayıtları bul ve temizle
+	// Strategy: Her (folder_id, relative_path) kombinasyonu için sadece en eski kaydı tut
+	// En eski kayıt = rowid'si en küçük olan (SQLite'ın internal rowid'si)
+	
+	// Duplicate olan (folder_id, relative_path) kombinasyonlarını bul
+	duplicateQuery := `
+		SELECT folder_id, relative_path, COUNT(*) as count
+		FROM files
+		WHERE is_deleted = 0
+		GROUP BY folder_id, relative_path
+		HAVING COUNT(*) > 1
+	`
+	
+	rows, err := db.Query(duplicateQuery)
+	if err != nil {
+		return fmt.Errorf("duplicate kayıtlar bulunamadı: %w", err)
+	}
+	defer rows.Close()
+	
+	type duplicateGroup struct {
+		FolderID     string
+		RelativePath string
+		Count        int
+	}
+	
+	duplicateGroups := make([]duplicateGroup, 0)
+	
+	for rows.Next() {
+		var group duplicateGroup
+		if err := rows.Scan(&group.FolderID, &group.RelativePath, &group.Count); err != nil {
+			return fmt.Errorf("duplicate kayıt okunamadı: %w", err)
+		}
+		duplicateGroups = append(duplicateGroups, group)
+	}
+	
+	if err = rows.Err(); err != nil {
+		return fmt.Errorf("rows iteration hatası: %w", err)
+	}
+	
+	if len(duplicateGroups) > 0 {
+		// Transaction başlat (güvenli temizlik için)
+		tx, err := db.Begin()
+		if err != nil {
+			return fmt.Errorf("transaction başlatılamadı: %w", err)
+		}
+		defer tx.Rollback()
+		
+		totalDeleted := 0
+		for _, group := range duplicateGroups {
+			// Her grup için en eski kaydı (en küçük rowid) tut, diğerlerini sil
+			deleteQuery := `
+				DELETE FROM files
+				WHERE folder_id = ? 
+				  AND relative_path = ?
+				  AND is_deleted = 0
+				  AND rowid NOT IN (
+					  SELECT rowid 
+					  FROM files 
+					  WHERE folder_id = ? 
+					    AND relative_path = ? 
+					    AND is_deleted = 0
+					  ORDER BY rowid ASC
+					  LIMIT 1
+				  )
+			`
+			
+			result, err := tx.Exec(deleteQuery, group.FolderID, group.RelativePath, group.FolderID, group.RelativePath)
+			if err != nil {
+				// Hata olsa bile devam et, diğerlerini temizlemeye çalış
+				continue
+			}
+			
+			deleted, _ := result.RowsAffected()
+			totalDeleted += int(deleted)
+		}
+		
+		// Transaction commit
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("transaction commit edilemedi: %w", err)
+		}
+	}
+	
+	// 2. ADIM: UNIQUE constraint ekle
+	// SQLite'da mevcut tabloya constraint eklemek için tabloyu yeniden oluşturmak gerekiyor
+	
+	// Yeni tablo oluştur (UNIQUE constraint ile)
+	createNewTableQuery := `
+		CREATE TABLE IF NOT EXISTS files_new (
+			id TEXT PRIMARY KEY,
+			folder_id TEXT NOT NULL,
+			relative_path TEXT NOT NULL,
+			size INTEGER NOT NULL,
+			mod_time INTEGER NOT NULL,
+			global_hash TEXT NOT NULL,
+			is_deleted BOOLEAN NOT NULL,
+			UNIQUE(folder_id, relative_path),
+			FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE
+		)
+	`
+	
+	if _, err := db.Exec(createNewTableQuery); err != nil {
+		return fmt.Errorf("yeni files tablosu oluşturulamadı: %w", err)
+	}
+	
+	// Mevcut verileri kopyala (duplicate'ler zaten temizlendi, güvenli)
+	copyDataQuery := `
+		INSERT INTO files_new (id, folder_id, relative_path, size, mod_time, global_hash, is_deleted)
+		SELECT id, folder_id, relative_path, size, mod_time, global_hash, is_deleted
+		FROM files
+	`
+	
+	if _, err := db.Exec(copyDataQuery); err != nil {
+		// Eğer duplicate varsa (temizleme başarısız olduysa), hatayı logla ama devam et
+		// Eski tabloyu koru, yeni tabloyu sil
+		db.Exec("DROP TABLE IF EXISTS files_new")
+		return fmt.Errorf("veri kopyalanamadı (muhtemelen duplicate kayıtlar var): %w", err)
+	}
+	
+	// Eski tabloyu sil
+	if _, err := db.Exec("DROP TABLE files"); err != nil {
+		return fmt.Errorf("eski files tablosu silinemedi: %w", err)
+	}
+	
+	// Yeni tabloyu eski adla rename et
+	if _, err := db.Exec("ALTER TABLE files_new RENAME TO files"); err != nil {
+		return fmt.Errorf("tablo rename edilemedi: %w", err)
+	}
+	
+	// Index'leri yeniden oluştur
+	indexes := []string{
+		"CREATE INDEX IF NOT EXISTS idx_files_folder_id ON files(folder_id)",
+		"CREATE INDEX IF NOT EXISTS idx_files_relative_path ON files(relative_path)",
+		"CREATE INDEX IF NOT EXISTS idx_files_is_deleted ON files(is_deleted)",
+	}
+	
+	for _, indexQuery := range indexes {
+		if _, err := db.Exec(indexQuery); err != nil {
+			// Index hatası kritik değil, devam et
+			_ = err
+		}
 	}
 	
 	return nil
