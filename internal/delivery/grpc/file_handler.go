@@ -127,6 +127,13 @@ func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest)
 		}
 		log.Printf("✅ Dosya veritabanından tamamen silindi (hard delete): %s", req.FileId[:8])
 		
+		// Fiziksel dosya hala disk'te olduğu için, file watcher'ın onu tekrar eklememesi için ignore listesine ekle
+		if folder != nil && file.RelativePath != "" {
+			if eventHandler := h.container.EventHandler(); eventHandler != nil {
+				eventHandler.IgnoreFile(file.FolderID, file.RelativePath)
+			}
+		}
+		
 		// Yetim chunk'ları temizle (hiçbir dosya tarafından kullanılmayan chunk'lar) - hem disk hem DB'den
 		if deletedCount, err := h.container.ChunkingUseCase().DeleteOrphanedChunks(ctx); err != nil {
 			log.Printf("⚠️ Yetim chunk'lar temizlenemedi: %v", err)
@@ -152,6 +159,13 @@ func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest)
 			}, nil
 		}
 		log.Printf("✅ Dosya veritabanından tamamen silindi (fiziksel dosya korundu): %s", req.FileId[:8])
+		
+		// Fiziksel dosya hala disk'te olduğu için, file watcher'ın onu tekrar eklememesi için ignore listesine ekle
+		if folder != nil && file.RelativePath != "" {
+			if eventHandler := h.container.EventHandler(); eventHandler != nil {
+				eventHandler.IgnoreFile(file.FolderID, file.RelativePath)
+			}
+		}
 		
 		// Yetim chunk'ları temizle (hiçbir dosya tarafından kullanılmayan chunk'lar) - hem disk hem DB'den
 		if deletedCount, err := h.container.ChunkingUseCase().DeleteOrphanedChunks(ctx); err != nil {

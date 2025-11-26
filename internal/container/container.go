@@ -1484,6 +1484,11 @@ func (c *Container) EventBroadcaster() *watcher.EventBroadcaster {
 	return c.eventBroadcaster
 }
 
+// EventHandler event handler'ı döner
+func (c *Container) EventHandler() *watcher.EventHandler {
+	return c.eventHandler
+}
+
 // SymlinkManager returns the symlink manager instance
 func (c *Container) SymlinkManager() *filesystem.SymlinkManager {
 	return c.symlinkManager

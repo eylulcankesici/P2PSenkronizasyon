@@ -34,6 +34,9 @@ type EventHandler struct {
 	
 	// Event broadcaster (UI için)
 	eventBroadcaster *EventBroadcaster
+	
+	// Ignore listesi (kullanıcı tarafından silinen dosyalar - file watcher tarafından tekrar eklenmemeli)
+	ignoredFiles sync.Map // map[string]bool - "folderID:relativePath" -> bool
 }
 
 // NewEventHandler yeni EventHandler oluşturur
@@ -138,6 +141,14 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 		// Dosya zaten var! Bu aslında MODIFY (Word'ün kaydetme davranışı)
 		log.Printf("📝 CREATE → MODIFY (dosya zaten var): %s", event.Path)
 		return h.handleModify(event)
+	}
+	
+	// SADECE FILE WATCHER'IN OTOMATİK CREATE EVENT'İNDE: Ignore listesi kontrol et
+	// (Kullanıcı tarafından silinen dosyalar file watcher tarafından tekrar eklenmemeli)
+	ignoreKey := fmt.Sprintf("%s:%s", event.FolderID, event.Path)
+	if _, ignored := h.ignoredFiles.Load(ignoreKey); ignored {
+		log.Printf("🚫 CREATE ignored (kullanıcı tarafından silindi): %s", event.Path)
+		return nil // Ignore et, ekleme
 	}
 	
 	log.Printf("📄 CREATE: %s (folder: %s)", event.Path, event.FolderID[:8])
@@ -387,5 +398,19 @@ func (h *EventHandler) SetOnChunksChanged(callback func(fileID, folderID string,
 // SetOnFileDeleted file deleted callback'i ayarlar
 func (h *EventHandler) SetOnFileDeleted(callback func(fileID, folderID string) error) {
 	h.onFileDeleted = callback
+}
+
+// IgnoreFile dosyayı ignore listesine ekler (kullanıcı tarafından silindi, file watcher tekrar eklememeli)
+func (h *EventHandler) IgnoreFile(folderID, relativePath string) {
+	ignoreKey := fmt.Sprintf("%s:%s", folderID, relativePath)
+	h.ignoredFiles.Store(ignoreKey, true)
+	log.Printf("🚫 Dosya ignore listesine eklendi: %s (folder: %s)", relativePath, folderID[:8])
+}
+
+// UnignoreFile dosyayı ignore listesinden çıkarır (kullanıcı manuel olarak tekrar eklemek isterse)
+func (h *EventHandler) UnignoreFile(folderID, relativePath string) {
+	ignoreKey := fmt.Sprintf("%s:%s", folderID, relativePath)
+	h.ignoredFiles.Delete(ignoreKey)
+	log.Printf("✅ Dosya ignore listesinden çıkarıldı: %s (folder: %s)", relativePath, folderID[:8])
 }
 
