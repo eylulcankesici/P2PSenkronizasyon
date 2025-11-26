@@ -214,7 +214,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                // Sync bilgilerini göster
+                // Sync bilgilerini göster (dosya yolunun altında)
                 Consumer(
                   builder: (context, ref, child) {
                     final fileInfoAsync = ref.watch(fileInfoProvider(file.id));
@@ -229,6 +229,16 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                             spacing: 8,
                             runSpacing: 4,
                             children: fileInfo.syncInfo.map((syncInfo) {
+                              // Gönderen bilgisi
+                              final senderName = syncInfo.senderDeviceName.isEmpty 
+                                  ? syncInfo.senderDeviceId.substring(0, 8) 
+                                  : syncInfo.senderDeviceName;
+                              // Alıcı bilgisi - receiverDeviceName kullan, boşsa receiverDeviceId'den çıkar
+                              final receiverName = syncInfo.receiverDeviceName.isEmpty 
+                                  ? (syncInfo.receiverDeviceId.isEmpty 
+                                      ? 'Bilinmeyen' 
+                                      : syncInfo.receiverDeviceId.substring(0, 8))
+                                  : syncInfo.receiverDeviceName;
                               return Container(
                                 padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
@@ -242,14 +252,14 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                                     Icon(LucideIcons.userCheck, size: 10, color: Colors.blue),
                                     SizedBox(width: 4),
                                     Text(
-                                      'Gönderen: ${syncInfo.senderDeviceName.isEmpty ? syncInfo.senderDeviceId.substring(0, 8) : syncInfo.senderDeviceName}',
+                                      'Gönderen: $senderName',
                                       style: TextStyle(fontSize: 10, color: Colors.blue.shade700),
                                     ),
                                     SizedBox(width: 6),
                                     Icon(LucideIcons.user, size: 10, color: Colors.green),
                                     SizedBox(width: 4),
                                     Text(
-                                      'Alan: ${syncInfo.peerName.isEmpty ? syncInfo.peerId.substring(0, 8) : syncInfo.peerName}',
+                                      'Alan: $receiverName',
                                       style: TextStyle(fontSize: 10, color: Colors.green.shade700),
                                     ),
                                   ],

@@ -176,10 +176,14 @@ func (h *FileHandler) GetFileInfo(ctx context.Context, req *pb.GetFileInfoReques
 		syncs = []*entity.FilePeerSync{} // Boş liste döndür
 	}
 
+	// Kendi device ID'mizi al (gönderen/alıcı belirleme için)
+	currentDeviceID, _ := h.container.GetDeviceID()
+	currentDeviceName := h.container.GetDeviceName()
+
 	// Sync bilgilerini proto'ya dönüştür
 	syncInfos := make([]*pb.FilePeerSyncInfo, 0, len(syncs))
 	for _, sync := range syncs {
-		// Peer bilgisini al
+		// Peer bilgisini al (karşı taraf)
 		peer, err := h.container.PeerRepository().GetByID(ctx, sync.PeerID)
 		peerName := sync.PeerID[:8] // Fallback
 		if err == nil && peer != nil {
@@ -187,24 +191,39 @@ func (h *FileHandler) GetFileInfo(ctx context.Context, req *pb.GetFileInfoReques
 		}
 
 		// Sender device bilgisini al
-		senderPeer, err := h.container.PeerRepository().GetByID(ctx, sync.SenderDeviceID)
 		senderDeviceName := sync.SenderDeviceID[:8] // Fallback
-		if err == nil && senderPeer != nil {
-			senderDeviceName = senderPeer.Name
+		if sync.SenderDeviceID == currentDeviceID {
+			senderDeviceName = currentDeviceName
 		} else {
-			// Kendi device ID'miz olabilir - container'dan device bilgilerini al
-			deviceID, err := h.container.GetDeviceID()
-			if err == nil && deviceID == sync.SenderDeviceID {
-				senderDeviceName = h.container.GetDeviceName()
+			senderPeer, err := h.container.PeerRepository().GetByID(ctx, sync.SenderDeviceID)
+			if err == nil && senderPeer != nil {
+				senderDeviceName = senderPeer.Name
 			}
 		}
 
+		// Receiver device bilgisini belirle
+		// Eğer biz gönderen isek: receiver = peerID (alıcı)
+		// Eğer biz alıcı isek: receiver = currentDeviceID (biz)
+		receiverDeviceID := sync.PeerID
+		receiverDeviceName := peerName
+		if sync.SenderDeviceID == currentDeviceID {
+			// Biz göndereniz, receiver = peerID (alıcı)
+			receiverDeviceID = sync.PeerID
+			receiverDeviceName = peerName
+		} else {
+			// Biz alıcıyız, receiver = biz
+			receiverDeviceID = currentDeviceID
+			receiverDeviceName = currentDeviceName
+		}
+
 		syncInfos = append(syncInfos, &pb.FilePeerSyncInfo{
-			PeerId:           sync.PeerID,
-			PeerName:         peerName,
-			SenderDeviceId:   sync.SenderDeviceID,
-			SenderDeviceName: senderDeviceName,
-			SyncedAt:         timestamppb.New(sync.SyncedAt),
+			PeerId:             sync.PeerID,
+			PeerName:           peerName,
+			SenderDeviceId:     sync.SenderDeviceID,
+			SenderDeviceName:   senderDeviceName,
+			ReceiverDeviceId:   receiverDeviceID,
+			ReceiverDeviceName: receiverDeviceName,
+			SyncedAt:           timestamppb.New(sync.SyncedAt),
 		})
 	}
 

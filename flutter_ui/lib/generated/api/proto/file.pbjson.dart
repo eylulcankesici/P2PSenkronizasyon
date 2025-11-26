@@ -215,8 +215,22 @@ const FilePeerSyncInfo$json = {
       '10': 'senderDeviceName'
     },
     {
-      '1': 'synced_at',
+      '1': 'receiver_device_id',
       '3': 5,
+      '4': 1,
+      '5': 9,
+      '10': 'receiverDeviceId'
+    },
+    {
+      '1': 'receiver_device_name',
+      '3': 6,
+      '4': 1,
+      '5': 9,
+      '10': 'receiverDeviceName'
+    },
+    {
+      '1': 'synced_at',
+      '3': 7,
       '4': 1,
       '5': 11,
       '6': '.google.protobuf.Timestamp',
@@ -229,8 +243,10 @@ const FilePeerSyncInfo$json = {
 final $typed_data.Uint8List filePeerSyncInfoDescriptor = $convert.base64Decode(
     'ChBGaWxlUGVlclN5bmNJbmZvEhcKB3BlZXJfaWQYASABKAlSBnBlZXJJZBIbCglwZWVyX25hbW'
     'UYAiABKAlSCHBlZXJOYW1lEigKEHNlbmRlcl9kZXZpY2VfaWQYAyABKAlSDnNlbmRlckRldmlj'
-    'ZUlkEiwKEnNlbmRlcl9kZXZpY2VfbmFtZRgEIAEoCVIQc2VuZGVyRGV2aWNlTmFtZRI3CglzeW'
-    '5jZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUghzeW5jZWRBdA==');
+    'ZUlkEiwKEnNlbmRlcl9kZXZpY2VfbmFtZRgEIAEoCVIQc2VuZGVyRGV2aWNlTmFtZRIsChJyZW'
+    'NlaXZlcl9kZXZpY2VfaWQYBSABKAlSEHJlY2VpdmVyRGV2aWNlSWQSMAoUcmVjZWl2ZXJfZGV2'
+    'aWNlX25hbWUYBiABKAlSEnJlY2VpdmVyRGV2aWNlTmFtZRI3CglzeW5jZWRfYXQYByABKAsyGi'
+    '5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUghzeW5jZWRBdA==');
 
 @$core.Deprecated('Use fileInfoResponseDescriptor instead')
 const FileInfoResponse$json = {

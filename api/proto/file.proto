@@ -82,11 +82,13 @@ message GetFileInfoRequest {
 }
 
 message FilePeerSyncInfo {
-  string peer_id = 1;
-  string peer_name = 2;
-  string sender_device_id = 3;
-  string sender_device_name = 4;
-  google.protobuf.Timestamp synced_at = 5;
+  string peer_id = 1;              // Karşı tarafın device ID'si
+  string peer_name = 2;            // Karşı tarafın adı
+  string sender_device_id = 3;     // Gönderen cihazın device ID'si
+  string sender_device_name = 4;   // Gönderen cihazın adı
+  string receiver_device_id = 5;   // Alıcı cihazın device ID'si
+  string receiver_device_name = 6; // Alıcı cihazın adı
+  google.protobuf.Timestamp synced_at = 7;
 }
 
 message FileInfoResponse {

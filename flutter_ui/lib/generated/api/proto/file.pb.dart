@@ -685,6 +685,8 @@ class FilePeerSyncInfo extends $pb.GeneratedMessage {
     $core.String? peerName,
     $core.String? senderDeviceId,
     $core.String? senderDeviceName,
+    $core.String? receiverDeviceId,
+    $core.String? receiverDeviceName,
     $2.Timestamp? syncedAt,
   }) {
     final result = create();
@@ -692,6 +694,9 @@ class FilePeerSyncInfo extends $pb.GeneratedMessage {
     if (peerName != null) result.peerName = peerName;
     if (senderDeviceId != null) result.senderDeviceId = senderDeviceId;
     if (senderDeviceName != null) result.senderDeviceName = senderDeviceName;
+    if (receiverDeviceId != null) result.receiverDeviceId = receiverDeviceId;
+    if (receiverDeviceName != null)
+      result.receiverDeviceName = receiverDeviceName;
     if (syncedAt != null) result.syncedAt = syncedAt;
     return result;
   }
@@ -713,7 +718,9 @@ class FilePeerSyncInfo extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'peerName')
     ..aOS(3, _omitFieldNames ? '' : 'senderDeviceId')
     ..aOS(4, _omitFieldNames ? '' : 'senderDeviceName')
-    ..aOM<$2.Timestamp>(5, _omitFieldNames ? '' : 'syncedAt',
+    ..aOS(5, _omitFieldNames ? '' : 'receiverDeviceId')
+    ..aOS(6, _omitFieldNames ? '' : 'receiverDeviceName')
+    ..aOM<$2.Timestamp>(7, _omitFieldNames ? '' : 'syncedAt',
         subBuilder: $2.Timestamp.create)
     ..hasRequiredFields = false;
 
@@ -773,15 +780,33 @@ class FilePeerSyncInfo extends $pb.GeneratedMessage {
   void clearSenderDeviceName() => $_clearField(4);
 
   @$pb.TagNumber(5)
-  $2.Timestamp get syncedAt => $_getN(4);
+  $core.String get receiverDeviceId => $_getSZ(4);
   @$pb.TagNumber(5)
-  set syncedAt($2.Timestamp value) => $_setField(5, value);
+  set receiverDeviceId($core.String value) => $_setString(4, value);
   @$pb.TagNumber(5)
-  $core.bool hasSyncedAt() => $_has(4);
+  $core.bool hasReceiverDeviceId() => $_has(4);
   @$pb.TagNumber(5)
-  void clearSyncedAt() => $_clearField(5);
-  @$pb.TagNumber(5)
-  $2.Timestamp ensureSyncedAt() => $_ensure(4);
+  void clearReceiverDeviceId() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get receiverDeviceName => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set receiverDeviceName($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasReceiverDeviceName() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearReceiverDeviceName() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $2.Timestamp get syncedAt => $_getN(6);
+  @$pb.TagNumber(7)
+  set syncedAt($2.Timestamp value) => $_setField(7, value);
+  @$pb.TagNumber(7)
+  $core.bool hasSyncedAt() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearSyncedAt() => $_clearField(7);
+  @$pb.TagNumber(7)
+  $2.Timestamp ensureSyncedAt() => $_ensure(6);
 }
 
 class FileInfoResponse extends $pb.GeneratedMessage {
@@ -1240,3 +1265,5 @@ const $core.bool _omitFieldNames =
     $core.bool.fromEnvironment('protobuf.omit_field_names');
 const $core.bool _omitMessageNames =
     $core.bool.fromEnvironment('protobuf.omit_message_names');
+
+

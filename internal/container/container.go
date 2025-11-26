@@ -1148,14 +1148,14 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 		
 	log.Printf("  💾 Dosya kaydedildi: %s", outputPath)
 	
-	// Dosya başarıyla alındı, file_peer_sync tablosuna kayıt ekle
-	// peerID = gönderen peer'ın device ID'si (sender)
-	// Sender device ID = gönderen peer'ın device ID'si
+	// Dosya başarıyla alındı, file_peer_sync tablosuna kayıt ekle (alıcı taraf)
+	// peerID = gönderen peer'ın device ID'si (karşı taraf)
+	// Alıcı tarafında: peer_id = gönderen, sender_device_id = gönderen (peerID)
 	sync := entity.NewFilePeerSync(fileID, peerID, peerID)
 	if err := c.filePeerSyncRepo.CreateOrUpdate(ctx, sync); err != nil {
 		log.Printf("  ⚠️ File-peer sync kaydı eklenemedi (alıcı taraf): %v", err)
 	} else {
-		log.Printf("  ✅ File-peer sync kaydı eklendi (alıcı taraf): file=%s, peer=%s", fileID[:8], peerID[:8])
+		log.Printf("  ✅ File-peer sync kaydı eklendi (alıcı taraf): file=%s, peer=%s, sender=%s", fileID[:8], peerID[:8], peerID[:8])
 	}
 	
 	// Cleanup
