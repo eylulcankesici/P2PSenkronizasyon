@@ -513,12 +513,12 @@ func (c *Container) initUseCases() error {
 				return
 			}
 			
-			// Veritabanından sil
-			if err := c.fileRepo.Delete(ctx, fileID); err != nil {
+			// Veritabanından tamamen sil (HARD DELETE) - CASCADE olduğu için file_chunks ve file_peer_sync de silinir
+			if err := c.fileRepo.HardDelete(ctx, fileID); err != nil {
 				log.Printf("  ❌ Dosya veritabanından silinemedi: %s - %v", fileID[:8], err)
 				return
 			}
-			log.Printf("  ✅ Dosya veritabanından silindi: %s", fileID[:8])
+			log.Printf("  ✅ Dosya veritabanından tamamen silindi (hard delete): %s", fileID[:8])
 			
 			// FİZİKSEL dosyayı SİL (sadece received folder'lar için)
 			if folder.Source == entity.FolderSourceReceived {

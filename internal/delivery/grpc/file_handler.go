@@ -91,7 +91,7 @@ func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest)
 	// FİZİKSEL dosyayı SİL mi yoksa KORU mu?
 	// KURAL: Kullanıcı seçimine göre karar ver (req.DeletePhysically)
 	//   - delete_physically = true → Bilgisayardan tamamen kaldır (hem fiziksel dosya hem veritabanından tamamen sil)
-	//   - delete_physically = false → Sadece uygulamadan kaldır (soft delete), fiziksel dosya korunur
+	//   - delete_physically = false → Sadece uygulamadan kaldır (veritabanından tamamen sil, fiziksel dosya korunur)
 	
 	if req.DeletePhysically {
 		// Fiziksel dosyayı sil
@@ -122,16 +122,17 @@ func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest)
 			Code:    200,
 		}, nil
 	} else {
-		// Kullanıcı sadece uygulamadan kaldırmayı seçti → Soft delete (is_deleted = 1), fiziksel dosya korunur
-		// Veritabanından sil (SOFT DELETE - is_deleted = 1)
-		if err := h.container.FileRepository().Delete(ctx, req.FileId); err != nil {
+		// Kullanıcı sadece uygulamadan kaldırmayı seçti → Veritabanından tamamen sil, fiziksel dosya korunur
+		// Veritabanından tamamen sil (HARD DELETE) - CASCADE olduğu için file_chunks ve file_peer_sync de silinir
+		// FİZİKSEL dosya korunur (silmeyiz)
+		if err := h.container.FileRepository().HardDelete(ctx, req.FileId); err != nil {
 			return &pb.Status{
 				Success: false,
 				Message: fmt.Sprintf("Dosya veritabanından silinemedi: %v", err),
 				Code:    500,
 			}, nil
 		}
-		log.Printf("✅ Dosya soft delete ile işaretlendi (fiziksel dosya korundu): %s", req.FileId[:8])
+		log.Printf("✅ Dosya veritabanından tamamen silindi (fiziksel dosya korundu): %s", req.FileId[:8])
 		
 		return &pb.Status{
 			Success: true,

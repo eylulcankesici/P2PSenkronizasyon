@@ -217,7 +217,12 @@ func (h *FolderHandler) DeleteFolder(ctx context.Context, req *pb.DeleteFolderRe
 		}
 	}
 
-	// Veritabanından sil (CASCADE olduğu için files ve chunks da silinir)
+	// FİZİKSEL klasörü SİL mi yoksa KORU mu?
+	// KURAL: Kullanıcı seçimine göre karar ver (req.DeletePhysically)
+	//   - delete_physically = true → Bilgisayardan tamamen kaldır (hem fiziksel klasör hem veritabanından tamamen sil)
+	//   - delete_physically = false → Sadece uygulamadan kaldır (veritabanından tamamen sil, fiziksel klasör korunur)
+	
+	// Veritabanından tamamen sil (HARD DELETE) - CASCADE olduğu için files ve chunks da silinir
 	if err := h.container.FolderRepository().Delete(ctx, req.Id); err != nil {
 		return &pb.Status{
 			Success: false,
@@ -225,12 +230,7 @@ func (h *FolderHandler) DeleteFolder(ctx context.Context, req *pb.DeleteFolderRe
 			Code:    500,
 		}, nil
 	}
-	log.Printf("✅ Klasör veritabanından silindi: %s", req.Id[:8])
-
-	// FİZİKSEL klasörü SİL mi yoksa KORU mu?
-	// KURAL: Kullanıcı seçimine göre karar ver (req.DeletePhysically)
-	//   - delete_physically = true → Bilgisayardan tamamen kaldır (HEM ALICI HEM GÖNDERİCİ)
-	//   - delete_physically = false → Sadece uygulamadan kaldır, fiziksel dosyalar korunur (HEM ALICI HEM GÖNDERİCİ)
+	log.Printf("✅ Klasör veritabanından tamamen silindi (hard delete): %s", req.Id[:8])
 	
 	if req.DeletePhysically {
 		// Kullanıcı bilgisayardan tamamen kaldırmayı seçti
