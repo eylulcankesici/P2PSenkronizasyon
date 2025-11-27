@@ -34,6 +34,8 @@ class _HomePageState extends ConsumerState<HomePage> {
       _startFoldersRefreshTimer();
       // Start Peer Monitor
       ref.read(peerMonitorProvider).start();
+      // Start Transfer Polling
+      ref.read(transferNotifierProvider);
     });
   }
   

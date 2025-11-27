@@ -110,6 +110,7 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
   
   final Ref ref;
   Timer? _pollingTimer;
+  bool _initialLoad = true;
   
   /// Backend'den transferleri yükle
   Future<void> _loadTransfers() async {
@@ -137,49 +138,76 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
           }
         }
         
-        // Peer tarafından iptal edilen transferleri kontrol et
+        // Transfer değişikliklerini kontrol et
         for (final transfer in transfers.values) {
           final localTransfer = state[transfer.fileId];
+          
           if (localTransfer != null) {
+            // MEVCUT TRANSFER GÜNCELLEMELERİ
+            
             // Eğer yerel state'de iptal edilmemiş ama yeni state'de iptal edilmişse
             // ve biz iptal etmediysek (yani backend'den iptal geldiyse)
             if (!localTransfer.isCancelled && transfer.isCancelled) {
-              // Bildirim gönder
-              ref.read(notificationsProvider.notifier).addNotification(
-                title: 'Transfer İptal Edildi',
-                message: '${transfer.peerName} tarafından ${transfer.fileName} transferi iptal edildi.',
-                icon: LucideIcons.xCircle,
-                color: Colors.orange,
-              );
+              _notifyCancelled(transfer);
             }
             
             // Başarısız transferler için de bildirim
              if (!localTransfer.isFailed && transfer.isFailed) {
-              ref.read(notificationsProvider.notifier).addNotification(
-                title: 'Transfer Başarısız',
-                message: '${transfer.fileName} transferi başarısız oldu: ${transfer.errorMessage ?? "Bilinmeyen hata"}',
-                icon: LucideIcons.alertCircle,
-                color: Colors.red,
-              );
+              _notifyFailed(transfer);
             }
             
             // Tamamlanan transferler için bildirim
             if (!localTransfer.isComplete && transfer.isComplete) {
-              ref.read(notificationsProvider.notifier).addNotification(
-                title: 'Transfer Tamamlandı',
-                message: '${transfer.fileName} transferi başarıyla tamamlandı.',
-                icon: LucideIcons.checkCircle,
-                color: Colors.green,
-              );
+              _notifyCompleted(transfer);
+            }
+          } else if (!_initialLoad) {
+            // YENİ TRANSFERLER (Sadece ilk yükleme değilse bildirim ver)
+            // Bu kısım ALICI tarafı için kritiktir. Alıcı tarafında transfer doğrudan
+            // "Active" veya "Completed" olarak listeye girebilir.
+            
+            if (transfer.isCancelled) {
+              _notifyCancelled(transfer);
+            } else if (transfer.isFailed) {
+              _notifyFailed(transfer);
+            } else if (transfer.isComplete) {
+              _notifyCompleted(transfer);
             }
           }
         }
         
         state = Map<String, TransferState>.from(transfers);
+        _initialLoad = false;
       }
     } catch (e) {
       print('❌ Transferler yüklenemedi: $e');
     }
+  }
+
+  void _notifyCancelled(TransferState transfer) {
+    ref.read(notificationsProvider.notifier).addNotification(
+      title: 'Transfer İptal Edildi',
+      message: '${transfer.peerName} tarafından ${transfer.fileName} transferi iptal edildi.',
+      icon: LucideIcons.xCircle,
+      color: Colors.orange,
+    );
+  }
+
+  void _notifyFailed(TransferState transfer) {
+    ref.read(notificationsProvider.notifier).addNotification(
+      title: 'Transfer Başarısız',
+      message: '${transfer.fileName} transferi başarısız oldu: ${transfer.errorMessage ?? "Bilinmeyen hata"}',
+      icon: LucideIcons.alertCircle,
+      color: Colors.red,
+    );
+  }
+
+  void _notifyCompleted(TransferState transfer) {
+    ref.read(notificationsProvider.notifier).addNotification(
+      title: 'Transfer Tamamlandı',
+      message: '${transfer.fileName} transferi başarıyla tamamlandı.',
+      icon: LucideIcons.checkCircle,
+      color: Colors.green,
+    );
   }
   
   /// Proto mesajından TransferState oluştur
