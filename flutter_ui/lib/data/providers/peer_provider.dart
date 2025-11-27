@@ -3,12 +3,28 @@ import 'package:aether_desktop/data/services/grpc_provider.dart';
 import 'package:aether_desktop/generated/api/proto/peer.pb.dart';
 import 'package:aether_desktop/generated/api/proto/peer.pbgrpc.dart';
 
-/// Peer listesi provider (keşfedilen peer'lar)
+/// Network mode enum
+enum NetworkMode {
+  local,
+  wan,
+}
+
+/// Network mode provider (varsayılan: LOCAL)
+final networkModeProvider = StateProvider<NetworkMode>((ref) => NetworkMode.local);
+
+/// Peer listesi provider (keşfedilen peer'lar - LOCAL veya WAN)
 final discoveredPeersProvider = FutureProvider<List<Peer>>((ref) async {
   final client = ref.watch(grpcClientProvider);
+  final networkMode = ref.watch(networkModeProvider);
   
   try {
-    final request = DiscoverPeersRequest()..lanOnly = true;
+    final request = DiscoverPeersRequest();
+    if (networkMode == NetworkMode.local) {
+      request.lanOnly = true;
+    } else {
+      request.wanOnly = true;
+    }
+    
     final response = await client.peerService.discoverPeers(request);
     
     return response.peers;
@@ -39,12 +55,13 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
   
   final Ref ref;
   
-  /// Peer'ları keşfet (yeniden)
+  /// Peer'ları keşfet (yeniden) - Network mode'a göre
   Future<void> discoverPeers() async {
     state = const AsyncValue.loading();
     
     try {
       // Provider'ı invalidate et (yeniden yükle)
+      // Bu otomatik olarak network mode'a göre doğru provider'ı çağıracak
       ref.invalidate(discoveredPeersProvider);
       state = const AsyncValue.data(null);
     } catch (e, st) {
@@ -234,6 +251,50 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
       final response = await client.peerService.rejectConnection(request);
       
       if (response.success) {
+        state = const AsyncValue.data(null);
+      } else {
+        state = AsyncValue.error(
+          response.message,
+          StackTrace.current,
+        );
+      }
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+  /// Invitation code oluştur (WAN için)
+  Future<CreateInvitationResponse?> createInvitation({int expiryHours = 24}) async {
+    try {
+      final client = ref.read(grpcClientProvider);
+      
+      final request = CreateInvitationRequest()..expiryHours = expiryHours;
+      final response = await client.peerService.createInvitation(request);
+      
+      if (response.status.success) {
+        return response;
+      } else {
+        throw Exception(response.status.message);
+      }
+    } catch (e) {
+      print('Invitation code oluşturma hatası: $e');
+      rethrow;
+    }
+  }
+
+  /// Invitation code ile peer ekle (WAN için)
+  Future<void> addPeerByInvitation(String invitationCode) async {
+    state = const AsyncValue.loading();
+    
+    try {
+      final client = ref.read(grpcClientProvider);
+      
+      final request = AddPeerByInvitationRequest()..invitationCode = invitationCode;
+      final response = await client.peerService.addPeerByInvitation(request);
+      
+      if (response.success) {
+        // Keşfedilen peer listesini yenile
+        ref.invalidate(discoveredPeersProvider);
         state = const AsyncValue.data(null);
       } else {
         state = AsyncValue.error(
