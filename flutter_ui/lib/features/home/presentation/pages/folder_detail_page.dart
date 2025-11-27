@@ -593,6 +593,40 @@ class _SyncPeerDialogState extends ConsumerState<_SyncPeerDialog> {
   final Map<String, SyncMode> _senderModes = {}; // peerId -> sender sync mode
   final Map<String, SyncMode> _receiverModes = {}; // peerId -> receiver sync mode
 
+  String _getCollectiveSyncMode() {
+    if (_senderModes.isEmpty) return 'Seçim Yok';
+
+    final firstSenderMode = _senderModes.values.first;
+    final firstKey = _senderModes.keys.first;
+    final firstReceiver = _receiverModes[firstKey];
+
+    bool allSame = true;
+    for (final deviceId in _senderModes.keys) {
+      if (_senderModes[deviceId] != firstSenderMode || 
+          _receiverModes[deviceId] != firstReceiver) {
+        allSame = false;
+        break;
+      }
+    }
+
+    if (!allSame) return 'Karma (Farklı Modlar)';
+
+    if (firstSenderMode == SyncMode.SYNC_MODE_BIDIRECTIONAL && 
+        firstReceiver == SyncMode.SYNC_MODE_BIDIRECTIONAL) {
+      return '↔️ Çift Yönlü';
+    }
+    
+    if (firstSenderMode == SyncMode.SYNC_MODE_SEND_ONLY) {
+       return '⬆️ Sadece Gönder';
+    }
+    
+    if (firstSenderMode == SyncMode.SYNC_MODE_RECEIVE_ONLY) {
+       return '⬇️ Sadece Al';
+    }
+
+    return '${_getSyncModeName(firstSenderMode)}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final syncState = ref.watch(syncNotifierProvider);
@@ -621,6 +655,38 @@ class _SyncPeerDialogState extends ConsumerState<_SyncPeerDialog> {
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
             SizedBox(height: 16),
+            // Seçili mod göstergesi
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(12),
+              margin: EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    'Seçili Senkronizasyon Modu',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.blue.shade700,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    _getCollectiveSyncMode(),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue.shade900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             Text(
               'Peer Seç ve Sync Mode Belirle:',
               style: TextStyle(fontWeight: FontWeight.w500),
