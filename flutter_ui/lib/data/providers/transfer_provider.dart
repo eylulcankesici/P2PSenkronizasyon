@@ -131,10 +131,24 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
         // Backend'den gelen listeyi al, ancak yerel olarak tamamlanmış/iptal edilmiş/başarısız olmuş
         // ve backend listesinde olmayan transferleri koru (history için)
         for (final localTransfer in state.values) {
-          // Eğer transfer yerelde bitmiş durumdaysa ve backend listesinde yoksa, koru
+          // 1. Durum: Transfer zaten bitmişti, koru
           if ((localTransfer.isComplete || localTransfer.isFailed || localTransfer.isCancelled) && 
               !transfers.containsKey(localTransfer.fileId)) {
             transfers[localTransfer.fileId] = localTransfer;
+          }
+          // 2. Durum: Transfer aktifti ama backend listesinden kayboldu (muhtemelen iptal edildi veya hata oluştu)
+          else if (!localTransfer.isComplete && !localTransfer.isFailed && !localTransfer.isCancelled &&
+                   !transfers.containsKey(localTransfer.fileId)) {
+            // Transfer kayboldu, iptal edilmiş varsayalım
+            final cancelledTransfer = localTransfer.copyWith(
+              isCancelled: true,
+              errorMessage: 'Transfer bağlantısı koptu veya iptal edildi.',
+              endTime: DateTime.now(),
+            );
+            transfers[localTransfer.fileId] = cancelledTransfer;
+            
+            // Bildirim gönder
+            _notifyCancelled(cancelledTransfer);
           }
         }
         
@@ -164,6 +178,10 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
             // YENİ TRANSFERLER (Sadece ilk yükleme değilse bildirim ver)
             // Bu kısım ALICI tarafı için kritiktir. Alıcı tarafında transfer doğrudan
             // "Active" veya "Completed" olarak listeye girebilir.
+            
+            // Eğer yeni gelen transfer zaten bitmiş/iptal edilmişse ve bizde yoksa bildirim ver
+            // Ancak yukarıdaki döngüde zaten transfers map'ine ekledik, bu yüzden
+            // burada sadece 'transfers' map'indeki yeni elemanları kontrol ediyoruz.
             
             if (transfer.isCancelled) {
               _notifyCancelled(transfer);
