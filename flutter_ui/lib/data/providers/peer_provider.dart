@@ -64,7 +64,7 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
       String peerName = 'Cihaz';
       try {
         final discoveredPeers = ref.read(discoveredPeersProvider).valueOrNull ?? [];
-        final peer = discoveredPeers.firstWhere((p) => p.id == peerId, orElse: () => Peer()..name = 'Bilinmeyen Cihaz');
+        final peer = discoveredPeers.firstWhere((p) => p.deviceId == peerId, orElse: () => Peer()..name = 'Bilinmeyen Cihaz');
         peerName = peer.name.isNotEmpty ? peer.name : 'Bilinmeyen Cihaz';
       } catch (_) {}
 
@@ -105,7 +105,7 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
       String peerName = 'Cihaz';
       try {
         final connectedPeers = ref.read(connectedPeersProvider).valueOrNull ?? [];
-        final peer = connectedPeers.firstWhere((p) => p.id == peerId, orElse: () => Peer()..name = 'Bilinmeyen Cihaz');
+        final peer = connectedPeers.firstWhere((p) => p.deviceId == peerId, orElse: () => Peer()..name = 'Bilinmeyen Cihaz');
         peerName = peer.name.isNotEmpty ? peer.name : 'Bilinmeyen Cihaz';
       } catch (_) {}
 
