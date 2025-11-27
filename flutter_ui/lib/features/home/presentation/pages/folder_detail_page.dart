@@ -285,7 +285,6 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                ),
               ],
             ),
             subtitle: Row(
