@@ -279,7 +279,7 @@ final completedTransfersProvider = Provider<List<TransferState>>((ref) {
 final failedTransfersProvider = Provider<List<TransferState>>((ref) {
   final transfers = ref.watch(transferNotifierProvider);
   return transfers.values
-      .where((t) => t.isFailed)
+      .where((t) => t.isFailed || t.isCancelled)
       .toList()
     ..sort((a, b) => b.startTime.compareTo(a.startTime));
 });
