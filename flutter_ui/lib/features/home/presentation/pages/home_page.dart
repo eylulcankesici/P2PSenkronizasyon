@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:aether_desktop/data/providers/folder_provider.dart';
 import 'package:aether_desktop/data/providers/peer_provider.dart';
 import 'package:aether_desktop/data/providers/transfer_provider.dart';
+import 'package:aether_desktop/data/providers/notification_provider.dart';
 import 'package:aether_desktop/generated/api/proto/common.pb.dart';
 import 'package:aether_desktop/features/home/presentation/pages/folder_detail_page.dart';
 import 'package:aether_desktop/features/peers/presentation/pages/peers_page.dart';
@@ -146,10 +147,37 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
         actions: [
           _buildSyncStatusWidget(),
-          IconButton(
-            icon: const Icon(LucideIcons.bell),
-            onPressed: () {},
-            tooltip: 'Bildirimler',
+          Consumer(
+            builder: (context, ref, child) {
+              final unreadCount = ref.watch(unreadNotificationCountProvider);
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(LucideIcons.bell),
+                    onPressed: () {
+                      _showNotifications(context, ref);
+                    },
+                    tooltip: 'Bildirimler',
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 8,
+                          minHeight: 8,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
           const SizedBox(width: 8),
         ],
@@ -548,6 +576,105 @@ class _HomePageState extends ConsumerState<HomePage> {
         );
       }
     }
+  }
+
+  void _showNotifications(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Bildirimler'),
+            TextButton(
+              onPressed: () {
+                ref.read(notificationsProvider.notifier).clearAll();
+                Navigator.pop(context);
+              },
+              child: const Text('Temizle'),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 400,
+          height: 400,
+          child: Consumer(
+            builder: (context, ref, child) {
+              final notifications = ref.watch(notificationsProvider);
+              
+              if (notifications.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(LucideIcons.bellOff, size: 48, color: Colors.grey[300]),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Bildirim yok',
+                        style: TextStyle(color: Colors.grey[500]),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              
+              return ListView.builder(
+                itemCount: notifications.length,
+                itemBuilder: (context, index) {
+                  final notification = notifications[index];
+                  return Dismissible(
+                    key: Key(notification.id),
+                    onDismissed: (_) {
+                      ref.read(notificationsProvider.notifier).removeNotification(notification.id);
+                    },
+                    background: Container(color: Colors.red),
+                    child: ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: notification.color.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(notification.icon, color: notification.color, size: 20),
+                      ),
+                      title: Text(
+                        notification.title,
+                        style: TextStyle(
+                          fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(notification.message),
+                          const SizedBox(height: 4),
+                          Text(
+                            _formatDateTime(notification.timestamp),
+                            style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                          ),
+                        ],
+                      ),
+                      onTap: () {
+                        ref.read(notificationsProvider.notifier).markAsRead(notification.id);
+                      },
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              ref.read(notificationsProvider.notifier).markAllAsRead();
+              Navigator.pop(context);
+            },
+            child: const Text('Kapat'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

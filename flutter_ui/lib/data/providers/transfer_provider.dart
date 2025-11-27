@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import 'package:aether_desktop/data/providers/folder_provider.dart';
+import 'package:aether_desktop/data/providers/notification_provider.dart';
 import 'package:aether_desktop/data/services/grpc_provider.dart';
 import 'package:aether_desktop/generated/api/proto/p2p.pbgrpc.dart' as pb;
 
@@ -131,6 +134,34 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
           if ((localTransfer.isComplete || localTransfer.isFailed || localTransfer.isCancelled) && 
               !transfers.containsKey(localTransfer.fileId)) {
             transfers[localTransfer.fileId] = localTransfer;
+          }
+        }
+        
+        // Peer tarafından iptal edilen transferleri kontrol et
+        for (final transfer in transfers.values) {
+          final localTransfer = state[transfer.fileId];
+          if (localTransfer != null) {
+            // Eğer yerel state'de iptal edilmemiş ama yeni state'de iptal edilmişse
+            // ve biz iptal etmediysek (yani backend'den iptal geldiyse)
+            if (!localTransfer.isCancelled && transfer.isCancelled) {
+              // Bildirim gönder
+              ref.read(notificationsProvider.notifier).addNotification(
+                title: 'Transfer İptal Edildi',
+                message: '${transfer.peerName} tarafından ${transfer.fileName} transferi iptal edildi.',
+                icon: LucideIcons.xCircle,
+                color: Colors.orange,
+              );
+            }
+            
+            // Başarısız transferler için de bildirim
+             if (!localTransfer.isFailed && transfer.isFailed) {
+              ref.read(notificationsProvider.notifier).addNotification(
+                title: 'Transfer Başarısız',
+                message: '${transfer.fileName} transferi başarısız oldu: ${transfer.errorMessage ?? "Bilinmeyen hata"}',
+                icon: LucideIcons.alertCircle,
+                color: Colors.red,
+              );
+            }
           }
         }
         
