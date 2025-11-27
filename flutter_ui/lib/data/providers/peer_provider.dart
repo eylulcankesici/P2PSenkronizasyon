@@ -1,3 +1,14 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+import 'package:aether_desktop/data/providers/notification_provider.dart';
+import 'package:aether_desktop/data/services/grpc_provider.dart';
+import 'package:aether_desktop/generated/api/proto/peer.pb.dart';
+import 'package:aether_desktop/generated/api/proto/peer.pbgrpc.dart';
+
+/// Peer listesi provider (keşfedilen peer'lar)
+final discoveredPeersProvider = FutureProvider<List<Peer>>((ref) async {
+  final client = ref.watch(grpcClientProvider);
   
   try {
     final request = DiscoverPeersRequest()..lanOnly = true;
@@ -10,6 +21,25 @@
   }
 });
 
+/// Bağlı peer'lar provider
+final connectedPeersProvider = FutureProvider<List<Peer>>((ref) async {
+  final client = ref.watch(grpcClientProvider);
+  
+  try {
+    final request = ListPeersRequest()..onlineOnly = true;
+    final response = await client.peerService.listPeers(request);
+    
+    return response.peers;
+  } catch (e) {
+    print('Bağlı peer listesi hatası: $e');
+    return [];
+  }
+});
+
+/// Peer işlemleri notifier
+class PeerNotifier extends StateNotifier<AsyncValue<void>> {
+  PeerNotifier(this.ref) : super(const AsyncValue.data(null));
+  
   final Ref ref;
   
   /// Peer'ları keşfet (yeniden)
@@ -39,6 +69,14 @@
         // Bağlı peer listesini yenile
         ref.invalidate(connectedPeersProvider);
         state = const AsyncValue.data(null);
+        
+        // Bildirim gönder
+        ref.read(notificationsProvider.notifier).addNotification(
+          title: 'Bağlantı Başarılı',
+          message: 'Cihaz ile bağlantı kuruldu.',
+          icon: LucideIcons.link,
+          color: Colors.green,
+        );
       } else {
         state = AsyncValue.error(
           response.message,
@@ -164,6 +202,24 @@
   Future<PeerInfoResponse?> getPeerInfo(String peerId) async {
     try {
       final client = ref.read(grpcClientProvider);
+      
+      final request = GetPeerInfoRequest()..peerId = peerId;
+      final response = await client.peerService.getPeerInfo(request);
+      
+      if (response.status.success) {
+        return response;
+      } else {
+        return null;
+      }
+    } catch (e) {
+      print('Peer info hatası: $e');
+      return null;
+    }
+  }
+  
+  /// Bağlantı isteğini onayla
+  Future<void> acceptConnection(String deviceId) async {
+    state = const AsyncValue.loading();
     
     try {
       final client = ref.read(grpcClientProvider);
@@ -280,5 +336,3 @@ class PendingConnectionsNotifier extends StateNotifier<List<PendingConnection>> 
     state = [];
   }
 }
-
-
