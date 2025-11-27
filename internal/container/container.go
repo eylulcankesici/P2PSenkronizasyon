@@ -24,6 +24,7 @@ import (
 	"github.com/aether/sync/internal/infrastructure/filesystem"
 	"github.com/aether/sync/internal/infrastructure/p2p"
 	"github.com/aether/sync/internal/infrastructure/p2p/lan"
+	"github.com/aether/sync/internal/infrastructure/p2p/wan"
 	"github.com/aether/sync/internal/infrastructure/watcher"
 	usecaseImpl "github.com/aether/sync/internal/usecase/impl"
 	"github.com/aether/sync/pkg/chunking"
@@ -439,20 +440,21 @@ func (c *Container) initUseCases() error {
 	
 	log.Println("✓ P2P Transfer use case başlatıldı")
 	
-	// Chunk handler'ı bağla
-	if lanTransport, ok := c.transportProvider.(*lan.LANTransport); ok {
-		chunkHandler := func(chunkHash string) ([]byte, error) {
-			chunkData, err := c.chunkingUseCase.GetChunkData(context.Background(), chunkHash)
-			if err != nil {
-				return nil, fmt.Errorf("chunk alınamadı: %w", err)
-			}
-			return chunkData, nil
+	// Chunk handler'ı bağla (LAN veya WAN)
+	chunkHandler := func(chunkHash string) ([]byte, error) {
+		chunkData, err := c.chunkingUseCase.GetChunkData(context.Background(), chunkHash)
+		if err != nil {
+			return nil, fmt.Errorf("chunk alınamadı: %w", err)
 		}
-		
+		return chunkData, nil
+	}
+	
+	// LAN transport için chunk handler bağla
+	if lanTransport, ok := c.transportProvider.(*lan.LANTransport); ok {
 		lanTransport.SetChunkHandler(chunkHandler)
-		log.Println("✓ Chunk handler bağlandı")
+		log.Println("✓ Chunk handler bağlandı (LAN)")
 		
-		// Connection request callback'ini bağla
+		// Connection request callback'ini bağla (sadece LAN için)
 		connMgr := lanTransport.GetTCPConnectionManager()
 		connMgr.SetOnConnectionRequested(func(deviceID, deviceName string) {
 			log.Printf("🔔 Connection request callback tetiklendi: %s (%s)", deviceName, deviceID[:8])
@@ -550,7 +552,13 @@ func (c *Container) initUseCases() error {
 			}
 		})
 		
-		log.Println("✓ Dosya silme callback bağlandı")
+		log.Println("✓ Dosya silme callback bağlandı (LAN)")
+	} else if wanTransport, ok := c.transportProvider.(*wan.WANTransport); ok {
+		// WAN Transport için chunk handler bağla
+		wanTransport.SetChunkHandler(chunkHandler)
+		log.Println("✓ Chunk handler bağlandı (WAN)")
+		// NOT: WAN transport için chunk received callback henüz implement edilmedi
+		// WebRTC data channel implementasyonunda eklenecek
 	}
 	
 	return nil
@@ -560,13 +568,15 @@ func (c *Container) initUseCases() error {
 func (c *Container) setupPeerDiscoveryCallback() error {
 	ctx := context.Background()
 	
-	// LAN Transport'un callback'lerini ayarla
-	if lanTransport, ok := c.transportProvider.(interface {
+	// Transport'un callback'lerini ayarla (LAN veya WAN - her ikisi de aynı interface'i destekler)
+	transportWithCallbacks, ok := c.transportProvider.(interface {
 		OnPeerDiscovered(func(*transport.DiscoveredPeer))
 		OnPeerLost(func(string))
 		OnConnectionLost(func(string))
-	}); ok {
-		lanTransport.OnPeerDiscovered(func(discoveredPeer *transport.DiscoveredPeer) {
+	})
+	
+	if ok {
+		transportWithCallbacks.OnPeerDiscovered(func(discoveredPeer *transport.DiscoveredPeer) {
 			// Peer'ı veritabanına kaydet
 			peer := entity.NewPeer(discoveredPeer.DeviceID, discoveredPeer.DeviceName)
 			peer.Status = entity.PeerStatusOffline // İlk keşifte offline
@@ -595,7 +605,7 @@ func (c *Container) setupPeerDiscoveryCallback() error {
 			}
 		})
 		
-		lanTransport.OnPeerLost(func(deviceID string) {
+		transportWithCallbacks.OnPeerLost(func(deviceID string) {
 			// Peer'ı offline olarak işaretle
 			if err := c.peerRepo.UpdateStatus(ctx, deviceID, entity.PeerStatusOffline); err != nil {
 				log.Printf("⚠️ Peer durumu güncellenemedi: %v", err)
@@ -605,7 +615,7 @@ func (c *Container) setupPeerDiscoveryCallback() error {
 		})
 		
 		// Connection lost callback'ini ayarla
-		lanTransport.OnConnectionLost(func(peerID string) {
+		transportWithCallbacks.OnConnectionLost(func(peerID string) {
 			// Peer'ı offline olarak işaretle
 			if err := c.peerRepo.UpdateStatus(ctx, peerID, entity.PeerStatusOffline); err != nil {
 				log.Printf("⚠️ Peer durumu güncellenemedi: %v", err)
@@ -634,20 +644,44 @@ func (c *Container) initP2PTransport() error {
 	// P2P listen port'unu al
 	p2pPort := c.getP2PPort()
 	
-	// LAN Transport oluştur
-	lanTransport := lan.NewLANTransport(deviceID, deviceName, p2pPort)
-	
-	// Transport'u başlat
 	ctx := context.Background()
-	if err := lanTransport.Start(ctx); err != nil {
-		return fmt.Errorf("LAN transport başlatılamadı: %w", err)
+	
+	// Config'e göre transport seç
+	// MEVCUT DAVRANIŞ KORUNUR: EnableWAN varsayılan false, LAN transport kullanılacak
+	if c.config.Network.EnableWAN {
+		// WAN Transport oluştur ve başlat
+		log.Println("🌐 WAN Transport başlatılıyor...")
+		
+		wanTransport := wan.NewWANTransport(deviceID, deviceName, c.config.Network)
+		
+		if err := wanTransport.Start(ctx); err != nil {
+			log.Printf("⚠️ WAN transport başlatılamadı: %v (LAN transport'a geri dönülüyor)", err)
+			// WAN başarısız olursa LAN'a geri dön
+			lanTransport := lan.NewLANTransport(deviceID, deviceName, p2pPort)
+			if err := lanTransport.Start(ctx); err != nil {
+				return fmt.Errorf("LAN transport başlatılamadı: %w", err)
+			}
+			c.transportProvider = lanTransport
+			log.Printf("✓ P2P Transport başlatıldı (LAN fallback, device: %s, port: %d)", deviceName, p2pPort)
+			return nil
+		}
+		
+		c.transportProvider = wanTransport
+		log.Printf("✓ P2P Transport başlatıldı (WAN, device: %s, port: %d)", deviceName, p2pPort)
+	} else {
+		// LAN Transport oluştur ve başlat (MEVCUT DAVRANIŞ - DEĞİŞMEDİ)
+		lanTransport := lan.NewLANTransport(deviceID, deviceName, p2pPort)
+		
+		if err := lanTransport.Start(ctx); err != nil {
+			return fmt.Errorf("LAN transport başlatılamadı: %w", err)
+		}
+		
+		// Chunk handler'ı daha sonra bağlanacak (chunking use case hazır olduktan sonra)
+		
+		c.transportProvider = lanTransport
+		
+		log.Printf("✓ P2P Transport başlatıldı (LAN, device: %s, port: %d)", deviceName, p2pPort)
 	}
-	
-	// Chunk handler'ı daha sonra bağlanacak (chunking use case hazır olduktan sonra)
-	
-	c.transportProvider = lanTransport
-	
-	log.Printf("✓ P2P Transport başlatıldı (device: %s, port: %d)", deviceName, p2pPort)
 	
 	return nil
 }
