@@ -60,7 +60,7 @@ func NewWANTransport(deviceID, deviceName string, wanConfig config.NetworkConfig
 	discovery := NewWANDiscoveryService(deviceID, deviceName)
 
 	// Connection manager oluştur
-	connMgr := NewWebRTCConnectionManager(deviceID, deviceName, iceAgent)
+	connMgr := NewWebRTCConnectionManager(deviceID, deviceName, iceAgent, wanConfig)
 
 	return &WANTransport{
 		deviceID:   deviceID,
@@ -380,5 +380,10 @@ func (t *WANTransport) GetICECandidates() ([]ICECandidate, error) {
 	}
 
 	return t.iceAgent.GetLocalCandidates()
+}
+
+// GetDiscoveryService discovery service'i döner (invitation için)
+func (t *WANTransport) GetDiscoveryService() *WANDiscoveryService {
+	return t.discovery
 }
 

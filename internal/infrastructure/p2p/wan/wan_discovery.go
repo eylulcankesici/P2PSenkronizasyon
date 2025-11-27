@@ -2,6 +2,7 @@ package wan
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
@@ -112,6 +113,25 @@ func (d *WANDiscoveryService) AddPeer(peerID, peerName string, publicIP string, 
 		}
 	}
 
+	// ICE candidates'ı JSON olarak metadata'ya ekle
+	iceCandidatesJSON := "[]"
+	if len(iceCandidates) > 0 {
+		candidatesData := make([]map[string]interface{}, len(iceCandidates))
+		for i, cand := range iceCandidates {
+			candidatesData[i] = map[string]interface{}{
+				"type":     cand.Type,
+				"ip":       cand.IP.String(),
+				"port":     cand.Port,
+				"priority": cand.Priority,
+				"protocol": cand.Protocol,
+			}
+		}
+		jsonBytes, err := json.Marshal(candidatesData)
+		if err == nil {
+			iceCandidatesJSON = string(jsonBytes)
+		}
+	}
+
 	peer := &transport.DiscoveredPeer{
 		DeviceID:      peerID,
 		DeviceName:    peerName,
@@ -119,14 +139,98 @@ func (d *WANDiscoveryService) AddPeer(peerID, peerName string, publicIP string, 
 		TransportType: transport.TransportTypeWAN,
 		DiscoveredAt:  time.Now(),
 		Metadata: map[string]string{
-			"public_ip": publicIP,
-			"wan_mode":  "true",
+			"public_ip":       publicIP,
+			"wan_mode":        "true",
+			"ice_candidates":  iceCandidatesJSON,
+			// grpc_address metadata'ya eklenecek (invitation code'dan gelecek)
 		},
 	}
 
 	d.discoveredPeers[peerID] = peer
 
 	log.Printf("✅ WAN peer eklendi: %s (%s) - %d adres", peerName, peerID[:8], len(addresses))
+
+	// Callback çağır
+	if d.onPeerDiscovered != nil {
+		d.onPeerDiscovered(peer)
+	}
+
+	return nil
+}
+
+// AddPeerWithGRPC peer ekler (gRPC address ile)
+func (d *WANDiscoveryService) AddPeerWithGRPC(peerID, peerName string, publicIP, grpcAddress string, iceCandidates []ICECandidate) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if !d.started {
+		return fmt.Errorf("discovery service başlatılmamış")
+	}
+
+	// Addresses'leri ICE candidate'lardan oluştur
+	addresses := make([]string, 0, len(iceCandidates))
+	for _, candidate := range iceCandidates {
+		addresses = append(addresses, fmt.Sprintf("%s:%d", candidate.IP.String(), candidate.Port))
+	}
+
+	// Public IP varsa ekle
+	if publicIP != "" {
+		// Public IP'yi de adres olarak ekle
+		found := false
+		for _, addr := range addresses {
+			if addr == publicIP {
+				found = true
+				break
+			}
+		}
+		if !found {
+			// Port bilgisi yoksa varsayılan port kullan
+			addresses = append(addresses, publicIP)
+		}
+	}
+
+	// ICE candidates'ı JSON olarak metadata'ya ekle
+	iceCandidatesJSON := "[]"
+	if len(iceCandidates) > 0 {
+		candidatesData := make([]map[string]interface{}, len(iceCandidates))
+		for i, cand := range iceCandidates {
+			candidatesData[i] = map[string]interface{}{
+				"type":     cand.Type,
+				"ip":       cand.IP.String(),
+				"port":     cand.Port,
+				"priority": cand.Priority,
+				"protocol": cand.Protocol,
+			}
+		}
+		jsonBytes, err := json.Marshal(candidatesData)
+		if err == nil {
+			iceCandidatesJSON = string(jsonBytes)
+		}
+	}
+
+	metadata := map[string]string{
+		"public_ip":      publicIP,
+		"wan_mode":       "true",
+		"ice_candidates": iceCandidatesJSON,
+	}
+	
+	// gRPC address varsa metadata'ya ekle
+	if grpcAddress != "" {
+		metadata["grpc_address"] = grpcAddress
+	}
+
+	peer := &transport.DiscoveredPeer{
+		DeviceID:      peerID,
+		DeviceName:    peerName,
+		Addresses:     addresses,
+		TransportType: transport.TransportTypeWAN,
+		DiscoveredAt:  time.Now(),
+		Metadata:      metadata,
+	}
+
+	d.discoveredPeers[peerID] = peer
+
+	log.Printf("✅ WAN peer eklendi: %s (%s) - %d adres, gRPC: %s", peerName, peerID[:8], len(addresses), grpcAddress)
 
 	// Callback çağır
 	if d.onPeerDiscovered != nil {

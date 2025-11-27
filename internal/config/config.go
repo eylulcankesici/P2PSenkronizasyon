@@ -123,7 +123,9 @@ func Load() (*Config, error) {
 			MaxConcurrentOps: 4,
 		},
 		GRPC: GRPCConfig{
-			Host: getEnvOrDefault("AETHER_GRPC_HOST", "localhost"),
+			// WAN için public IP'ye açılmalı (0.0.0.0 tüm interface'ler)
+			// LOCAL için localhost yeterli, ancak WAN ile uyumluluk için varsayılan 0.0.0.0
+			Host: getEnvOrDefault("AETHER_GRPC_HOST", "0.0.0.0"), // Varsayılan: tüm interface'ler
 			Port: getEnvOrDefaultInt("AETHER_GRPC_PORT", 50051),
 		},
 	}

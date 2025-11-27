@@ -41,6 +41,18 @@ service PeerService {
   
   // Bağlantı isteğini reddet
   rpc RejectConnection(RejectConnectionRequest) returns (Status);
+  
+  // Invitation code oluştur (WAN için)
+  rpc CreateInvitation(CreateInvitationRequest) returns (CreateInvitationResponse);
+  
+  // Invitation code ile peer ekle (WAN için)
+  rpc AddPeerByInvitation(AddPeerByInvitationRequest) returns (Status);
+  
+  // Manuel WAN peer ekle (invitation code olmadan)
+  rpc AddWANPeer(AddWANPeerRequest) returns (Status);
+  
+  // SDP exchange (WAN WebRTC bağlantısı için)
+  rpc ExchangeSDP(ExchangeSDPRequest) returns (ExchangeSDPResponse);
 }
 
 // Mesajlar
@@ -153,6 +165,43 @@ message AcceptConnectionRequest {
 message RejectConnectionRequest {
   string device_id = 1;
   string reason = 2;
+}
+
+// Invitation code mesajları (WAN için)
+message CreateInvitationRequest {
+  int32 expiry_hours = 1;  // Geçerlilik süresi (saat), varsayılan: 24
+}
+
+message CreateInvitationResponse {
+  Status status = 1;
+  string invitation_code = 2;  // Base64 encoded encrypted code
+  string invitation_link = 3;  // aether://invite?code=...
+  string qr_code_image = 4;    // Base64 encoded QR code image (PNG) - opsiyonel
+  int64 expires_at = 5;        // Unix timestamp
+}
+
+message AddPeerByInvitationRequest {
+  string invitation_code = 1;  // Base64 encoded encrypted code
+}
+
+message AddWANPeerRequest {
+  string peer_id = 1;           // Device ID
+  string peer_name = 2;         // Device name (opsiyonel)
+  string public_ip = 3;         // Public IP (opsiyonel)
+  repeated string ice_candidates = 4;  // ICE candidates (JSON string array veya SDP format)
+}
+
+// SDP exchange mesajları (WAN WebRTC için)
+message ExchangeSDPRequest {
+  string peer_id = 1;    // Gönderen peer ID (doğrulama için)
+  string sdp_type = 2;   // "offer" veya "answer"
+  string sdp = 3;        // SDP string
+}
+
+message ExchangeSDPResponse {
+  Status status = 1;
+  string sdp_type = 2;   // "answer" (eğer request "offer" ise) veya "offer" (eğer request "answer" ise)
+  string sdp = 3;        // SDP string
 }
 
 // P2P bağlantı istek mesajları (binary protokol için)
