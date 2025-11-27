@@ -147,8 +147,8 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
             );
             transfers[localTransfer.fileId] = cancelledTransfer;
             
-            // Bildirim gönder
-            _notifyCancelled(cancelledTransfer);
+            // Bildirim gönderme! Aşağıdaki döngü zaten state değişikliğini algılayıp gönderecek.
+            // _notifyCancelled(cancelledTransfer);
           }
         }
         
