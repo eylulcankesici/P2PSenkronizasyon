@@ -521,11 +521,11 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       case SyncMode.SYNC_MODE_BIDIRECTIONAL:
         return '📡 Çift Yönlü Senkronizasyon';
       case SyncMode.SYNC_MODE_SEND_ONLY:
-        return '⬆️ Sadece Gönder';
+        return '⬆️ Gönderici';
       case SyncMode.SYNC_MODE_RECEIVE_ONLY:
-        return '⬇️ Sadece Al';
+        return '⬇️ Alıcı';
       case SyncMode.SYNC_MODE_UNSPECIFIED:
-        return '❓ Henüz Belirlenmemiş';
+        return 'Henüz Belirlenmemiş';
       default:
         return 'Bilinmiyor';
     }
