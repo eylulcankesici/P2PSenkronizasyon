@@ -172,7 +172,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   }) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: Colors.grey),
+        Icon(icon, size: 16, color: Colors.green),
         SizedBox(width: 4),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,7 +206,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
             Divider(height: 24),
             Text(
               'Bağlı Peerlar ve Senkronizasyon Durumu:',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey[700]),
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green[400]),
             ),
             SizedBox(height: 8),
             ...peers.map((peer) {
