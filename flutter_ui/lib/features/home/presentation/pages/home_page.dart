@@ -85,6 +85,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             if (mounted) {
               showDialog(
                 context: context,
+                barrierDismissible: false,
                 builder: (context) => ConnectionRequestDialog(
                   deviceId: connection.deviceId,
                   deviceName: connection.deviceName,

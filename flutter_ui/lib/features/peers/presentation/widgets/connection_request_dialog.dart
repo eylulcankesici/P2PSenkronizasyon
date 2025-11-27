@@ -16,107 +16,110 @@ class ConnectionRequestDialog extends ConsumerWidget {
   
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return AlertDialog(
-      title: Row(
-        children: [
-          Icon(LucideIcons.link, color: Colors.blue),
-          const SizedBox(width: 8),
-          const Text('Bağlantı İsteği'),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Aşağıdaki cihaz size bağlanmak istiyor:',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue.withOpacity(0.3)),
+    return PopScope(
+      canPop: false,
+      child: AlertDialog(
+        title: Row(
+          children: [
+            Icon(LucideIcons.link, color: Colors.blue),
+            const SizedBox(width: 8),
+            const Text('Bağlantı İsteği'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Aşağıdaki cihaz size bağlanmak istiyor:',
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
-            child: Row(
-              children: [
-                Icon(LucideIcons.monitor, color: Colors.blue),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        deviceName,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(LucideIcons.monitor, color: Colors.blue),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          deviceName,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        deviceId.length > 20 
-                          ? '${deviceId.substring(0, 20)}...' 
-                          : deviceId,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                          fontFamily: 'monospace',
+                        const SizedBox(height: 4),
+                        Text(
+                          deviceId.length > 20 
+                            ? '${deviceId.substring(0, 20)}...' 
+                            : deviceId,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                            fontFamily: 'monospace',
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              // Reddet
+              Navigator.of(context).pop();
+              await ref.read(peerNotifierProvider.notifier).rejectConnection(deviceId);
+              ref.read(pendingConnectionsNotifierProvider.notifier).removePendingConnection(deviceId);
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(LucideIcons.x, size: 16),
+                const SizedBox(width: 4),
+                const Text('Reddet'),
               ],
             ),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              // Onayla
+              Navigator.of(context).pop();
+              await ref.read(peerNotifierProvider.notifier).acceptConnection(deviceId);
+              ref.read(pendingConnectionsNotifierProvider.notifier).removePendingConnection(deviceId);
+              // Peer listesini yenile
+              ref.invalidate(connectedPeersProvider);
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(LucideIcons.check, size: 16),
+                const SizedBox(width: 4),
+                const Text('Onayla'),
+              ],
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
           ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () async {
-            // Reddet
-            Navigator.of(context).pop();
-            await ref.read(peerNotifierProvider.notifier).rejectConnection(deviceId);
-            ref.read(pendingConnectionsNotifierProvider.notifier).removePendingConnection(deviceId);
-          },
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(LucideIcons.x, size: 16),
-              const SizedBox(width: 4),
-              const Text('Reddet'),
-            ],
-          ),
-          style: TextButton.styleFrom(
-            foregroundColor: Colors.red,
-          ),
-        ),
-        ElevatedButton(
-          onPressed: () async {
-            // Onayla
-            Navigator.of(context).pop();
-            await ref.read(peerNotifierProvider.notifier).acceptConnection(deviceId);
-            ref.read(pendingConnectionsNotifierProvider.notifier).removePendingConnection(deviceId);
-            // Peer listesini yenile
-            ref.invalidate(connectedPeersProvider);
-          },
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(LucideIcons.check, size: 16),
-              const SizedBox(width: 4),
-              const Text('Onayla'),
-            ],
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
-          ),
-        ),
-      ],
     );
   }
 }
@@ -155,6 +158,7 @@ void showConnectionRequestSnackbar(
         onPressed: () {
           showDialog(
             context: context,
+            barrierDismissible: false,
             builder: (context) => ConnectionRequestDialog(
               deviceId: deviceId,
               deviceName: deviceName,
