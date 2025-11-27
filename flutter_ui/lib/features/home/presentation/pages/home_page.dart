@@ -124,6 +124,8 @@ class _HomePageState extends ConsumerState<HomePage> {
     ),
   ];
 
+  bool _isNotificationDropdownOpen = false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -155,7 +157,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                   IconButton(
                     icon: const Icon(LucideIcons.bell),
                     onPressed: () {
-                      _showNotifications(context, ref);
+                      setState(() {
+                        _isNotificationDropdownOpen = !_isNotificationDropdownOpen;
+                      });
                     },
                     tooltip: 'Bildirimler',
                   ),
@@ -182,7 +186,30 @@ class _HomePageState extends ConsumerState<HomePage> {
           const SizedBox(width: 8),
         ],
       ),
-      body: _buildBody(),
+      body: Stack(
+        children: [
+          // Main Content
+          GestureDetector(
+            onTap: () {
+              if (_isNotificationDropdownOpen) {
+                setState(() {
+                  _isNotificationDropdownOpen = false;
+                });
+              }
+            },
+            behavior: HitTestBehavior.translucent,
+            child: _buildBody(),
+          ),
+          
+          // Notification Dropdown Overlay
+          if (_isNotificationDropdownOpen)
+            Positioned(
+              top: 0,
+              right: 8,
+              child: _buildNotificationDropdown(),
+            ),
+        ],
+      ),
       floatingActionButton: _selectedIndex == 0
           ? FloatingActionButton.extended(
               onPressed: _showAddFolderDialog,
@@ -195,6 +222,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         onDestinationSelected: (index) {
           setState(() {
             _selectedIndex = index;
+            _isNotificationDropdownOpen = false; // Close dropdown on nav change
           });
           
           // Klasörler sekmesine geçildiğinde klasörleri yenile
@@ -578,101 +606,129 @@ class _HomePageState extends ConsumerState<HomePage> {
     }
   }
 
-  void _showNotifications(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildNotificationDropdown() {
+    return Card(
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        width: 350,
+        constraints: const BoxConstraints(maxHeight: 400),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Bildirimler'),
-            TextButton(
-              onPressed: () {
-                ref.read(notificationsProvider.notifier).clearAll();
-                Navigator.pop(context);
-              },
-              child: const Text('Temizle'),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: 400,
-          height: 400,
-          child: Consumer(
-            builder: (context, ref, child) {
-              final notifications = ref.watch(notificationsProvider);
-              
-              if (notifications.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(LucideIcons.bellOff, size: 48, color: Colors.grey[300]),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Bildirim yok',
-                        style: TextStyle(color: Colors.grey[500]),
-                      ),
-                    ],
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Bildirimler',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
-                );
-              }
-              
-              return ListView.builder(
-                itemCount: notifications.length,
-                itemBuilder: (context, index) {
-                  final notification = notifications[index];
-                  return Dismissible(
-                    key: Key(notification.id),
-                    onDismissed: (_) {
-                      ref.read(notificationsProvider.notifier).removeNotification(notification.id);
+                  TextButton(
+                    onPressed: () {
+                      ref.read(notificationsProvider.notifier).clearAll();
                     },
-                    background: Container(color: Colors.red),
-                    child: ListTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: notification.color.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(notification.icon, color: notification.color, size: 20),
-                      ),
-                      title: Text(
-                        notification.title,
-                        style: TextStyle(
-                          fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold,
-                        ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(50, 30),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text('Temizle', style: TextStyle(fontSize: 12)),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Flexible(
+              child: Consumer(
+                builder: (context, ref, child) {
+                  final notifications = ref.watch(notificationsProvider);
+                  
+                  if (notifications.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(notification.message),
-                          const SizedBox(height: 4),
+                          Icon(LucideIcons.bellOff, size: 32, color: Colors.grey[300]),
+                          const SizedBox(height: 12),
                           Text(
-                            _formatDateTime(notification.timestamp),
-                            style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                            'Bildirim yok',
+                            style: TextStyle(color: Colors.grey[500], fontSize: 13),
                           ),
                         ],
                       ),
-                      onTap: () {
-                        ref.read(notificationsProvider.notifier).markAsRead(notification.id);
-                      },
-                    ),
+                    );
+                  }
+                  
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: notifications.length,
+                    separatorBuilder: (context, index) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final notification = notifications[index];
+                      return Dismissible(
+                        key: Key(notification.id),
+                        onDismissed: (_) {
+                          ref.read(notificationsProvider.notifier).removeNotification(notification.id);
+                        },
+                        background: Container(color: Colors.red),
+                        child: InkWell(
+                          onTap: () {
+                            ref.read(notificationsProvider.notifier).markAsRead(notification.id);
+                          },
+                          child: Container(
+                            color: notification.isRead ? null : Colors.blue.withOpacity(0.05),
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: notification.color.withOpacity(0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(notification.icon, color: notification.color, size: 16),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        notification.title,
+                                        style: TextStyle(
+                                          fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        notification.message,
+                                        style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _formatDateTime(notification.timestamp),
+                                        style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
-              );
-            },
-          ),
+              ),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              ref.read(notificationsProvider.notifier).markAllAsRead();
-              Navigator.pop(context);
-            },
-            child: const Text('Kapat'),
-          ),
-        ],
       ),
     );
   }

@@ -1,11 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:aether_desktop/data/services/grpc_provider.dart';
-import 'package:aether_desktop/generated/api/proto/peer.pb.dart';
-import 'package:aether_desktop/generated/api/proto/peer.pbgrpc.dart';
-
-/// Peer listesi provider (keşfedilen peer'lar)
-final discoveredPeersProvider = FutureProvider<List<Peer>>((ref) async {
-  final client = ref.watch(grpcClientProvider);
   
   try {
     final request = DiscoverPeersRequest()..lanOnly = true;
@@ -18,25 +10,6 @@ final discoveredPeersProvider = FutureProvider<List<Peer>>((ref) async {
   }
 });
 
-/// Bağlı peer'lar provider
-final connectedPeersProvider = FutureProvider<List<Peer>>((ref) async {
-  final client = ref.watch(grpcClientProvider);
-  
-  try {
-    final request = ListPeersRequest()..onlineOnly = true;
-    final response = await client.peerService.listPeers(request);
-    
-    return response.peers;
-  } catch (e) {
-    print('Bağlı peer listesi hatası: $e');
-    return [];
-  }
-});
-
-/// Peer işlemleri notifier
-class PeerNotifier extends StateNotifier<AsyncValue<void>> {
-  PeerNotifier(this.ref) : super(const AsyncValue.data(null));
-  
   final Ref ref;
   
   /// Peer'ları keşfet (yeniden)
@@ -93,6 +66,14 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
         // Keşfedilen peer listesini de yenile (bağlantı kesildi, tekrar keşfedilebilir)
         ref.invalidate(discoveredPeersProvider);
         state = const AsyncValue.data(null);
+        
+        // Bildirim gönder
+        ref.read(notificationsProvider.notifier).addNotification(
+          title: 'Bağlantı Kesildi',
+          message: 'Cihaz ile bağlantı sonlandırıldı.',
+          icon: LucideIcons.unlink,
+          color: Colors.orange,
+        );
       } else {
         state = AsyncValue.error(
           response.message,
@@ -183,24 +164,6 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
   Future<PeerInfoResponse?> getPeerInfo(String peerId) async {
     try {
       final client = ref.read(grpcClientProvider);
-      
-      final request = GetPeerInfoRequest()..peerId = peerId;
-      final response = await client.peerService.getPeerInfo(request);
-      
-      if (response.status.success) {
-        return response;
-      } else {
-        return null;
-      }
-    } catch (e) {
-      print('Peer info hatası: $e');
-      return null;
-    }
-  }
-  
-  /// Bağlantı isteğini onayla
-  Future<void> acceptConnection(String deviceId) async {
-    state = const AsyncValue.loading();
     
     try {
       final client = ref.read(grpcClientProvider);

@@ -162,6 +162,16 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
                 color: Colors.red,
               );
             }
+            
+            // Tamamlanan transferler için bildirim
+            if (!localTransfer.isComplete && transfer.isComplete) {
+              ref.read(notificationsProvider.notifier).addNotification(
+                title: 'Transfer Tamamlandı',
+                message: '${transfer.fileName} transferi başarıyla tamamlandı.',
+                icon: LucideIcons.checkCircle,
+                color: Colors.green,
+              );
+            }
           }
         }
         
