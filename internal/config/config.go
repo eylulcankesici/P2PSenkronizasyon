@@ -38,6 +38,29 @@ type NetworkConfig struct {
 	EnableMDNS         bool // Yerel ağ keşfi
 	STUNServers        []string
 	RelayServers       []string
+	
+	// WAN ayarları (yeni)
+	EnableWAN            bool              // WAN transport'u aktif et
+	TURNServers          []TURNServerConfig // TURN server yapılandırmaları
+	EnableTLS            bool              // TLS encryption aktif
+	TLSInsecureSkipVerify bool             // Development için (self-signed cert)
+	EnableRelay          bool              // Relay server fallback
+	WebRTCPortRange      PortRange         // WebRTC port aralığı
+	ICEGatheringTimeout  int               // ICE gathering timeout (saniye)
+	ConnectionTimeout    int               // Connection timeout (saniye)
+}
+
+// TURNServerConfig TURN server yapılandırması
+type TURNServerConfig struct {
+	URL      string // turn:server:port
+	Username string
+	Password string
+}
+
+// PortRange port aralığı
+type PortRange struct {
+	Min int // Minimum port
+	Max int // Maximum port
 }
 
 // SyncConfig senkronizasyon ayarları
@@ -79,6 +102,19 @@ func Load() (*Config, error) {
 				"stun:stun1.l.google.com:19302",
 			},
 			RelayServers: []string{},
+			
+			// WAN varsayılan ayarları (pasif)
+			EnableWAN:             false, // Varsayılan olarak kapalı
+			TURNServers:           []TURNServerConfig{},
+			EnableTLS:             true,  // WAN için TLS varsayılan açık
+			TLSInsecureSkipVerify: false,
+			EnableRelay:           false,
+			WebRTCPortRange: PortRange{
+				Min: 50000,
+				Max: 60000,
+			},
+			ICEGatheringTimeout: 10, // 10 saniye
+			ConnectionTimeout:   30, // 30 saniye
 		},
 		Sync: SyncConfig{
 			ChunkSize:        4 * 1024 * 1024, // 4 MB

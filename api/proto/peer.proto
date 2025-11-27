@@ -55,10 +55,17 @@ message Peer {
   string public_key = 7;
   google.protobuf.Timestamp created_at = 8;
   google.protobuf.Timestamp updated_at = 9;
+  
+  // WAN bilgileri (yeni)
+  string public_ip = 10;           // Public IP adresi (STUN'dan)
+  string nat_type = 11;            // NAT tipi (full_cone, symmetric, vb.)
+  bool wan_supported = 12;         // WAN transport destekleniyor mu?
+  repeated string ice_candidates = 13; // ICE candidates (SDP format)
 }
 
 message DiscoverPeersRequest {
   bool lan_only = 1;
+  bool wan_only = 2;  // YENİ: Sadece WAN peer'larını keşfet
 }
 
 message DiscoverPeersResponse {
@@ -68,6 +75,7 @@ message DiscoverPeersResponse {
 
 message ConnectToPeerRequest {
   string peer_id = 1;
+  string transport_type = 2;  // YENİ: "lan", "wan", "auto" (auto = otomatik seç)
 }
 
 message DisconnectFromPeerRequest {
@@ -96,8 +104,20 @@ message PeerInfoResponse {
   int32 shared_files = 4;
   int32 total_chunks = 5;
   google.protobuf.Timestamp last_activity = 6;
-  string connection_type = 7;
+  string connection_type = 7;  // "lan" veya "wan"
   int64 latency_ms = 8;
+  
+  // WAN connection bilgileri (yeni)
+  WANConnectionInfo wan_info = 9;
+}
+
+// WAN bağlantı bilgileri
+message WANConnectionInfo {
+  string public_ip = 1;
+  string nat_type = 2;
+  repeated string stun_servers = 3;
+  bool turn_available = 4;
+  int64 connection_establishment_time_ms = 5;  // Bağlantı kurulma süresi
 }
 
 message TrustPeerRequest {
