@@ -77,14 +77,6 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
         // Bağlı peer listesini yenile
         ref.invalidate(connectedPeersProvider);
         state = const AsyncValue.data(null);
-        
-        // Bildirim gönder
-        ref.read(notificationsProvider.notifier).addNotification(
-          title: 'Bağlantı Başarılı',
-          message: '$peerName ile bağlantı kuruldu.',
-          icon: LucideIcons.link,
-          color: Colors.green,
-        );
       } else {
         state = AsyncValue.error(
           response.message,
@@ -120,14 +112,6 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
         // Keşfedilen peer listesini de yenile (bağlantı kesildi, tekrar keşfedilebilir)
         ref.invalidate(discoveredPeersProvider);
         state = const AsyncValue.data(null);
-        
-        // Bildirim gönder
-        ref.read(notificationsProvider.notifier).addNotification(
-          title: 'Bağlantı Kesildi',
-          message: '$peerName ile bağlantı sonlandırıldı.',
-          icon: LucideIcons.unlink,
-          color: Colors.orange,
-        );
       } else {
         state = AsyncValue.error(
           response.message,

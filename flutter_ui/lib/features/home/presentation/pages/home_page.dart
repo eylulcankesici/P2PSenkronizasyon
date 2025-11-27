@@ -12,6 +12,7 @@ import 'package:aether_desktop/features/home/presentation/pages/folder_detail_pa
 import 'package:aether_desktop/features/peers/presentation/pages/peers_page.dart';
 import 'package:aether_desktop/features/peers/presentation/widgets/connection_request_dialog.dart';
 import 'package:aether_desktop/features/transfers/presentation/pages/transfers_page.dart';
+import 'package:aether_desktop/features/home/presentation/managers/peer_monitor.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -31,6 +32,8 @@ class _HomePageState extends ConsumerState<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _listenToPendingConnections();
       _startFoldersRefreshTimer();
+      // Start Peer Monitor
+      ref.read(peerMonitorProvider).start();
     });
   }
   
