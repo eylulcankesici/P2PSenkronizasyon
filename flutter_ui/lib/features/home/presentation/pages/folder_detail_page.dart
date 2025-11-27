@@ -828,7 +828,7 @@ class _SyncPeerDialogState extends ConsumerState<_SyncPeerDialog> {
         FilledButton(
           onPressed: syncState.isLoading || _senderModes.isEmpty
               ? null
-              : () async {
+              : () {
                   // Peer sync mode'larını oluştur
                   final peerSyncModes = _senderModes.entries.map((e) {
                     return PeerSyncMode()
@@ -837,29 +837,31 @@ class _SyncPeerDialogState extends ConsumerState<_SyncPeerDialog> {
                       ..receiverMode = _receiverModes[e.key] ?? SyncMode.SYNC_MODE_BIDIRECTIONAL;
                   }).toList();
                   
-                  await ref
-                      .read(syncNotifierProvider.notifier)
-                      .syncFile(widget.file.id, _senderModes.keys.toList(), peerSyncModes);
+                  // Dialog'u hemen kapat
+                  Navigator.pop(context);
                   
-                  if (mounted) {
-                    final newState = ref.read(syncNotifierProvider);
-                    if (!newState.hasError) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Dosya başarıyla senkronize edildi'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Hata: ${newState.error}'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  }
+                  // İşlemi başlat ve sonucu bekleme (fire and forget)
+                  // Ancak kullanıcıya bilgi ver
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Dosya senkronizasyonu başlatıldı...'),
+                      backgroundColor: Colors.blue,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                  
+                  ref
+                      .read(syncNotifierProvider.notifier)
+                      .syncFile(widget.file.id, _senderModes.keys.toList(), peerSyncModes)
+                      .then((_) {
+                        // Başarılı olursa
+                        // Not: Context artık geçerli olmayabilir, global notification kullanılabilir
+                        // veya sessizce devam edilebilir.
+                      })
+                      .catchError((error) {
+                        // Hata durumunda
+                        print('Sync error: $error');
+                      });
                 },
           child: Text('Senkronize Et'),
         ),
@@ -1057,7 +1059,7 @@ class _SyncFolderDialogState extends ConsumerState<_SyncFolderDialog> {
         FilledButton(
           onPressed: syncState.isLoading || _senderModes.isEmpty
               ? null
-              : () async {
+              : () {
                   // Peer sync mode'larını oluştur
                   final peerSyncModes = _senderModes.entries.map((e) {
                     return PeerSyncMode()
@@ -1066,42 +1068,33 @@ class _SyncFolderDialogState extends ConsumerState<_SyncFolderDialog> {
                       ..receiverMode = _receiverModes[e.key] ?? SyncMode.SYNC_MODE_BIDIRECTIONAL;
                   }).toList();
                   
-                  final response = await ref
+                  // Dialog'u hemen kapat
+                  Navigator.pop(context);
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Klasör senkronizasyonu başlatıldı...'),
+                      backgroundColor: Colors.blue,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                  
+                  ref
                       .read(syncNotifierProvider.notifier)
-                      .syncFolder(widget.folder.id, _senderModes.keys.toList(), peerSyncModes);
-                  
-                  // Seçilen modları local settings'e kaydet
-                  for (final entry in _senderModes.entries) {
-                    await LocalSettingsService().savePeerSyncMode(
-                      widget.folder.id, 
-                      entry.key, 
-                      entry.value
-                    );
-                  }
-                  
-                  if (mounted && response != null) {
-                    final newState = ref.read(syncNotifierProvider);
-                    if (!newState.hasError) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Klasör başarıyla senkronize edildi\n'
-                            '${response.syncedFiles}/${response.totalFiles} dosya gönderildi'
-                          ),
-                          backgroundColor: Colors.green,
-                          duration: Duration(seconds: 4),
-                        ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Hata: ${newState.error}'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  }
+                      .syncFolder(widget.folder.id, _senderModes.keys.toList(), peerSyncModes)
+                      .then((response) async {
+                        // Seçilen modları local settings'e kaydet
+                        for (final entry in _senderModes.entries) {
+                          await LocalSettingsService().savePeerSyncMode(
+                            widget.folder.id, 
+                            entry.key, 
+                            entry.value
+                          );
+                        }
+                      })
+                      .catchError((error) {
+                        print('Sync error: $error');
+                      });
                 },
           child: Text('Klasörü Senkronize Et'),
         ),
