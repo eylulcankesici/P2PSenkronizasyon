@@ -21,9 +21,13 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    // Connected peers listesini düzenli olarak yenile (her 2 saniyede bir)
+    // Peer listelerini düzenli olarak yenile (her 2 saniyede bir)
     _refreshTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-      if (mounted && _tabController.index == 1) { // Bağlı sekmesinde ise
+      if (!mounted) return;
+      
+      if (_tabController.index == 0) { // Keşfedilen sekmesinde ise
+        ref.read(peerNotifierProvider.notifier).discoverPeers();
+      } else if (_tabController.index == 1) { // Bağlı sekmesinde ise
         ref.invalidate(connectedPeersProvider);
       }
     });
