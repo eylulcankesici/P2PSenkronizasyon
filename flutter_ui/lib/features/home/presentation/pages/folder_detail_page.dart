@@ -844,7 +844,7 @@ class _SyncPeerDialogState extends ConsumerState<_SyncPeerDialog> {
                   // Ancak kullanıcıya bilgi ver
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Dosya senkronizasyonu başlatıldı...'),
+                      content: Text('Dosya senkronizasyonu başlatıldı takip etmek için transferler kısmına bakın'),
                       backgroundColor: Colors.blue,
                       duration: Duration(seconds: 2),
                     ),
@@ -1042,7 +1042,7 @@ class _SyncFolderDialogState extends ConsumerState<_SyncFolderDialog> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                     SizedBox(width: 8),
-                    Text('Klasör senkronize ediliyor...'),
+                    Text('Klasör senkronize ediliyor takip etmek için transferler kısmına bakın'),
                   ],
                 ),
               ),
