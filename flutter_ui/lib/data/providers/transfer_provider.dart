@@ -123,9 +123,17 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
           final transfer = _fromProto(transferProto);
           transfers[transfer.fileId] = transfer;
         }
-        // State'i güncelle - CANCELLED transfer'ler de dahil
-        // activeTransfersProvider filtresi zaten CANCELLED transfer'leri filtreler
-        // State'i tamamen değiştir (referans değişimi için)
+        // State'i güncelle
+        // Backend'den gelen listeyi al, ancak yerel olarak tamamlanmış/iptal edilmiş/başarısız olmuş
+        // ve backend listesinde olmayan transferleri koru (history için)
+        for (final localTransfer in state.values) {
+          // Eğer transfer yerelde bitmiş durumdaysa ve backend listesinde yoksa, koru
+          if ((localTransfer.isComplete || localTransfer.isFailed || localTransfer.isCancelled) && 
+              !transfers.containsKey(localTransfer.fileId)) {
+            transfers[localTransfer.fileId] = localTransfer;
+          }
+        }
+        
         state = Map<String, TransferState>.from(transfers);
       }
     } catch (e) {
@@ -223,6 +231,15 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
   
   /// Transfer'ı iptal et
   Future<void> cancelTransfer(String fileId) async {
+    // Önce yerel state'i güncelle (kullanıcıya hemen tepki ver)
+    final current = state[fileId];
+    if (current != null) {
+      state = {
+        ...state,
+        fileId: current.copyWith(isCancelled: true),
+      };
+    }
+
     try {
       final client = ref.read(grpcClientProvider);
       if (!client.isConnected) return;
