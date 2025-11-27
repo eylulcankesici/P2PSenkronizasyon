@@ -163,6 +163,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                       setState(() {
                         _isNotificationDropdownOpen = !_isNotificationDropdownOpen;
                       });
+                      if (_isNotificationDropdownOpen) {
+                        ref.read(notificationsProvider.notifier).markAllAsRead();
+                      }
                     },
                     tooltip: 'Bildirimler',
                   ),

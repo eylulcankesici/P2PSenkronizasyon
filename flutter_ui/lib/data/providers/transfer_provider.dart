@@ -279,6 +279,14 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
         ...state,
         fileId: current.copyWith(isCancelled: true),
       };
+      
+      // Bildirim gönder
+      ref.read(notificationsProvider.notifier).addNotification(
+        title: 'Transfer İptal Edildi',
+        message: '${current.fileName} transferi iptal edildi.',
+        icon: LucideIcons.xCircle,
+        color: Colors.orange,
+      );
     }
 
     try {
