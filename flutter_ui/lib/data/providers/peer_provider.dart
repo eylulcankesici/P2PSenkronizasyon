@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aether_desktop/data/services/grpc_provider.dart';
-import 'package:aether_desktop/generated/api/proto/peer.pb.dart';
+import 'package:aether_desktop/generated/api/proto/peer.pb.dart' as peer_pb;
 import 'package:aether_desktop/generated/api/proto/peer.pbgrpc.dart';
 
 /// Network mode enum
@@ -13,12 +13,12 @@ enum NetworkMode {
 final networkModeProvider = StateProvider<NetworkMode>((ref) => NetworkMode.local);
 
 /// Peer listesi provider (keşfedilen peer'lar - LOCAL veya WAN)
-final discoveredPeersProvider = FutureProvider<List<Peer>>((ref) async {
+final discoveredPeersProvider = FutureProvider<List<peer_pb.Peer>>((ref) async {
   final client = ref.watch(grpcClientProvider);
   final networkMode = ref.watch(networkModeProvider);
   
   try {
-    final request = DiscoverPeersRequest();
+    final request = peer_pb.DiscoverPeersRequest();
     if (networkMode == NetworkMode.local) {
       request.lanOnly = true;
     } else {
@@ -35,11 +35,11 @@ final discoveredPeersProvider = FutureProvider<List<Peer>>((ref) async {
 });
 
 /// Bağlı peer'lar provider
-final connectedPeersProvider = FutureProvider<List<Peer>>((ref) async {
+final connectedPeersProvider = FutureProvider<List<peer_pb.Peer>>((ref) async {
   final client = ref.watch(grpcClientProvider);
   
   try {
-    final request = ListPeersRequest()..onlineOnly = true;
+    final request = peer_pb.ListPeersRequest()..onlineOnly = true;
     final response = await client.peerService.listPeers(request);
     
     return response.peers;
@@ -76,7 +76,7 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final client = ref.read(grpcClientProvider);
       
-      final request = ConnectToPeerRequest()..peerId = peerId;
+      final request = peer_pb.ConnectToPeerRequest()..peerId = peerId;
       final response = await client.peerService.connectToPeer(request);
       
       if (response.success) {
@@ -101,7 +101,7 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final client = ref.read(grpcClientProvider);
       
-      final request = DisconnectFromPeerRequest()..peerId = peerId;
+      final request = peer_pb.DisconnectFromPeerRequest()..peerId = peerId;
       final response = await client.peerService.disconnectFromPeer(request);
       
       if (response.success) {
@@ -128,7 +128,7 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final client = ref.read(grpcClientProvider);
       
-      final request = TrustPeerRequest()..peerId = peerId;
+      final request = peer_pb.TrustPeerRequest()..peerId = peerId;
       final response = await client.peerService.trustPeer(request);
       
       if (response.success) {
@@ -153,7 +153,7 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final client = ref.read(grpcClientProvider);
       
-      final request = UntrustPeerRequest()..peerId = peerId;
+      final request = peer_pb.UntrustPeerRequest()..peerId = peerId;
       final response = await client.peerService.untrustPeer(request);
       
       if (response.success) {
@@ -178,7 +178,7 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final client = ref.read(grpcClientProvider);
       
-      final request = RemovePeerRequest()..peerId = peerId;
+      final request = peer_pb.RemovePeerRequest()..peerId = peerId;
       final response = await client.peerService.removePeer(request);
       
       if (response.success) {
@@ -197,11 +197,11 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
   }
   
   /// Peer detaylarını al
-  Future<PeerInfoResponse?> getPeerInfo(String peerId) async {
+  Future<peer_pb.PeerInfoResponse?> getPeerInfo(String peerId) async {
     try {
       final client = ref.read(grpcClientProvider);
       
-      final request = GetPeerInfoRequest()..peerId = peerId;
+      final request = peer_pb.GetPeerInfoRequest()..peerId = peerId;
       final response = await client.peerService.getPeerInfo(request);
       
       if (response.status.success) {
@@ -222,7 +222,7 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final client = ref.read(grpcClientProvider);
       
-      final request = AcceptConnectionRequest()..deviceId = deviceId;
+      final request = peer_pb.AcceptConnectionRequest()..deviceId = deviceId;
       final response = await client.peerService.acceptConnection(request);
       
       if (response.success) {
@@ -247,7 +247,7 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final client = ref.read(grpcClientProvider);
       
-      final request = RejectConnectionRequest()..deviceId = deviceId;
+      final request = peer_pb.RejectConnectionRequest()..deviceId = deviceId;
       final response = await client.peerService.rejectConnection(request);
       
       if (response.success) {
@@ -264,11 +264,11 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
   }
 
   /// Invitation code oluştur (WAN için)
-  Future<CreateInvitationResponse?> createInvitation({int expiryHours = 24}) async {
+  Future<peer_pb.CreateInvitationResponse?> createInvitation({int expiryHours = 24}) async {
     try {
       final client = ref.read(grpcClientProvider);
       
-      final request = CreateInvitationRequest()..expiryHours = expiryHours;
+      final request = peer_pb.CreateInvitationRequest()..expiryHours = expiryHours;
       final response = await client.peerService.createInvitation(request);
       
       if (response.status.success) {
@@ -289,7 +289,7 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final client = ref.read(grpcClientProvider);
       
-      final request = AddPeerByInvitationRequest()..invitationCode = invitationCode;
+      final request = peer_pb.AddPeerByInvitationRequest()..invitationCode = invitationCode;
       final response = await client.peerService.addPeerByInvitation(request);
       
       if (response.success) {
@@ -331,7 +331,7 @@ final pendingConnectionsProvider = FutureProvider<List<PendingConnection>>((ref)
   
   try {
     final response = await client.peerService.getPendingConnections(
-      GetPendingConnectionsRequest(),
+      peer_pb.GetPendingConnectionsRequest(),
     );
     
     // Proto PendingConnection'ları Dart PendingConnection'a çevir

@@ -122,6 +122,38 @@ class PeerServiceClient extends $grpc.Client {
     return $createUnaryCall(_$rejectConnection, request, options: options);
   }
 
+  /// Invitation code oluştur (WAN için)
+  $grpc.ResponseFuture<$0.CreateInvitationResponse> createInvitation(
+    $0.CreateInvitationRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$createInvitation, request, options: options);
+  }
+
+  /// Invitation code ile peer ekle (WAN için)
+  $grpc.ResponseFuture<$1.Status> addPeerByInvitation(
+    $0.AddPeerByInvitationRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$addPeerByInvitation, request, options: options);
+  }
+
+  /// Manuel WAN peer ekle (invitation code olmadan)
+  $grpc.ResponseFuture<$1.Status> addWANPeer(
+    $0.AddWANPeerRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$addWANPeer, request, options: options);
+  }
+
+  /// SDP exchange (WAN WebRTC bağlantısı için)
+  $grpc.ResponseFuture<$0.ExchangeSDPResponse> exchangeSDP(
+    $0.ExchangeSDPRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$exchangeSDP, request, options: options);
+  }
+
   // method descriptors
 
   static final _$discoverPeers =
@@ -178,6 +210,26 @@ class PeerServiceClient extends $grpc.Client {
           '/aether.api.PeerService/RejectConnection',
           ($0.RejectConnectionRequest value) => value.writeToBuffer(),
           $1.Status.fromBuffer);
+  static final _$createInvitation = $grpc.ClientMethod<
+          $0.CreateInvitationRequest, $0.CreateInvitationResponse>(
+      '/aether.api.PeerService/CreateInvitation',
+      ($0.CreateInvitationRequest value) => value.writeToBuffer(),
+      $0.CreateInvitationResponse.fromBuffer);
+  static final _$addPeerByInvitation =
+      $grpc.ClientMethod<$0.AddPeerByInvitationRequest, $1.Status>(
+          '/aether.api.PeerService/AddPeerByInvitation',
+          ($0.AddPeerByInvitationRequest value) => value.writeToBuffer(),
+          $1.Status.fromBuffer);
+  static final _$addWANPeer =
+      $grpc.ClientMethod<$0.AddWANPeerRequest, $1.Status>(
+          '/aether.api.PeerService/AddWANPeer',
+          ($0.AddWANPeerRequest value) => value.writeToBuffer(),
+          $1.Status.fromBuffer);
+  static final _$exchangeSDP =
+      $grpc.ClientMethod<$0.ExchangeSDPRequest, $0.ExchangeSDPResponse>(
+          '/aether.api.PeerService/ExchangeSDP',
+          ($0.ExchangeSDPRequest value) => value.writeToBuffer(),
+          $0.ExchangeSDPResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('aether.api.PeerService')
@@ -272,6 +324,39 @@ abstract class PeerServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.RejectConnectionRequest.fromBuffer(value),
         ($1.Status value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.CreateInvitationRequest,
+            $0.CreateInvitationResponse>(
+        'CreateInvitation',
+        createInvitation_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.CreateInvitationRequest.fromBuffer(value),
+        ($0.CreateInvitationResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.AddPeerByInvitationRequest, $1.Status>(
+        'AddPeerByInvitation',
+        addPeerByInvitation_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.AddPeerByInvitationRequest.fromBuffer(value),
+        ($1.Status value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.AddWANPeerRequest, $1.Status>(
+        'AddWANPeer',
+        addWANPeer_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.AddWANPeerRequest.fromBuffer(value),
+        ($1.Status value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.ExchangeSDPRequest, $0.ExchangeSDPResponse>(
+            'ExchangeSDP',
+            exchangeSDP_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.ExchangeSDPRequest.fromBuffer(value),
+            ($0.ExchangeSDPResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.DiscoverPeersResponse> discoverPeers_Pre(
@@ -363,4 +448,37 @@ abstract class PeerServiceBase extends $grpc.Service {
 
   $async.Future<$1.Status> rejectConnection(
       $grpc.ServiceCall call, $0.RejectConnectionRequest request);
+
+  $async.Future<$0.CreateInvitationResponse> createInvitation_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.CreateInvitationRequest> $request) async {
+    return createInvitation($call, await $request);
+  }
+
+  $async.Future<$0.CreateInvitationResponse> createInvitation(
+      $grpc.ServiceCall call, $0.CreateInvitationRequest request);
+
+  $async.Future<$1.Status> addPeerByInvitation_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.AddPeerByInvitationRequest> $request) async {
+    return addPeerByInvitation($call, await $request);
+  }
+
+  $async.Future<$1.Status> addPeerByInvitation(
+      $grpc.ServiceCall call, $0.AddPeerByInvitationRequest request);
+
+  $async.Future<$1.Status> addWANPeer_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.AddWANPeerRequest> $request) async {
+    return addWANPeer($call, await $request);
+  }
+
+  $async.Future<$1.Status> addWANPeer(
+      $grpc.ServiceCall call, $0.AddWANPeerRequest request);
+
+  $async.Future<$0.ExchangeSDPResponse> exchangeSDP_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.ExchangeSDPRequest> $request) async {
+    return exchangeSDP($call, await $request);
+  }
+
+  $async.Future<$0.ExchangeSDPResponse> exchangeSDP(
+      $grpc.ServiceCall call, $0.ExchangeSDPRequest request);
 }

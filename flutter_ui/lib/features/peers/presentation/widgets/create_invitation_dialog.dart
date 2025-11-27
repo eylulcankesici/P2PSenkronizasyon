@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:aether_desktop/data/providers/peer_provider.dart';
-import 'package:aether_desktop/generated/api/proto/peer.pb.dart';
+import 'package:aether_desktop/generated/api/proto/peer.pb.dart' as peer_pb;
 
 class CreateInvitationDialog extends ConsumerStatefulWidget {
   const CreateInvitationDialog({super.key});
@@ -14,7 +15,7 @@ class CreateInvitationDialog extends ConsumerStatefulWidget {
 class _CreateInvitationDialogState extends ConsumerState<CreateInvitationDialog> {
   int _expiryHours = 24;
   bool _isLoading = false;
-  CreateInvitationResponse? _invitationResponse;
+  peer_pb.CreateInvitationResponse? _invitationResponse;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +31,7 @@ class _CreateInvitationDialogState extends ConsumerState<CreateInvitationDialog>
         width: 400,
         child: _invitationResponse == null
             ? _buildCreateForm()
-            : _buildResultView(),
+            : _buildResultView(context),
       ),
       actions: _invitationResponse == null
           ? [
@@ -117,7 +118,7 @@ class _CreateInvitationDialogState extends ConsumerState<CreateInvitationDialog>
     );
   }
 
-  Widget _buildResultView() {
+  Widget _buildResultView(BuildContext context) {
     final response = _invitationResponse!;
     final expiresAt = DateTime.fromMillisecondsSinceEpoch(response.expiresAt.toInt() * 1000);
     final now = DateTime.now();
@@ -155,16 +156,16 @@ class _CreateInvitationDialogState extends ConsumerState<CreateInvitationDialog>
         const SizedBox(height: 8),
         Row(
           children: [
-            Expanded(
+                Expanded(
               child: OutlinedButton.icon(
-                onPressed: () => _copyLink(response.invitationLink),
+                onPressed: () => _copyLink(context, response.invitationLink),
                 icon: const Icon(LucideIcons.copy, size: 16),
                 label: const Text('Link\'i Kopyala'),
               ),
             ),
             const SizedBox(width: 8),
             OutlinedButton.icon(
-              onPressed: () => _copyLink(response.invitationCode),
+              onPressed: () => _copyLink(context, response.invitationCode),
               icon: const Icon(LucideIcons.code, size: 16),
               label: const Text('Kod'),
             ),
@@ -230,7 +231,7 @@ class _CreateInvitationDialogState extends ConsumerState<CreateInvitationDialog>
     }
   }
 
-  void _copyLink(String text) {
+  void _copyLink(BuildContext context, String text) {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
