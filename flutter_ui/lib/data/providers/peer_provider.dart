@@ -60,6 +60,14 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     
     try {
+      // Bağlanılacak peer'ın ismini bul
+      String peerName = 'Cihaz';
+      try {
+        final discoveredPeers = ref.read(discoveredPeersProvider).valueOrNull ?? [];
+        final peer = discoveredPeers.firstWhere((p) => p.id == peerId, orElse: () => Peer()..name = 'Bilinmeyen Cihaz');
+        peerName = peer.name.isNotEmpty ? peer.name : 'Bilinmeyen Cihaz';
+      } catch (_) {}
+
       final client = ref.read(grpcClientProvider);
       
       final request = ConnectToPeerRequest()..peerId = peerId;
@@ -73,7 +81,7 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
         // Bildirim gönder
         ref.read(notificationsProvider.notifier).addNotification(
           title: 'Bağlantı Başarılı',
-          message: 'Cihaz ile bağlantı kuruldu.',
+          message: '$peerName ile bağlantı kuruldu.',
           icon: LucideIcons.link,
           color: Colors.green,
         );
@@ -93,6 +101,14 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     
     try {
+      // Bağlantısı kesilecek peer'ın ismini bul
+      String peerName = 'Cihaz';
+      try {
+        final connectedPeers = ref.read(connectedPeersProvider).valueOrNull ?? [];
+        final peer = connectedPeers.firstWhere((p) => p.id == peerId, orElse: () => Peer()..name = 'Bilinmeyen Cihaz');
+        peerName = peer.name.isNotEmpty ? peer.name : 'Bilinmeyen Cihaz';
+      } catch (_) {}
+
       final client = ref.read(grpcClientProvider);
       
       final request = DisconnectFromPeerRequest()..peerId = peerId;
@@ -108,7 +124,7 @@ class PeerNotifier extends StateNotifier<AsyncValue<void>> {
         // Bildirim gönder
         ref.read(notificationsProvider.notifier).addNotification(
           title: 'Bağlantı Kesildi',
-          message: 'Cihaz ile bağlantı sonlandırıldı.',
+          message: '$peerName ile bağlantı sonlandırıldı.',
           icon: LucideIcons.unlink,
           color: Colors.orange,
         );

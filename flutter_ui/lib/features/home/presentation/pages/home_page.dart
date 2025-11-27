@@ -609,6 +609,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget _buildNotificationDropdown() {
     return Card(
       elevation: 8,
+      color: const Color(0xFF1E293B), // Koyu mavi/gri tonu (Slate 800)
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
         width: 350,
