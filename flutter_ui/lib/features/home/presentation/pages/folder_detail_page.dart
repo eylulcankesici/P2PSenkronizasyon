@@ -11,6 +11,7 @@ import 'package:aether_desktop/generated/api/proto/common.pbenum.dart';
 import 'package:aether_desktop/generated/api/proto/sync.pb.dart';
 import 'package:aether_desktop/generated/api/proto/file.pb.dart' as file_pb;
 import 'package:aether_desktop/generated/api/proto/peer.pb.dart' as peer_pb;
+import 'package:aether_desktop/core/services/local_settings_service.dart';
 
 class FolderDetailPage extends ConsumerStatefulWidget {
   final Folder folder;
@@ -30,6 +31,11 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   @override
   void initState() {
     super.initState();
+    // Local settings servisini başlat
+    LocalSettingsService().init().then((_) {
+      if (mounted) setState(() {});
+    });
+
     // Otomatik yenileme: Her 2 saniyede bir dosya listesini güncelle
     _refreshTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
       // Sadece mounted ise yenile
@@ -206,7 +212,10 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
             ...peers.map((peer) {
               // Şu anki veri modelinde folder bazlı tek bir sync mode var.
               // İleride peer bazlı olursa burası güncellenebilir.
-              final syncModeText = _getSyncModeText(widget.folder.syncMode);
+              // Local settings'den peer bazlı sync mode'u al, yoksa folder'ın genel modunu kullan
+              final savedMode = LocalSettingsService().getPeerSyncMode(widget.folder.id, peer.deviceId);
+              final effectiveMode = savedMode ?? widget.folder.syncMode;
+              final syncModeText = _getSyncModeText(effectiveMode);
               
               return Padding(
                 padding: const EdgeInsets.only(bottom: 4.0),
@@ -217,7 +226,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                     Expanded(
                       child: RichText(
                         text: TextSpan(
-                          style: TextStyle(fontSize: 13, color: Colors.black87),
+                          style: TextStyle(fontSize: 13, color: Colors.red),
                           children: [
                             TextSpan(text: peer.name, style: TextStyle(fontWeight: FontWeight.w600)),
                             TextSpan(text: '  '),
@@ -1060,6 +1069,15 @@ class _SyncFolderDialogState extends ConsumerState<_SyncFolderDialog> {
                   final response = await ref
                       .read(syncNotifierProvider.notifier)
                       .syncFolder(widget.folder.id, _senderModes.keys.toList(), peerSyncModes);
+                  
+                  // Seçilen modları local settings'e kaydet
+                  for (final entry in _senderModes.entries) {
+                    await LocalSettingsService().savePeerSyncMode(
+                      widget.folder.id, 
+                      entry.key, 
+                      entry.value
+                    );
+                  }
                   
                   if (mounted && response != null) {
                     final newState = ref.read(syncNotifierProvider);
