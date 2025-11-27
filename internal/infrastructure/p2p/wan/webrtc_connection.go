@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	pb "github.com/aether/sync/api/proto"
 	"github.com/aether/sync/internal/domain/transport"
 )
 
@@ -24,6 +25,9 @@ type WebRTCConnectionManager struct {
 	onConnectionEstablished func(transport.Connection)
 	onConnectionLost        func(string)
 	chunkHandler            func(chunkHash string) ([]byte, error)
+	onChunkReceived         func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error
+	onTransferCancel        func(peerID, fileID string)
+	onFileDelete            func(peerID, fileID string)
 
 	// State
 	started bool
@@ -184,6 +188,24 @@ func (m *WebRTCConnectionManager) SetChunkHandler(handler func(chunkHash string)
 	}
 }
 
+// SetOnChunkReceived chunk received callback'ini ayarlar
+// NOT: Gerçek WebRTC data channel implementasyonunda kullanılacak
+func (m *WebRTCConnectionManager) SetOnChunkReceived(callback func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error) {
+	m.onChunkReceived = callback
+}
+
+// SetOnTransferCancel transfer cancel callback'ini ayarlar
+// NOT: Gerçek WebRTC data channel implementasyonunda kullanılacak
+func (m *WebRTCConnectionManager) SetOnTransferCancel(callback func(peerID, fileID string)) {
+	m.onTransferCancel = callback
+}
+
+// SetOnFileDelete dosya silme callback'ini ayarlar
+// NOT: Gerçek WebRTC data channel implementasyonunda kullanılacak
+func (m *WebRTCConnectionManager) SetOnFileDelete(callback func(peerID, fileID string)) {
+	m.onFileDelete = callback
+}
+
 // WebRTCConnection WebRTC data channel connection implementasyonu
 // NOT: Gerçek WebRTC data channel implementasyonu yakında eklenecek
 // Şimdilik placeholder - ICE connection ile çalışıyor
@@ -209,8 +231,15 @@ func NewWebRTCConnection(peerID, peerName string, iceConn *ICEConnection) *WebRT
 	}
 }
 
-// SendChunk chunk gönderir
+// SendChunk chunk gönderir (pull-based için)
 func (c *WebRTCConnection) SendChunk(ctx context.Context, chunkHash string, data []byte) error {
+	return c.SendChunkWithFileInfo(ctx, chunkHash, data, "", 0, 0, "", "", pb.SyncMode_SYNC_MODE_UNSPECIFIED, pb.SyncMode_SYNC_MODE_UNSPECIFIED)
+}
+
+// SendChunkWithFileInfo chunk gönderir (push-based sync için file bilgisiyle)
+// NOT: Gerçek WebRTC data channel implementasyonu yakında eklenecek
+// Şimdilik placeholder - interface'i karşılamak için
+func (c *WebRTCConnection) SendChunkWithFileInfo(ctx context.Context, chunkHash string, data []byte, fileID string, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -219,7 +248,8 @@ func (c *WebRTCConnection) SendChunk(ctx context.Context, chunkHash string, data
 	}
 
 	// TODO: WebRTC data channel üzerinden data gönder
-	log.Printf("📤 Chunk gönderiliyor (WebRTC): %s (%d bytes)", chunkHash[:8], len(data))
+	log.Printf("📤 Chunk gönderiliyor (WebRTC): %s, file=%s, chunk=%d/%d (%d bytes)", 
+		chunkHash[:8], fileID[:8], chunkIndex+1, totalChunks, len(data))
 
 	// Placeholder - gerçek implementasyonda WebRTC data channel kullanılacak
 	return fmt.Errorf("WebRTC data channel implementasyonu yakında eklenecek")
@@ -237,8 +267,25 @@ func (c *WebRTCConnection) RequestChunk(ctx context.Context, chunkHash string) (
 	// TODO: WebRTC data channel üzerinden chunk talep et
 	log.Printf("📥 Chunk talep ediliyor (WebRTC): %s", chunkHash[:8])
 
-	// Placeholder
+	// Placeholder - gerçek implementasyonda WebRTC data channel kullanılacak
 	return nil, fmt.Errorf("WebRTC data channel implementasyonu yakında eklenecek")
+}
+
+// SendFileDelete dosya silme bildirimini gönderir (peer-to-peer)
+// NOT: Gerçek WebRTC data channel implementasyonu yakında eklenecek
+func (c *WebRTCConnection) SendFileDelete(ctx context.Context, fileID string) error {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	if !c.connected {
+		return fmt.Errorf("bağlantı kurulu değil")
+	}
+
+	// TODO: WebRTC data channel üzerinden file delete bildirimi gönder
+	log.Printf("🗑️ Dosya silme bildirimi gönderiliyor (WebRTC): %s", fileID[:8])
+
+	// Placeholder - gerçek implementasyonda WebRTC data channel kullanılacak
+	return fmt.Errorf("WebRTC data channel implementasyonu yakında eklenecek")
 }
 
 // SendMetadata metadata gönderir
@@ -255,8 +302,18 @@ func (c *WebRTCConnection) RequestMetadata(ctx context.Context, fileID string) (
 
 // Ping ping gönderir
 func (c *WebRTCConnection) Ping(ctx context.Context) (time.Duration, error) {
-	// TODO: Implement
-	return 0, fmt.Errorf("not implemented")
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	if !c.connected {
+		return 0, fmt.Errorf("bağlantı kurulu değil")
+	}
+
+	// TODO: WebRTC data channel üzerinden ping gönder ve latency ölç
+	log.Printf("🏓 Ping gönderiliyor (WebRTC): %s", c.peerID[:8])
+
+	// Placeholder - gerçek implementasyonda WebRTC data channel kullanılacak
+	return 0, fmt.Errorf("WebRTC ping implementasyonu yakında eklenecek")
 }
 
 // Close bağlantıyı kapatır

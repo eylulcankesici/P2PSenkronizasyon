@@ -557,8 +557,98 @@ func (c *Container) initUseCases() error {
 		// WAN Transport için chunk handler bağla
 		wanTransport.SetChunkHandler(chunkHandler)
 		log.Println("✓ Chunk handler bağlandı (WAN)")
-		// NOT: WAN transport için chunk received callback henüz implement edilmedi
-		// WebRTC data channel implementasyonunda eklenecek
+		
+		// WAN Transport için callback'leri bağla (WebRTC connection manager üzerinden)
+		connMgr := wanTransport.GetWebRTCConnectionManager()
+		if connMgr != nil {
+			// Chunk received callback'ini bağla (push-based sync için)
+			connMgr.SetOnChunkReceived(func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error {
+				return c.handleIncomingChunk(context.Background(), peerID, fileID, chunkHash, chunkData, chunkIndex, totalChunks, fileName, folderName, senderSyncMode, receiverSyncMode)
+			})
+			log.Println("✓ Chunk received callback bağlandı (WAN)")
+			
+			// Transfer cancel callback'ini bağla
+			connMgr.SetOnTransferCancel(func(peerID, fileID string) {
+				log.Printf("🛑 Transfer iptal bildirimi alındı (WAN, peer: %s, file: %s), transfer iptal ediliyor...", peerID[:8], fileID[:8])
+				
+				// Transfer durumunu kontrol et (iptal edilmeden önce)
+				transfer, exists := c.transferManager.GetTransfer(fileID)
+				if !exists {
+					log.Printf("  ⚠️ Transfer bulunamadı (zaten temizlenmiş olabilir): %s", fileID[:8])
+					return
+				}
+				
+				// Transfer yönünü kaydet (iptal edilmeden önce)
+				direction := transfer.Direction
+				
+				// Transfer'i iptal et
+				c.transferManager.CancelTransfer(fileID)
+				
+				// Her iki direction için de fileReassembler'ı temizle (yeni transfer için hazırlık)
+				log.Printf("  🗑️ Transfer iptal edildi, fileReassembler temizleniyor (direction: %v): %s", direction, fileID[:8])
+				c.fileReassembler.CleanupFile(fileID)
+				
+				log.Printf("  ✅ Transfer iptal edildi ve fileReassembler temizlendi, yeni transfer için hazır: %s (direction: %v)", fileID[:8], direction)
+			})
+			log.Println("✓ Transfer cancel callback bağlandı (WAN)")
+			
+			// Dosya silme callback'ini bağla (peer'dan silme bildirimi geldiğinde)
+			connMgr.SetOnFileDelete(func(peerID, fileID string) {
+				log.Printf("🗑️ Dosya silme bildirimi alındı (WAN, peer: %s, file: %s), dosya siliniyor...", peerID[:8], fileID[:8])
+				
+				ctx := context.Background()
+				
+				// Dosyayı veritabanından al
+				file, err := c.fileRepo.GetByID(ctx, fileID)
+				if err != nil {
+					log.Printf("  ⚠️ Dosya bulunamadı: %s - %v", fileID[:8], err)
+					return
+				}
+				
+				// Folder bilgisini al
+				folder, err := c.folderRepo.GetByID(ctx, file.FolderID)
+				if err != nil {
+					log.Printf("  ⚠️ Folder bulunamadı: %s - %v", file.FolderID[:8], err)
+					return
+				}
+				
+				// Veritabanından tamamen sil (HARD DELETE) - CASCADE olduğu için file_chunks ve file_peer_sync de silinir
+				if err := c.fileRepo.HardDelete(ctx, fileID); err != nil {
+					log.Printf("  ❌ Dosya veritabanından silinemedi: %s - %v", fileID[:8], err)
+					return
+				}
+				log.Printf("  ✅ Dosya veritabanından tamamen silindi (hard delete): %s", fileID[:8])
+				
+				// Yetim chunk'ları temizle (hiçbir dosya tarafından kullanılmayan chunk'lar) - hem disk hem DB'den
+				if deletedCount, err := c.chunkingUseCase.DeleteOrphanedChunks(ctx); err != nil {
+					log.Printf("  ⚠️ Yetim chunk'lar temizlenemedi: %v", err)
+					// Hata olsa bile devam et, dosya silme işlemi başarılı
+				} else if deletedCount > 0 {
+					log.Printf("  🧹 %d yetim chunk temizlendi (disk + DB)", deletedCount)
+				}
+				
+				// FİZİKSEL dosyayı SİL kontrolü:
+				// - RECEIVED folder'lar için: Her zaman sil
+				// - USER folder'lar için: Sadece çift yönlü senkronizasyon modunda sil
+				shouldDeletePhysical := folder.Source == entity.FolderSourceReceived || folder.SyncMode == entity.SyncModeBidirectional
+				
+				if shouldDeletePhysical {
+					filePath := filepath.Join(folder.LocalPath, file.RelativePath)
+					if err := os.Remove(filePath); err != nil {
+						log.Printf("  ⚠️ Fiziksel dosya silinemedi (%s): %v", filePath, err)
+					} else {
+						if folder.SyncMode == entity.SyncModeBidirectional {
+							log.Printf("  ✅ Fiziksel dosya silindi (çift yönlü senkronizasyon): %s", filePath)
+						} else {
+							log.Printf("  ✅ Fiziksel dosya silindi: %s", filePath)
+						}
+					}
+				} else {
+					log.Printf("  ℹ️  User folder ve tek yönlü senkronizasyon, fiziksel dosya korunuyor")
+				}
+			})
+			log.Println("✓ Dosya silme callback bağlandı (WAN)")
+		}
 	}
 	
 	return nil

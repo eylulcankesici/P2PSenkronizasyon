@@ -340,6 +340,11 @@ func (t *WANTransport) SetChunkHandler(handler func(chunkHash string) ([]byte, e
 	}
 }
 
+// GetWebRTCConnectionManager WebRTC connection manager'ı döner (callback bağlamak için)
+func (t *WANTransport) GetWebRTCConnectionManager() *WebRTCConnectionManager {
+	return t.connMgr
+}
+
 // GetPublicIP public IP adresini döner
 func (t *WANTransport) GetPublicIP(ctx context.Context) (string, error) {
 	if t.stunClient == nil {
