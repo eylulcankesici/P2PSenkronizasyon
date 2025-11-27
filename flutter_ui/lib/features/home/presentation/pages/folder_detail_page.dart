@@ -149,6 +149,10 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                 ),
               ],
             ),
+            // Bağlı peerları listele
+            Consumer(
+              builder: (context, ref, child) => _buildConnectedPeersList(context, ref),
+            ),
           ],
         ),
       ),
@@ -172,6 +176,73 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildConnectedPeersList(BuildContext context, WidgetRef ref) {
+    final connectedPeersAsync = ref.watch(connectedPeersProvider);
+
+    return connectedPeersAsync.when(
+      data: (peers) {
+        if (peers.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              'Bağlı peer yok',
+              style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Divider(height: 24),
+            Text(
+              'Bağlı Peerlar ve Senkronizasyon Durumu:',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey[700]),
+            ),
+            SizedBox(height: 8),
+            ...peers.map((peer) {
+              // Şu anki veri modelinde folder bazlı tek bir sync mode var.
+              // İleride peer bazlı olursa burası güncellenebilir.
+              final syncModeText = _getSyncModeText(widget.folder.syncMode);
+              
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 4.0),
+                child: Row(
+                  children: [
+                    Icon(LucideIcons.monitor, size: 14, color: Colors.blue),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: RichText(
+                        text: TextSpan(
+                          style: TextStyle(fontSize: 13, color: Colors.black87),
+                          children: [
+                            TextSpan(text: peer.name, style: TextStyle(fontWeight: FontWeight.w600)),
+                            TextSpan(text: '  '),
+                            TextSpan(
+                              text: syncModeText, 
+                              style: TextStyle(color: Colors.blue[700], fontWeight: FontWeight.w500)
+                            ),
+                            TextSpan(text: ' : '),
+                            TextSpan(
+                              text: peer.deviceId.substring(0, 8), 
+                              style: TextStyle(color: Colors.grey[600], fontFamily: 'monospace')
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+        );
+      },
+      loading: () => SizedBox(height: 20, child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
+      error: (_, __) => Text('Peer bilgisi alınamadı', style: TextStyle(color: Colors.red, fontSize: 12)),
     );
   }
 
@@ -214,65 +285,6 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                // Sync bilgilerini göster (dosya yolunun altında)
-                Consumer(
-                  builder: (context, ref, child) {
-                    final fileInfoAsync = ref.watch(fileInfoProvider(file.id));
-                    return fileInfoAsync.when(
-                      data: (fileInfo) {
-                        if (fileInfo == null || fileInfo.syncInfo.isEmpty) {
-                          return SizedBox.shrink();
-                        }
-                        return Padding(
-                          padding: EdgeInsets.only(top: 4),
-                          child: Wrap(
-                            spacing: 8,
-                            runSpacing: 4,
-                            children: fileInfo.syncInfo.map((syncInfo) {
-                              // Gönderen bilgisi
-                              final senderName = syncInfo.senderDeviceName.isEmpty 
-                                  ? syncInfo.senderDeviceId.substring(0, 8) 
-                                  : syncInfo.senderDeviceName;
-                              // Alıcı bilgisi - receiverDeviceName kullan, boşsa receiverDeviceId'den çıkar
-                              final receiverName = syncInfo.receiverDeviceName.isEmpty 
-                                  ? (syncInfo.receiverDeviceId.isEmpty 
-                                      ? 'Bilinmeyen' 
-                                      : syncInfo.receiverDeviceId.substring(0, 8))
-                                  : syncInfo.receiverDeviceName;
-                              return Container(
-                                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(LucideIcons.userCheck, size: 10, color: Colors.blue),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'Gönderen: $senderName',
-                                      style: TextStyle(fontSize: 10, color: Colors.blue.shade700),
-                                    ),
-                                    SizedBox(width: 6),
-                                    Icon(LucideIcons.user, size: 10, color: Colors.green),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'Alan: $receiverName',
-                                      style: TextStyle(fontSize: 10, color: Colors.green.shade700),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        );
-                      },
-                      loading: () => SizedBox.shrink(),
-                      error: (_, __) => SizedBox.shrink(),
-                    );
-                  },
                 ),
               ],
             ),
