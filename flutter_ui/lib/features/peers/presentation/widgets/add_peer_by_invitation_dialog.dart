@@ -113,6 +113,24 @@ class _AddPeerByInvitationDialogState extends ConsumerState<AddPeerByInvitationD
     String invitationCode = text;
     if (text.startsWith('aether://invite?code=')) {
       invitationCode = text.substring('aether://invite?code='.length);
+      // URL decode et (özel karakterler encode edilmiş olabilir)
+      try {
+        invitationCode = Uri.decodeComponent(invitationCode);
+      } catch (e) {
+        // URL decode başarısız olursa, orijinal string'i kullan
+        print('URL decode hatası: $e');
+      }
+    } else if (text.contains('code=')) {
+      // URL formatında ama farklı bir format olabilir
+      try {
+        final uri = Uri.parse(text);
+        invitationCode = uri.queryParameters['code'] ?? text;
+        // URL decode et
+        invitationCode = Uri.decodeComponent(invitationCode);
+      } catch (e) {
+        // URI parse başarısız olursa, orijinal string'i kullan
+        print('URI parse hatası: $e');
+      }
     }
 
     setState(() => _isLoading = true);
