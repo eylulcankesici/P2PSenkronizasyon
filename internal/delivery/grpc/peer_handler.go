@@ -618,13 +618,16 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 		go func() {
 			log.Printf("🔄 Karşı tarafın backend'ine bağlanılıyor: %s", invitationData.GRPCAddress)
 			
-			// gRPC address formatını kontrol et ve düzelt
+			// gRPC address formatını kontrol et
 			grpcAddr := invitationData.GRPCAddress
-			// Eğer "dns:///" prefix'i yoksa ekle (Go gRPC için gerekli olabilir)
-			if !strings.HasPrefix(grpcAddr, "dns:///") && !strings.HasPrefix(grpcAddr, "unix://") {
-				grpcAddr = "dns:///" + grpcAddr
+			// Direkt IP:port formatını kullan (Go gRPC bunu destekler)
+			// Eğer zaten bir scheme varsa (dns://, unix://), olduğu gibi kullan
+			if !strings.Contains(grpcAddr, "://") {
+				// Scheme yoksa, direkt kullan (Go gRPC otomatik olarak IP:port olarak algılar)
+				log.Printf("🔗 gRPC address (direct IP:port): %s", grpcAddr)
+			} else {
+				log.Printf("🔗 gRPC address (with scheme): %s", grpcAddr)
 			}
-			log.Printf("🔗 gRPC address (formatted): %s", grpcAddr)
 			
 			// gRPC connection oluştur (non-blocking, lazy connection)
 			grpcConn, err := grpc.NewClient(
@@ -681,11 +684,24 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 			defer cancel()
 			
 			log.Printf("📞 AddWANPeer RPC çağrısı yapılıyor (timeout: 30s)...")
+			log.Printf("   📋 Request: PeerID=%s, PeerName=%s, PublicIP=%s, ICECandidates=%d", 
+				myDeviceID[:8], myDeviceName, myPublicIP, len(iceCandidatesStr))
+			
+			// RPC çağrısını yap
 			addPeerResp, err := peerClient.AddWANPeer(ctx, addPeerReq)
 			if err != nil {
-				log.Printf("⚠️ Karşı tarafa bilgi gönderilemedi: %v (karşılıklı ekleme yapılamadı)", err)
+				log.Printf("❌ AddWANPeer RPC çağrısı başarısız: %v", err)
+				log.Printf("   🔍 Hata detayı: type=%T, error=%s", err, err.Error())
+				// Timeout hatası mı kontrol et
+				if ctx.Err() == context.DeadlineExceeded {
+					log.Printf("   ⏱️ Timeout hatası: 30 saniye içinde yanıt alınamadı")
+				}
+				log.Printf("⚠️ Karşı tarafa bilgi gönderilemedi (karşılıklı ekleme yapılamadı)")
 				return
 			}
+
+			log.Printf("✅ AddWANPeer RPC çağrısı başarılı: Success=%v, Message=%s", 
+				addPeerResp.Success, addPeerResp.Message)
 
 			if !addPeerResp.Success {
 				log.Printf("⚠️ Karşı taraf peer eklemedi: %s", addPeerResp.Message)
