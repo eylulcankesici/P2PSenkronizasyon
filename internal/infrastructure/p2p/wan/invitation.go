@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -89,10 +90,20 @@ func (s *InvitationService) GenerateInvitationCode(
 
 // ParseInvitationCode invitation code'u parse eder
 func (s *InvitationService) ParseInvitationCode(code string) (*InvitationData, error) {
-	// 1. Base64 decode
+	// 0. Code'u temizle (boşluklar, yeni satırlar, URL encoding karakterleri)
+	code = strings.TrimSpace(code)
+	code = strings.ReplaceAll(code, "\n", "")
+	code = strings.ReplaceAll(code, "\r", "")
+	code = strings.ReplaceAll(code, " ", "")
+	
+	// 1. Base64 decode (URL-safe encoding kullanılıyor)
 	encrypted, err := base64.URLEncoding.DecodeString(code)
 	if err != nil {
-		return nil, fmt.Errorf("invitation code decode hatası: %w", err)
+		// Eğer URL-safe decode başarısız olursa, standart base64 dene
+		encrypted, err = base64.StdEncoding.DecodeString(code)
+		if err != nil {
+			return nil, fmt.Errorf("invitation code decode hatası: %w", err)
+		}
 	}
 
 	// 2. Decrypt

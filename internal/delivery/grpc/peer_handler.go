@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/pion/webrtc/v3"
@@ -560,9 +561,10 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 	// Invitation service oluştur
 	invitationService := wan.NewInvitationService(deviceID, nil)
 
-	// Invitation code parse et
-	log.Printf("🔍 AddPeerByInvitation: Invitation code parse ediliyor...")
-	invitationData, err := invitationService.ParseInvitationCode(req.InvitationCode)
+	// Invitation code parse et (önce temizle)
+	invitationCode := strings.TrimSpace(req.InvitationCode)
+	log.Printf("🔍 AddPeerByInvitation: Invitation code parse ediliyor... (uzunluk: %d)", len(invitationCode))
+	invitationData, err := invitationService.ParseInvitationCode(invitationCode)
 	if err != nil {
 		log.Printf("❌ AddPeerByInvitation: Invitation code parse edilemedi: %v", err)
 		return &pb.Status{

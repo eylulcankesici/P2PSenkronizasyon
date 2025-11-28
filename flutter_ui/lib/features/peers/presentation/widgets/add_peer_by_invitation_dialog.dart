@@ -110,11 +110,34 @@ class _AddPeerByInvitationDialogState extends ConsumerState<AddPeerByInvitationD
     }
 
     // Link'ten code'u çıkar (aether://invite?code=... formatından)
-    String invitationCode = text;
-    if (text.startsWith('aether://invite?code=')) {
-      invitationCode = text.substring('aether://invite?code='.length);
-      // URL decode et (özel karakterler encode edilmiş olabilir)
+    String invitationCode = text.trim();
+    
+    // Boşlukları ve yeni satırları temizle
+    invitationCode = invitationCode.replaceAll(RegExp(r'\s+'), '');
+    
+    if (text.startsWith('aether://invite?code=') || text.contains('aether://invite?code=')) {
+      // URL'den code parametresini çıkar
       try {
+        final uri = Uri.tryParse(text);
+        if (uri != null && uri.queryParameters.containsKey('code')) {
+          invitationCode = uri.queryParameters['code']!;
+        } else {
+          // Manuel parse (aether://invite?code=... formatından)
+          final codeIndex = text.indexOf('code=');
+          if (codeIndex != -1) {
+            invitationCode = text.substring(codeIndex + 5);
+            // Fragment veya başka parametreler varsa kes
+            final fragmentIndex = invitationCode.indexOf('#');
+            if (fragmentIndex != -1) {
+              invitationCode = invitationCode.substring(0, fragmentIndex);
+            }
+            final paramIndex = invitationCode.indexOf('&');
+            if (paramIndex != -1) {
+              invitationCode = invitationCode.substring(0, paramIndex);
+            }
+          }
+        }
+        // URL decode et (özel karakterler encode edilmiş olabilir)
         invitationCode = Uri.decodeComponent(invitationCode);
       } catch (e) {
         // URL decode başarısız olursa, orijinal string'i kullan
@@ -123,15 +146,19 @@ class _AddPeerByInvitationDialogState extends ConsumerState<AddPeerByInvitationD
     } else if (text.contains('code=')) {
       // URL formatında ama farklı bir format olabilir
       try {
-        final uri = Uri.parse(text);
-        invitationCode = uri.queryParameters['code'] ?? text;
-        // URL decode et
-        invitationCode = Uri.decodeComponent(invitationCode);
+        final uri = Uri.tryParse(text);
+        if (uri != null && uri.queryParameters.containsKey('code')) {
+          invitationCode = uri.queryParameters['code']!;
+          invitationCode = Uri.decodeComponent(invitationCode);
+        }
       } catch (e) {
         // URI parse başarısız olursa, orijinal string'i kullan
         print('URI parse hatası: $e');
       }
     }
+    
+    // Son temizlik: boşluklar ve yeni satırlar
+    invitationCode = invitationCode.trim().replaceAll(RegExp(r'\s+'), '');
 
     setState(() => _isLoading = true);
 
