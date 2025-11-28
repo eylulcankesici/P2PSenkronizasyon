@@ -14,6 +14,7 @@ import 'package:aether_desktop/features/peers/presentation/pages/peers_page.dart
 import 'package:aether_desktop/features/peers/presentation/widgets/connection_request_dialog.dart';
 import 'package:aether_desktop/features/transfers/presentation/pages/transfers_page.dart';
 import 'package:aether_desktop/features/home/presentation/managers/peer_monitor.dart';
+import 'package:aether_desktop/features/home/presentation/widgets/connected_peers_widget.dart';
 import 'package:aether_desktop/core/theme/app_theme.dart';
 import 'package:aether_desktop/data/providers/user_provider.dart';
 import 'package:aether_desktop/data/providers/theme_provider.dart';
@@ -127,23 +128,41 @@ class _HomePageState extends ConsumerState<HomePage> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(LucideIcons.bell),
-            onPressed: () {
-              // Show notifications
-              showDialog(
-                context: context,
-                builder: (context) => Stack(
-                  children: [
-                    Positioned(
-                      top: 60,
-                      right: 10,
-                      child: _buildNotificationDropdown(),
+          const ConnectedPeersWidget(),
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(LucideIcons.bell),
+                onPressed: () {
+                  // Show notifications
+                  showDialog(
+                    context: context,
+                    builder: (context) => Stack(
+                      children: [
+                        Positioned(
+                          top: 60,
+                          right: 10,
+                          child: _buildNotificationDropdown(),
+                        ),
+                      ],
                     ),
-                  ],
+                  );
+                },
+              ),
+              if (ref.watch(unreadNotificationCountProvider) > 0)
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                 ),
-              );
-            },
+            ],
           ),
           const SizedBox(width: 16),
         ],
