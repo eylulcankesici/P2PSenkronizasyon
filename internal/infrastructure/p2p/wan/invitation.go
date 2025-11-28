@@ -31,15 +31,16 @@ type InvitationService struct {
 
 // NewInvitationService yeni invitation service oluşturur
 // encryptionKey 32 byte olmalı (AES-256 için)
-// Eğer nil ise deviceID'den türetilir
+// Eğer nil ise ortak master key kullanılır (tüm cihazlar için aynı)
 func NewInvitationService(deviceID string, encryptionKey []byte) *InvitationService {
 	key := encryptionKey
 	
-	// Eğer key yoksa deviceID'den türet
+	// Eğer key yoksa ortak master key kullan (tüm cihazlar için aynı)
+	// NOT: Production'da bu key config'den veya environment variable'dan alınmalı
 	if len(key) != 32 {
 		hasher := sha256.New()
-		hasher.Write([]byte(deviceID))
-		hasher.Write([]byte("aether-invitation-key")) // Salt
+		// Ortak master key - tüm cihazlar için aynı
+		hasher.Write([]byte("aether-invitation-master-key-v1"))
 		key = hasher.Sum(nil) // 32 bytes
 	}
 	
