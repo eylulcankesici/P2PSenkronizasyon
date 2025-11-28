@@ -76,14 +76,6 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
           controller: _tabController,
           tabs: [
             Tab(
-<<<<<<< HEAD
-              icon: const Icon(LucideIcons.search),
-              text: AppStrings.get('discovered', ref.watch(languageProvider)),
-            ),
-            Tab(
-              icon: const Icon(LucideIcons.link),
-              text: AppStrings.get('connected', ref.watch(languageProvider)),
-=======
               icon: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
@@ -165,7 +157,6 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
             const Tab(
               icon: Icon(LucideIcons.link),
               text: 'Bağlı',
->>>>>>> WAN
             ),
           ],
         ),
