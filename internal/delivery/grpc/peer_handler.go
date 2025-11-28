@@ -628,51 +628,8 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 		log.Printf("  - %s (%s)", p.DeviceName, p.DeviceID[:8])
 	}
 
-	// Karşılıklı ekleme: Eğer bu invitation code'u biz oluşturduysak, karşı tarafı otomatik ekle
-	// (gRPC çağrısına gerek yok, invitation code'dan bilgileri alıyoruz)
-	originalInvitationData := discoveryService.GetInvitationCode(req.InvitationCode)
-	if originalInvitationData != nil {
-		log.Printf("🔄 Karşılıklı ekleme: Bu invitation code'u biz oluşturduk, karşı tarafı otomatik ekliyoruz...")
-		log.Printf("   📋 Invitation code sahibi: %s (%s)", originalInvitationData.DeviceName, originalInvitationData.DeviceID[:8])
-		log.Printf("   📋 Invitation code'u giren: %s (%s)", invitationData.DeviceName, invitationData.DeviceID[:8])
-
-		// Karşı tarafı ekle (invitation code'u giren tarafın bilgileri invitationData'da)
-		// NOT: invitationData, invitation code'u giren tarafın bilgilerini içerir
-		// Biz ise invitation code'u oluşturan tarafız, karşı tarafı ekliyoruz
-		err = discoveryService.AddPeerWithGRPC(
-			invitationData.DeviceID,      // Karşı tarafın device ID'si
-			invitationData.DeviceName,    // Karşı tarafın device name'i
-			invitationData.PublicIP,      // Karşı tarafın public IP'si
-			invitationData.GRPCAddress,   // Karşı tarafın gRPC address'i
-			invitationData.ICECandidates, // Karşı tarafın ICE candidates'ı
-		)
-		if err != nil {
-			log.Printf("⚠️ Karşı taraf eklenemedi (karşılıklı ekleme): %v", err)
-		} else {
-			log.Printf("✅ Karşı taraf otomatik olarak eklendi: %s (%s)", 
-				invitationData.DeviceName, invitationData.DeviceID[:8])
-		}
-	} else {
-		log.Printf("ℹ️ Bu invitation code'u biz oluşturmadık, karşılıklı ekleme yapılmadı")
-	}
-
-	// (Opsiyonel) Otomatik bağlanmayı dene
-	go func() {
-		// Peer'ı bul
-		discoveredPeers := discoveryService.GetDiscoveredPeers()
-		for _, peer := range discoveredPeers {
-			if peer.DeviceID == invitationData.DeviceID {
-				// Bağlanmayı dene
-				_, err := wanTransport.Connect(ctx, peer)
-				if err != nil {
-					log.Printf("⚠️ Otomatik bağlantı kurulamadı: %v (peer manuel olarak bağlanabilir)", err)
-				} else {
-					log.Printf("✅ Otomatik bağlantı kuruldu: %s", peer.DeviceName)
-				}
-				break
-			}
-		}
-	}()
+	// NOT: Otomatik bağlantı yapılmıyor - kullanıcı manuel olarak bağlanacak
+	log.Printf("ℹ️ Peer eklendi, otomatik bağlantı yapılmadı (kullanıcı manuel olarak bağlanabilir)")
 
 	return &pb.Status{
 		Success: true,
