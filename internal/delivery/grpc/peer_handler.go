@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/pion/webrtc/v3"
@@ -617,9 +618,17 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 		go func() {
 			log.Printf("🔄 Karşı tarafın backend'ine bağlanılıyor: %s", invitationData.GRPCAddress)
 			
+			// gRPC address formatını kontrol et ve düzelt
+			grpcAddr := invitationData.GRPCAddress
+			// Eğer "dns:///" prefix'i yoksa ekle (Go gRPC için gerekli olabilir)
+			if !strings.HasPrefix(grpcAddr, "dns:///") && !strings.HasPrefix(grpcAddr, "unix://") {
+				grpcAddr = "dns:///" + grpcAddr
+			}
+			log.Printf("🔗 gRPC address (formatted): %s", grpcAddr)
+			
 			// gRPC connection oluştur (non-blocking, lazy connection)
 			grpcConn, err := grpc.NewClient(
-				invitationData.GRPCAddress,
+				grpcAddr,
 				grpc.WithTransportCredentials(insecure.NewCredentials()),
 			)
 			if err != nil {
@@ -627,7 +636,7 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 				return
 			}
 			defer grpcConn.Close()
-			log.Printf("✅ gRPC client oluşturuldu: %s", invitationData.GRPCAddress)
+			log.Printf("✅ gRPC client oluşturuldu: %s", grpcAddr)
 
 			// Peer service client oluştur
 			peerClient := pb.NewPeerServiceClient(grpcConn)
