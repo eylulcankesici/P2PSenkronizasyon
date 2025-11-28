@@ -9,10 +9,12 @@ class CreateInvitationDialog extends ConsumerStatefulWidget {
   const CreateInvitationDialog({super.key});
 
   @override
-  ConsumerState<CreateInvitationDialog> createState() => _CreateInvitationDialogState();
+  ConsumerState<CreateInvitationDialog> createState() =>
+      _CreateInvitationDialogState();
 }
 
-class _CreateInvitationDialogState extends ConsumerState<CreateInvitationDialog> {
+class _CreateInvitationDialogState
+    extends ConsumerState<CreateInvitationDialog> {
   int _expiryHours = 24;
   bool _isLoading = false;
   peer_pb.CreateInvitationResponse? _invitationResponse;
@@ -36,7 +38,8 @@ class _CreateInvitationDialogState extends ConsumerState<CreateInvitationDialog>
       actions: _invitationResponse == null
           ? [
               TextButton(
-                onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+                onPressed:
+                    _isLoading ? null : () => Navigator.of(context).pop(),
                 child: const Text('İptal'),
               ),
               FilledButton(
@@ -120,11 +123,16 @@ class _CreateInvitationDialogState extends ConsumerState<CreateInvitationDialog>
 
   Widget _buildResultView(BuildContext context) {
     final response = _invitationResponse!;
-    final expiresAt = DateTime.fromMillisecondsSinceEpoch(response.expiresAt.toInt() * 1000);
+    final expiresAt =
+        DateTime.fromMillisecondsSinceEpoch(response.expiresAt.toInt() * 1000);
     final now = DateTime.now();
     final remaining = expiresAt.difference(now);
 
-    return Column(
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return SingleChildScrollView(
+        child: Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -156,7 +164,7 @@ class _CreateInvitationDialogState extends ConsumerState<CreateInvitationDialog>
         const SizedBox(height: 8),
         Row(
           children: [
-                Expanded(
+            Expanded(
               child: OutlinedButton.icon(
                 onPressed: () => _copyLink(context, response.invitationLink),
                 icon: const Icon(LucideIcons.copy, size: 16),
@@ -180,13 +188,21 @@ class _CreateInvitationDialogState extends ConsumerState<CreateInvitationDialog>
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.grey[100],
+            color: colorScheme.surfaceVariant.withOpacity(0.4),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey[300]!),
+            border: Border.all(color: colorScheme.outlineVariant),
           ),
-          child: SelectableText(
-            response.invitationLink,
-            style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 160),
+            child: SingleChildScrollView(
+              child: SelectableText(
+                response.invitationLink,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontFamily: 'monospace',
+                  color: colorScheme.onSurface,
+                ),
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -201,16 +217,17 @@ class _CreateInvitationDialogState extends ConsumerState<CreateInvitationDialog>
           ],
         ),
       ],
-    );
+    ));
   }
 
   Future<void> _createInvitation() async {
     setState(() => _isLoading = true);
 
     try {
-      final response = await ref.read(peerNotifierProvider.notifier).createInvitation(
-            expiryHours: _expiryHours,
-          );
+      final response =
+          await ref.read(peerNotifierProvider.notifier).createInvitation(
+                expiryHours: _expiryHours,
+              );
 
       if (mounted) {
         setState(() {
@@ -251,4 +268,3 @@ class _CreateInvitationDialogState extends ConsumerState<CreateInvitationDialog>
     }
   }
 }
-

@@ -4,7 +4,7 @@ Write-Host "Aether Backend Başlatılıyor..." -ForegroundColor Green
 
 # Port kontrolü
 $portInUse = Get-NetTCPConnection -LocalPort 50051 -ErrorAction SilentlyContinue
-
+$env:AETHER_ENABLE_WAN = "1"
 if ($portInUse) {
     Write-Host "UYARI: Port 50051 zaten kullanımda!" -ForegroundColor Yellow
     Write-Host "Process ID: $($portInUse.OwningProcess)" -ForegroundColor Yellow
