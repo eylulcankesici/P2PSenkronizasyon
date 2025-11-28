@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // Config uygulamanın konfigürasyon yapısı
@@ -38,6 +39,29 @@ type NetworkConfig struct {
 	EnableMDNS         bool // Yerel ağ keşfi
 	STUNServers        []string
 	RelayServers       []string
+
+	// WAN ayarları (yeni)
+	EnableWAN             bool               // WAN transport'u aktif et
+	TURNServers           []TURNServerConfig // TURN server yapılandırmaları
+	EnableTLS             bool               // TLS encryption aktif
+	TLSInsecureSkipVerify bool               // Development için (self-signed cert)
+	EnableRelay           bool               // Relay server fallback
+	WebRTCPortRange       PortRange          // WebRTC port aralığı
+	ICEGatheringTimeout   int                // ICE gathering timeout (saniye)
+	ConnectionTimeout     int                // Connection timeout (saniye)
+}
+
+// TURNServerConfig TURN server yapılandırması
+type TURNServerConfig struct {
+	URL      string // turn:server:port
+	Username string
+	Password string
+}
+
+// PortRange port aralığı
+type PortRange struct {
+	Min int // Minimum port
+	Max int // Maximum port
 }
 
 // SyncConfig senkronizasyon ayarları
@@ -79,6 +103,19 @@ func Load() (*Config, error) {
 				"stun:stun1.l.google.com:19302",
 			},
 			RelayServers: []string{},
+
+			// WAN varsayılan ayarları (pasif)
+			EnableWAN:             getEnvOrDefaultBool("AETHER_ENABLE_WAN", false), // Ortam değişkeni ile açılabilir
+			TURNServers:           []TURNServerConfig{},
+			EnableTLS:             true, // WAN için TLS varsayılan açık
+			TLSInsecureSkipVerify: false,
+			EnableRelay:           false,
+			WebRTCPortRange: PortRange{
+				Min: 50000,
+				Max: 60000,
+			},
+			ICEGatheringTimeout: 10, // 10 saniye
+			ConnectionTimeout:   30, // 30 saniye
 		},
 		Sync: SyncConfig{
 			ChunkSize:        4 * 1024 * 1024, // 4 MB
@@ -87,20 +124,22 @@ func Load() (*Config, error) {
 			MaxConcurrentOps: 4,
 		},
 		GRPC: GRPCConfig{
-			Host: getEnvOrDefault("AETHER_GRPC_HOST", "localhost"),
+			// WAN için public IP'ye açılmalı (0.0.0.0 tüm interface'ler)
+			// LOCAL için localhost yeterli, ancak WAN ile uyumluluk için varsayılan 0.0.0.0
+			Host: getEnvOrDefault("AETHER_GRPC_HOST", "0.0.0.0"), // Varsayılan: tüm interface'ler
 			Port: getEnvOrDefaultInt("AETHER_GRPC_PORT", 50051),
 		},
 	}
-	
+
 	// Veritabanı yollarını ayarla
 	cfg.Database.SQLitePath = filepath.Join(cfg.App.DataDir, "aether.db")
 	cfg.Database.BoltDBPath = filepath.Join(cfg.App.DataDir, "aether_config.db")
-	
+
 	// Data dizinini oluştur
 	if err := ensureDataDir(cfg.App.DataDir); err != nil {
 		return nil, fmt.Errorf("data dizini oluşturulamadı: %w", err)
 	}
-	
+
 	return cfg, nil
 }
 
@@ -109,23 +148,23 @@ func (c *Config) Validate() error {
 	if c.App.Name == "" {
 		return fmt.Errorf("uygulama adı boş olamaz")
 	}
-	
+
 	if c.Database.SQLitePath == "" {
 		return fmt.Errorf("SQLite veritabanı yolu boş olamaz")
 	}
-	
+
 	if c.Database.BoltDBPath == "" {
 		return fmt.Errorf("BoltDB veritabanı yolu boş olamaz")
 	}
-	
+
 	if c.GRPC.Port < 1024 || c.GRPC.Port > 65535 {
 		return fmt.Errorf("geçersiz gRPC port: %d", c.GRPC.Port)
 	}
-	
+
 	if c.Sync.ChunkSize <= 0 {
 		return fmt.Errorf("chunk boyutu 0'dan büyük olmalı")
 	}
-	
+
 	return nil
 }
 
@@ -135,14 +174,14 @@ func getDataDir() string {
 	if dir := os.Getenv("AETHER_DATA_DIR"); dir != "" {
 		return dir
 	}
-	
+
 	// Kullanıcı home dizinini al
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		// Fallback: mevcut dizin
 		return ".aether"
 	}
-	
+
 	// Platform'a göre data dizini
 	return filepath.Join(homeDir, ".aether")
 }
@@ -176,7 +215,15 @@ func getEnvOrDefaultInt(key string, defaultValue int) int {
 	return defaultValue
 }
 
-
-
-
-
+// getEnvOrDefaultBool ortam değişkenini veya varsayılan bool değeri döner
+func getEnvOrDefaultBool(key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		switch strings.ToLower(strings.TrimSpace(value)) {
+		case "1", "true", "on", "yes":
+			return true
+		case "0", "false", "off", "no":
+			return false
+		}
+	}
+	return defaultValue
+}

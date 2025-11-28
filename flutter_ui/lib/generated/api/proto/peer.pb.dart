@@ -31,6 +31,10 @@ class Peer extends $pb.GeneratedMessage {
     $core.String? publicKey,
     $2.Timestamp? createdAt,
     $2.Timestamp? updatedAt,
+    $core.String? publicIp,
+    $core.String? natType,
+    $core.bool? wanSupported,
+    $core.Iterable<$core.String>? iceCandidates,
   }) {
     final result = create();
     if (deviceId != null) result.deviceId = deviceId;
@@ -42,6 +46,10 @@ class Peer extends $pb.GeneratedMessage {
     if (publicKey != null) result.publicKey = publicKey;
     if (createdAt != null) result.createdAt = createdAt;
     if (updatedAt != null) result.updatedAt = updatedAt;
+    if (publicIp != null) result.publicIp = publicIp;
+    if (natType != null) result.natType = natType;
+    if (wanSupported != null) result.wanSupported = wanSupported;
+    if (iceCandidates != null) result.iceCandidates.addAll(iceCandidates);
     return result;
   }
 
@@ -71,6 +79,10 @@ class Peer extends $pb.GeneratedMessage {
         subBuilder: $2.Timestamp.create)
     ..aOM<$2.Timestamp>(9, _omitFieldNames ? '' : 'updatedAt',
         subBuilder: $2.Timestamp.create)
+    ..aOS(10, _omitFieldNames ? '' : 'publicIp')
+    ..aOS(11, _omitFieldNames ? '' : 'natType')
+    ..aOB(12, _omitFieldNames ? '' : 'wanSupported')
+    ..pPS(13, _omitFieldNames ? '' : 'iceCandidates')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -171,14 +183,47 @@ class Peer extends $pb.GeneratedMessage {
   void clearUpdatedAt() => $_clearField(9);
   @$pb.TagNumber(9)
   $2.Timestamp ensureUpdatedAt() => $_ensure(8);
+
+  /// WAN bilgileri (yeni)
+  @$pb.TagNumber(10)
+  $core.String get publicIp => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set publicIp($core.String value) => $_setString(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasPublicIp() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearPublicIp() => $_clearField(10);
+
+  @$pb.TagNumber(11)
+  $core.String get natType => $_getSZ(10);
+  @$pb.TagNumber(11)
+  set natType($core.String value) => $_setString(10, value);
+  @$pb.TagNumber(11)
+  $core.bool hasNatType() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearNatType() => $_clearField(11);
+
+  @$pb.TagNumber(12)
+  $core.bool get wanSupported => $_getBF(11);
+  @$pb.TagNumber(12)
+  set wanSupported($core.bool value) => $_setBool(11, value);
+  @$pb.TagNumber(12)
+  $core.bool hasWanSupported() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearWanSupported() => $_clearField(12);
+
+  @$pb.TagNumber(13)
+  $pb.PbList<$core.String> get iceCandidates => $_getList(12);
 }
 
 class DiscoverPeersRequest extends $pb.GeneratedMessage {
   factory DiscoverPeersRequest({
     $core.bool? lanOnly,
+    $core.bool? wanOnly,
   }) {
     final result = create();
     if (lanOnly != null) result.lanOnly = lanOnly;
+    if (wanOnly != null) result.wanOnly = wanOnly;
     return result;
   }
 
@@ -196,6 +241,7 @@ class DiscoverPeersRequest extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
       createEmptyInstance: create)
     ..aOB(1, _omitFieldNames ? '' : 'lanOnly')
+    ..aOB(2, _omitFieldNames ? '' : 'wanOnly')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -225,6 +271,15 @@ class DiscoverPeersRequest extends $pb.GeneratedMessage {
   $core.bool hasLanOnly() => $_has(0);
   @$pb.TagNumber(1)
   void clearLanOnly() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get wanOnly => $_getBF(1);
+  @$pb.TagNumber(2)
+  set wanOnly($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasWanOnly() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWanOnly() => $_clearField(2);
 }
 
 class DiscoverPeersResponse extends $pb.GeneratedMessage {
@@ -294,9 +349,11 @@ class DiscoverPeersResponse extends $pb.GeneratedMessage {
 class ConnectToPeerRequest extends $pb.GeneratedMessage {
   factory ConnectToPeerRequest({
     $core.String? peerId,
+    $core.String? transportType,
   }) {
     final result = create();
     if (peerId != null) result.peerId = peerId;
+    if (transportType != null) result.transportType = transportType;
     return result;
   }
 
@@ -314,6 +371,7 @@ class ConnectToPeerRequest extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'peerId')
+    ..aOS(2, _omitFieldNames ? '' : 'transportType')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -343,6 +401,15 @@ class ConnectToPeerRequest extends $pb.GeneratedMessage {
   $core.bool hasPeerId() => $_has(0);
   @$pb.TagNumber(1)
   void clearPeerId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get transportType => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set transportType($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasTransportType() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTransportType() => $_clearField(2);
 }
 
 class DisconnectFromPeerRequest extends $pb.GeneratedMessage {
@@ -608,6 +675,7 @@ class PeerInfoResponse extends $pb.GeneratedMessage {
     $2.Timestamp? lastActivity,
     $core.String? connectionType,
     $fixnum.Int64? latencyMs,
+    WANConnectionInfo? wanInfo,
   }) {
     final result = create();
     if (status != null) result.status = status;
@@ -618,6 +686,7 @@ class PeerInfoResponse extends $pb.GeneratedMessage {
     if (lastActivity != null) result.lastActivity = lastActivity;
     if (connectionType != null) result.connectionType = connectionType;
     if (latencyMs != null) result.latencyMs = latencyMs;
+    if (wanInfo != null) result.wanInfo = wanInfo;
     return result;
   }
 
@@ -644,6 +713,8 @@ class PeerInfoResponse extends $pb.GeneratedMessage {
         subBuilder: $2.Timestamp.create)
     ..aOS(7, _omitFieldNames ? '' : 'connectionType')
     ..aInt64(8, _omitFieldNames ? '' : 'latencyMs')
+    ..aOM<WANConnectionInfo>(9, _omitFieldNames ? '' : 'wanInfo',
+        subBuilder: WANConnectionInfo.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -736,6 +807,117 @@ class PeerInfoResponse extends $pb.GeneratedMessage {
   $core.bool hasLatencyMs() => $_has(7);
   @$pb.TagNumber(8)
   void clearLatencyMs() => $_clearField(8);
+
+  /// WAN connection bilgileri (yeni)
+  @$pb.TagNumber(9)
+  WANConnectionInfo get wanInfo => $_getN(8);
+  @$pb.TagNumber(9)
+  set wanInfo(WANConnectionInfo value) => $_setField(9, value);
+  @$pb.TagNumber(9)
+  $core.bool hasWanInfo() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearWanInfo() => $_clearField(9);
+  @$pb.TagNumber(9)
+  WANConnectionInfo ensureWanInfo() => $_ensure(8);
+}
+
+/// WAN bağlantı bilgileri
+class WANConnectionInfo extends $pb.GeneratedMessage {
+  factory WANConnectionInfo({
+    $core.String? publicIp,
+    $core.String? natType,
+    $core.Iterable<$core.String>? stunServers,
+    $core.bool? turnAvailable,
+    $fixnum.Int64? connectionEstablishmentTimeMs,
+  }) {
+    final result = create();
+    if (publicIp != null) result.publicIp = publicIp;
+    if (natType != null) result.natType = natType;
+    if (stunServers != null) result.stunServers.addAll(stunServers);
+    if (turnAvailable != null) result.turnAvailable = turnAvailable;
+    if (connectionEstablishmentTimeMs != null)
+      result.connectionEstablishmentTimeMs = connectionEstablishmentTimeMs;
+    return result;
+  }
+
+  WANConnectionInfo._();
+
+  factory WANConnectionInfo.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory WANConnectionInfo.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'WANConnectionInfo',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'publicIp')
+    ..aOS(2, _omitFieldNames ? '' : 'natType')
+    ..pPS(3, _omitFieldNames ? '' : 'stunServers')
+    ..aOB(4, _omitFieldNames ? '' : 'turnAvailable')
+    ..aInt64(5, _omitFieldNames ? '' : 'connectionEstablishmentTimeMs')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WANConnectionInfo clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WANConnectionInfo copyWith(void Function(WANConnectionInfo) updates) =>
+      super.copyWith((message) => updates(message as WANConnectionInfo))
+          as WANConnectionInfo;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WANConnectionInfo create() => WANConnectionInfo._();
+  @$core.override
+  WANConnectionInfo createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static WANConnectionInfo getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WANConnectionInfo>(create);
+  static WANConnectionInfo? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get publicIp => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set publicIp($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPublicIp() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPublicIp() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get natType => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set natType($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasNatType() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearNatType() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $pb.PbList<$core.String> get stunServers => $_getList(2);
+
+  @$pb.TagNumber(4)
+  $core.bool get turnAvailable => $_getBF(3);
+  @$pb.TagNumber(4)
+  set turnAvailable($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasTurnAvailable() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearTurnAvailable() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get connectionEstablishmentTimeMs => $_getI64(4);
+  @$pb.TagNumber(5)
+  set connectionEstablishmentTimeMs($fixnum.Int64 value) =>
+      $_setInt64(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasConnectionEstablishmentTimeMs() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearConnectionEstablishmentTimeMs() => $_clearField(5);
 }
 
 class TrustPeerRequest extends $pb.GeneratedMessage {
@@ -1210,6 +1392,468 @@ class RejectConnectionRequest extends $pb.GeneratedMessage {
   void clearReason() => $_clearField(2);
 }
 
+/// Invitation code mesajları (WAN için)
+class CreateInvitationRequest extends $pb.GeneratedMessage {
+  factory CreateInvitationRequest({
+    $core.int? expiryHours,
+  }) {
+    final result = create();
+    if (expiryHours != null) result.expiryHours = expiryHours;
+    return result;
+  }
+
+  CreateInvitationRequest._();
+
+  factory CreateInvitationRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory CreateInvitationRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CreateInvitationRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
+    ..aI(1, _omitFieldNames ? '' : 'expiryHours')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CreateInvitationRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CreateInvitationRequest copyWith(
+          void Function(CreateInvitationRequest) updates) =>
+      super.copyWith((message) => updates(message as CreateInvitationRequest))
+          as CreateInvitationRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateInvitationRequest create() => CreateInvitationRequest._();
+  @$core.override
+  CreateInvitationRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static CreateInvitationRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CreateInvitationRequest>(create);
+  static CreateInvitationRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get expiryHours => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set expiryHours($core.int value) => $_setSignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasExpiryHours() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearExpiryHours() => $_clearField(1);
+}
+
+class CreateInvitationResponse extends $pb.GeneratedMessage {
+  factory CreateInvitationResponse({
+    $1.Status? status,
+    $core.String? invitationCode,
+    $core.String? invitationLink,
+    $core.String? qrCodeImage,
+    $fixnum.Int64? expiresAt,
+  }) {
+    final result = create();
+    if (status != null) result.status = status;
+    if (invitationCode != null) result.invitationCode = invitationCode;
+    if (invitationLink != null) result.invitationLink = invitationLink;
+    if (qrCodeImage != null) result.qrCodeImage = qrCodeImage;
+    if (expiresAt != null) result.expiresAt = expiresAt;
+    return result;
+  }
+
+  CreateInvitationResponse._();
+
+  factory CreateInvitationResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory CreateInvitationResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CreateInvitationResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
+    ..aOM<$1.Status>(1, _omitFieldNames ? '' : 'status',
+        subBuilder: $1.Status.create)
+    ..aOS(2, _omitFieldNames ? '' : 'invitationCode')
+    ..aOS(3, _omitFieldNames ? '' : 'invitationLink')
+    ..aOS(4, _omitFieldNames ? '' : 'qrCodeImage')
+    ..aInt64(5, _omitFieldNames ? '' : 'expiresAt')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CreateInvitationResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CreateInvitationResponse copyWith(
+          void Function(CreateInvitationResponse) updates) =>
+      super.copyWith((message) => updates(message as CreateInvitationResponse))
+          as CreateInvitationResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateInvitationResponse create() => CreateInvitationResponse._();
+  @$core.override
+  CreateInvitationResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static CreateInvitationResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CreateInvitationResponse>(create);
+  static CreateInvitationResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $1.Status get status => $_getN(0);
+  @$pb.TagNumber(1)
+  set status($1.Status value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasStatus() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearStatus() => $_clearField(1);
+  @$pb.TagNumber(1)
+  $1.Status ensureStatus() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $core.String get invitationCode => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set invitationCode($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasInvitationCode() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearInvitationCode() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get invitationLink => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set invitationLink($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasInvitationLink() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearInvitationLink() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get qrCodeImage => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set qrCodeImage($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasQrCodeImage() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearQrCodeImage() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get expiresAt => $_getI64(4);
+  @$pb.TagNumber(5)
+  set expiresAt($fixnum.Int64 value) => $_setInt64(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasExpiresAt() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearExpiresAt() => $_clearField(5);
+}
+
+class AddPeerByInvitationRequest extends $pb.GeneratedMessage {
+  factory AddPeerByInvitationRequest({
+    $core.String? invitationCode,
+  }) {
+    final result = create();
+    if (invitationCode != null) result.invitationCode = invitationCode;
+    return result;
+  }
+
+  AddPeerByInvitationRequest._();
+
+  factory AddPeerByInvitationRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AddPeerByInvitationRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AddPeerByInvitationRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'invitationCode')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AddPeerByInvitationRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AddPeerByInvitationRequest copyWith(
+          void Function(AddPeerByInvitationRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as AddPeerByInvitationRequest))
+          as AddPeerByInvitationRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AddPeerByInvitationRequest create() => AddPeerByInvitationRequest._();
+  @$core.override
+  AddPeerByInvitationRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AddPeerByInvitationRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AddPeerByInvitationRequest>(create);
+  static AddPeerByInvitationRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get invitationCode => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set invitationCode($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasInvitationCode() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearInvitationCode() => $_clearField(1);
+}
+
+class AddWANPeerRequest extends $pb.GeneratedMessage {
+  factory AddWANPeerRequest({
+    $core.String? peerId,
+    $core.String? peerName,
+    $core.String? publicIp,
+    $core.Iterable<$core.String>? iceCandidates,
+  }) {
+    final result = create();
+    if (peerId != null) result.peerId = peerId;
+    if (peerName != null) result.peerName = peerName;
+    if (publicIp != null) result.publicIp = publicIp;
+    if (iceCandidates != null) result.iceCandidates.addAll(iceCandidates);
+    return result;
+  }
+
+  AddWANPeerRequest._();
+
+  factory AddWANPeerRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AddWANPeerRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AddWANPeerRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'peerId')
+    ..aOS(2, _omitFieldNames ? '' : 'peerName')
+    ..aOS(3, _omitFieldNames ? '' : 'publicIp')
+    ..pPS(4, _omitFieldNames ? '' : 'iceCandidates')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AddWANPeerRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AddWANPeerRequest copyWith(void Function(AddWANPeerRequest) updates) =>
+      super.copyWith((message) => updates(message as AddWANPeerRequest))
+          as AddWANPeerRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AddWANPeerRequest create() => AddWANPeerRequest._();
+  @$core.override
+  AddWANPeerRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AddWANPeerRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AddWANPeerRequest>(create);
+  static AddWANPeerRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get peerId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set peerId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPeerId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPeerId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get peerName => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set peerName($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasPeerName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPeerName() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get publicIp => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set publicIp($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasPublicIp() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearPublicIp() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $pb.PbList<$core.String> get iceCandidates => $_getList(3);
+}
+
+/// SDP exchange mesajları (WAN WebRTC için)
+class ExchangeSDPRequest extends $pb.GeneratedMessage {
+  factory ExchangeSDPRequest({
+    $core.String? peerId,
+    $core.String? sdpType,
+    $core.String? sdp,
+  }) {
+    final result = create();
+    if (peerId != null) result.peerId = peerId;
+    if (sdpType != null) result.sdpType = sdpType;
+    if (sdp != null) result.sdp = sdp;
+    return result;
+  }
+
+  ExchangeSDPRequest._();
+
+  factory ExchangeSDPRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ExchangeSDPRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ExchangeSDPRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'peerId')
+    ..aOS(2, _omitFieldNames ? '' : 'sdpType')
+    ..aOS(3, _omitFieldNames ? '' : 'sdp')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ExchangeSDPRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ExchangeSDPRequest copyWith(void Function(ExchangeSDPRequest) updates) =>
+      super.copyWith((message) => updates(message as ExchangeSDPRequest))
+          as ExchangeSDPRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ExchangeSDPRequest create() => ExchangeSDPRequest._();
+  @$core.override
+  ExchangeSDPRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ExchangeSDPRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ExchangeSDPRequest>(create);
+  static ExchangeSDPRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get peerId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set peerId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPeerId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPeerId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get sdpType => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set sdpType($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasSdpType() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSdpType() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get sdp => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set sdp($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasSdp() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSdp() => $_clearField(3);
+}
+
+class ExchangeSDPResponse extends $pb.GeneratedMessage {
+  factory ExchangeSDPResponse({
+    $1.Status? status,
+    $core.String? sdpType,
+    $core.String? sdp,
+  }) {
+    final result = create();
+    if (status != null) result.status = status;
+    if (sdpType != null) result.sdpType = sdpType;
+    if (sdp != null) result.sdp = sdp;
+    return result;
+  }
+
+  ExchangeSDPResponse._();
+
+  factory ExchangeSDPResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ExchangeSDPResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ExchangeSDPResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'aether.api'),
+      createEmptyInstance: create)
+    ..aOM<$1.Status>(1, _omitFieldNames ? '' : 'status',
+        subBuilder: $1.Status.create)
+    ..aOS(2, _omitFieldNames ? '' : 'sdpType')
+    ..aOS(3, _omitFieldNames ? '' : 'sdp')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ExchangeSDPResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ExchangeSDPResponse copyWith(void Function(ExchangeSDPResponse) updates) =>
+      super.copyWith((message) => updates(message as ExchangeSDPResponse))
+          as ExchangeSDPResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ExchangeSDPResponse create() => ExchangeSDPResponse._();
+  @$core.override
+  ExchangeSDPResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ExchangeSDPResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ExchangeSDPResponse>(create);
+  static ExchangeSDPResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $1.Status get status => $_getN(0);
+  @$pb.TagNumber(1)
+  set status($1.Status value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasStatus() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearStatus() => $_clearField(1);
+  @$pb.TagNumber(1)
+  $1.Status ensureStatus() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $core.String get sdpType => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set sdpType($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasSdpType() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSdpType() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get sdp => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set sdp($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasSdp() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSdp() => $_clearField(3);
+}
+
 /// P2P bağlantı istek mesajları (binary protokol için)
 class ConnectionRequest extends $pb.GeneratedMessage {
   factory ConnectionRequest({
@@ -1371,5 +2015,3 @@ const $core.bool _omitFieldNames =
     $core.bool.fromEnvironment('protobuf.omit_field_names');
 const $core.bool _omitMessageNames =
     $core.bool.fromEnvironment('protobuf.omit_message_names');
-
-

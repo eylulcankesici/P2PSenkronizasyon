@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:aether_desktop/data/providers/peer_provider.dart';
+import 'package:aether_desktop/features/peers/presentation/widgets/create_invitation_dialog.dart';
+import 'package:aether_desktop/features/peers/presentation/widgets/add_peer_by_invitation_dialog.dart';
 import 'package:aether_desktop/generated/api/proto/peer.pb.dart' as peer_pb;
 import 'package:aether_desktop/generated/api/proto/common.pbenum.dart' as common_pb;
 import 'package:aether_desktop/data/providers/user_provider.dart';
@@ -45,6 +47,8 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final networkMode = ref.watch(networkModeProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: Column(
@@ -72,12 +76,96 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
           controller: _tabController,
           tabs: [
             Tab(
+<<<<<<< HEAD
               icon: const Icon(LucideIcons.search),
               text: AppStrings.get('discovered', ref.watch(languageProvider)),
             ),
             Tab(
               icon: const Icon(LucideIcons.link),
               text: AppStrings.get('connected', ref.watch(languageProvider)),
+=======
+              icon: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(LucideIcons.search),
+                  const SizedBox(width: 8),
+                  // Network mode dropdown
+                  PopupMenuButton<NetworkMode>(
+                    icon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          networkMode == NetworkMode.local ? 'LOCAL' : 'WAN',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        const Icon(LucideIcons.chevronDown, size: 16),
+                      ],
+                    ),
+                    onSelected: (mode) {
+                      ref.read(networkModeProvider.notifier).state = mode;
+                      // Provider'ı yenile
+                      ref.invalidate(discoveredPeersProvider);
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem<NetworkMode>(
+                        value: NetworkMode.local,
+                        child: Row(
+                          children: [
+                            Icon(
+                              LucideIcons.network,
+                              size: 16,
+                              color: networkMode == NetworkMode.local
+                                  ? Theme.of(context).primaryColor
+                                  : null,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('LOCAL'),
+                            if (networkMode == NetworkMode.local) ...[
+                              const Spacer(),
+                              Icon(
+                                LucideIcons.check,
+                                size: 16,
+                                color: Theme.of(context).primaryColor,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem<NetworkMode>(
+                        value: NetworkMode.wan,
+                        child: Row(
+                          children: [
+                            Icon(
+                              LucideIcons.globe,
+                              size: 16,
+                              color: networkMode == NetworkMode.wan
+                                  ? Theme.of(context).primaryColor
+                                  : null,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('WAN'),
+                            if (networkMode == NetworkMode.wan) ...[
+                              const Spacer(),
+                              Icon(
+                                LucideIcons.check,
+                                size: 16,
+                                color: Theme.of(context).primaryColor,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              text: 'Keşfedilen',
+            ),
+            const Tab(
+              icon: Icon(LucideIcons.link),
+              text: 'Bağlı',
+>>>>>>> WAN
             ),
           ],
         ),
@@ -93,6 +181,17 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
   }
 
   Widget _buildDiscoveredPeersTab() {
+    final networkMode = ref.watch(networkModeProvider);
+    
+    // LOCAL veya WAN moduna göre farklı içerik göster
+    if (networkMode == NetworkMode.local) {
+      return _buildLocalDiscoveryTab();
+    } else {
+      return _buildWANDiscoveryTab();
+    }
+  }
+
+  Widget _buildLocalDiscoveryTab() {
     final peersAsync = ref.watch(discoveredPeersProvider);
     final connectedPeersAsync = ref.watch(connectedPeersProvider);
 
@@ -131,6 +230,105 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
               return _buildPeerCard(availablePeers[index], isConnected: false);
             },
           ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(LucideIcons.alertCircle, size: 48, color: Colors.red),
+            const SizedBox(height: 16),
+            Text('Hata: $error'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                ref.invalidate(discoveredPeersProvider);
+              },
+              child: const Text('Tekrar Dene'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWANDiscoveryTab() {
+    final peersAsync = ref.watch(discoveredPeersProvider);
+    final connectedPeersAsync = ref.watch(connectedPeersProvider);
+
+    return peersAsync.when(
+      data: (peers) {
+        // Bağlı peer'ların ID'lerini al
+        final connectedIds = connectedPeersAsync.valueOrNull
+            ?.map((p) => p.deviceId)
+            .toSet() ?? {};
+        
+        // Zaten bağlı olan peer'ları filtrele
+        final availablePeers = peers
+            .where((peer) => !connectedIds.contains(peer.deviceId))
+            .toList();
+        
+        return Column(
+          children: [
+            // WAN butonları (Invitation oluştur / Invitation gir)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const CreateInvitationDialog(),
+                        );
+                      },
+                      icon: const Icon(LucideIcons.link),
+                      label: const Text('Yeni Bağlantı Oluştur'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const AddPeerByInvitationDialog(),
+                        );
+                      },
+                      icon: const Icon(LucideIcons.link),
+                      label: const Text('Invitation Link Gir'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(),
+            // Peer listesi veya boş durum
+            Expanded(
+              child: availablePeers.isEmpty
+                  ? _buildEmptyState(
+                      icon: LucideIcons.globe,
+                      title: 'WAN Peer Bulunamadı',
+                      message: 'WAN üzerinden bağlanmak için invitation link oluşturun veya bir invitation link ile bağlanın.',
+                      actionLabel: null,
+                      onAction: null,
+                    )
+                  : RefreshIndicator(
+                      onRefresh: () async {
+                        await ref.read(peerNotifierProvider.notifier).discoverPeers();
+                      },
+                      child: ListView.builder(
+                        itemCount: availablePeers.length,
+                        padding: const EdgeInsets.all(16),
+                        itemBuilder: (context, index) {
+                          return _buildPeerCard(availablePeers[index], isConnected: false);
+                        },
+                      ),
+                    ),
+            ),
+          ],
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),

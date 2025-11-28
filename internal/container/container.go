@@ -24,6 +24,7 @@ import (
 	"github.com/aether/sync/internal/infrastructure/filesystem"
 	"github.com/aether/sync/internal/infrastructure/p2p"
 	"github.com/aether/sync/internal/infrastructure/p2p/lan"
+	"github.com/aether/sync/internal/infrastructure/p2p/wan"
 	"github.com/aether/sync/internal/infrastructure/watcher"
 	usecaseImpl "github.com/aether/sync/internal/usecase/impl"
 	"github.com/aether/sync/pkg/chunking"
@@ -439,20 +440,21 @@ func (c *Container) initUseCases() error {
 	
 	log.Println("✓ P2P Transfer use case başlatıldı")
 	
-	// Chunk handler'ı bağla
-	if lanTransport, ok := c.transportProvider.(*lan.LANTransport); ok {
-		chunkHandler := func(chunkHash string) ([]byte, error) {
-			chunkData, err := c.chunkingUseCase.GetChunkData(context.Background(), chunkHash)
-			if err != nil {
-				return nil, fmt.Errorf("chunk alınamadı: %w", err)
-			}
-			return chunkData, nil
+	// Chunk handler'ı bağla (LAN veya WAN)
+	chunkHandler := func(chunkHash string) ([]byte, error) {
+		chunkData, err := c.chunkingUseCase.GetChunkData(context.Background(), chunkHash)
+		if err != nil {
+			return nil, fmt.Errorf("chunk alınamadı: %w", err)
 		}
-		
+		return chunkData, nil
+	}
+	
+	// LAN transport için chunk handler bağla
+	if lanTransport, ok := c.transportProvider.(*lan.LANTransport); ok {
 		lanTransport.SetChunkHandler(chunkHandler)
-		log.Println("✓ Chunk handler bağlandı")
+		log.Println("✓ Chunk handler bağlandı (LAN)")
 		
-		// Connection request callback'ini bağla
+		// Connection request callback'ini bağla (sadece LAN için)
 		connMgr := lanTransport.GetTCPConnectionManager()
 		connMgr.SetOnConnectionRequested(func(deviceID, deviceName string) {
 			log.Printf("🔔 Connection request callback tetiklendi: %s (%s)", deviceName, deviceID[:8])
@@ -550,7 +552,103 @@ func (c *Container) initUseCases() error {
 			}
 		})
 		
-		log.Println("✓ Dosya silme callback bağlandı")
+		log.Println("✓ Dosya silme callback bağlandı (LAN)")
+	} else if wanTransport, ok := c.transportProvider.(*wan.WANTransport); ok {
+		// WAN Transport için chunk handler bağla
+		wanTransport.SetChunkHandler(chunkHandler)
+		log.Println("✓ Chunk handler bağlandı (WAN)")
+		
+		// WAN Transport için callback'leri bağla (WebRTC connection manager üzerinden)
+		connMgr := wanTransport.GetWebRTCConnectionManager()
+		if connMgr != nil {
+			// Chunk received callback'ini bağla (push-based sync için)
+			connMgr.SetOnChunkReceived(func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error {
+				return c.handleIncomingChunk(context.Background(), peerID, fileID, chunkHash, chunkData, chunkIndex, totalChunks, fileName, folderName, senderSyncMode, receiverSyncMode)
+			})
+			log.Println("✓ Chunk received callback bağlandı (WAN)")
+			
+			// Transfer cancel callback'ini bağla
+			connMgr.SetOnTransferCancel(func(peerID, fileID string) {
+				log.Printf("🛑 Transfer iptal bildirimi alındı (WAN, peer: %s, file: %s), transfer iptal ediliyor...", peerID[:8], fileID[:8])
+				
+				// Transfer durumunu kontrol et (iptal edilmeden önce)
+				transfer, exists := c.transferManager.GetTransfer(fileID)
+				if !exists {
+					log.Printf("  ⚠️ Transfer bulunamadı (zaten temizlenmiş olabilir): %s", fileID[:8])
+					return
+				}
+				
+				// Transfer yönünü kaydet (iptal edilmeden önce)
+				direction := transfer.Direction
+				
+				// Transfer'i iptal et
+				c.transferManager.CancelTransfer(fileID)
+				
+				// Her iki direction için de fileReassembler'ı temizle (yeni transfer için hazırlık)
+				log.Printf("  🗑️ Transfer iptal edildi, fileReassembler temizleniyor (direction: %v): %s", direction, fileID[:8])
+				c.fileReassembler.CleanupFile(fileID)
+				
+				log.Printf("  ✅ Transfer iptal edildi ve fileReassembler temizlendi, yeni transfer için hazır: %s (direction: %v)", fileID[:8], direction)
+			})
+			log.Println("✓ Transfer cancel callback bağlandı (WAN)")
+			
+			// Dosya silme callback'ini bağla (peer'dan silme bildirimi geldiğinde)
+			connMgr.SetOnFileDelete(func(peerID, fileID string) {
+				log.Printf("🗑️ Dosya silme bildirimi alındı (WAN, peer: %s, file: %s), dosya siliniyor...", peerID[:8], fileID[:8])
+				
+				ctx := context.Background()
+				
+				// Dosyayı veritabanından al
+				file, err := c.fileRepo.GetByID(ctx, fileID)
+				if err != nil {
+					log.Printf("  ⚠️ Dosya bulunamadı: %s - %v", fileID[:8], err)
+					return
+				}
+				
+				// Folder bilgisini al
+				folder, err := c.folderRepo.GetByID(ctx, file.FolderID)
+				if err != nil {
+					log.Printf("  ⚠️ Folder bulunamadı: %s - %v", file.FolderID[:8], err)
+					return
+				}
+				
+				// Veritabanından tamamen sil (HARD DELETE) - CASCADE olduğu için file_chunks ve file_peer_sync de silinir
+				if err := c.fileRepo.HardDelete(ctx, fileID); err != nil {
+					log.Printf("  ❌ Dosya veritabanından silinemedi: %s - %v", fileID[:8], err)
+					return
+				}
+				log.Printf("  ✅ Dosya veritabanından tamamen silindi (hard delete): %s", fileID[:8])
+				
+				// Yetim chunk'ları temizle (hiçbir dosya tarafından kullanılmayan chunk'lar) - hem disk hem DB'den
+				if deletedCount, err := c.chunkingUseCase.DeleteOrphanedChunks(ctx); err != nil {
+					log.Printf("  ⚠️ Yetim chunk'lar temizlenemedi: %v", err)
+					// Hata olsa bile devam et, dosya silme işlemi başarılı
+				} else if deletedCount > 0 {
+					log.Printf("  🧹 %d yetim chunk temizlendi (disk + DB)", deletedCount)
+				}
+				
+				// FİZİKSEL dosyayı SİL kontrolü:
+				// - RECEIVED folder'lar için: Her zaman sil
+				// - USER folder'lar için: Sadece çift yönlü senkronizasyon modunda sil
+				shouldDeletePhysical := folder.Source == entity.FolderSourceReceived || folder.SyncMode == entity.SyncModeBidirectional
+				
+				if shouldDeletePhysical {
+					filePath := filepath.Join(folder.LocalPath, file.RelativePath)
+					if err := os.Remove(filePath); err != nil {
+						log.Printf("  ⚠️ Fiziksel dosya silinemedi (%s): %v", filePath, err)
+					} else {
+						if folder.SyncMode == entity.SyncModeBidirectional {
+							log.Printf("  ✅ Fiziksel dosya silindi (çift yönlü senkronizasyon): %s", filePath)
+						} else {
+							log.Printf("  ✅ Fiziksel dosya silindi: %s", filePath)
+						}
+					}
+				} else {
+					log.Printf("  ℹ️  User folder ve tek yönlü senkronizasyon, fiziksel dosya korunuyor")
+				}
+			})
+			log.Println("✓ Dosya silme callback bağlandı (WAN)")
+		}
 	}
 	
 	return nil
@@ -560,13 +658,15 @@ func (c *Container) initUseCases() error {
 func (c *Container) setupPeerDiscoveryCallback() error {
 	ctx := context.Background()
 	
-	// LAN Transport'un callback'lerini ayarla
-	if lanTransport, ok := c.transportProvider.(interface {
+	// Transport'un callback'lerini ayarla (LAN veya WAN - her ikisi de aynı interface'i destekler)
+	transportWithCallbacks, ok := c.transportProvider.(interface {
 		OnPeerDiscovered(func(*transport.DiscoveredPeer))
 		OnPeerLost(func(string))
 		OnConnectionLost(func(string))
-	}); ok {
-		lanTransport.OnPeerDiscovered(func(discoveredPeer *transport.DiscoveredPeer) {
+	})
+	
+	if ok {
+		transportWithCallbacks.OnPeerDiscovered(func(discoveredPeer *transport.DiscoveredPeer) {
 			// Peer'ı veritabanına kaydet
 			peer := entity.NewPeer(discoveredPeer.DeviceID, discoveredPeer.DeviceName)
 			peer.Status = entity.PeerStatusOffline // İlk keşifte offline
@@ -595,7 +695,7 @@ func (c *Container) setupPeerDiscoveryCallback() error {
 			}
 		})
 		
-		lanTransport.OnPeerLost(func(deviceID string) {
+		transportWithCallbacks.OnPeerLost(func(deviceID string) {
 			// Peer'ı offline olarak işaretle
 			if err := c.peerRepo.UpdateStatus(ctx, deviceID, entity.PeerStatusOffline); err != nil {
 				log.Printf("⚠️ Peer durumu güncellenemedi: %v", err)
@@ -605,7 +705,7 @@ func (c *Container) setupPeerDiscoveryCallback() error {
 		})
 		
 		// Connection lost callback'ini ayarla
-		lanTransport.OnConnectionLost(func(peerID string) {
+		transportWithCallbacks.OnConnectionLost(func(peerID string) {
 			// Peer'ı offline olarak işaretle
 			if err := c.peerRepo.UpdateStatus(ctx, peerID, entity.PeerStatusOffline); err != nil {
 				log.Printf("⚠️ Peer durumu güncellenemedi: %v", err)
@@ -634,20 +734,44 @@ func (c *Container) initP2PTransport() error {
 	// P2P listen port'unu al
 	p2pPort := c.getP2PPort()
 	
-	// LAN Transport oluştur
-	lanTransport := lan.NewLANTransport(deviceID, deviceName, p2pPort)
-	
-	// Transport'u başlat
 	ctx := context.Background()
-	if err := lanTransport.Start(ctx); err != nil {
-		return fmt.Errorf("LAN transport başlatılamadı: %w", err)
+	
+	// Config'e göre transport seç
+	// MEVCUT DAVRANIŞ KORUNUR: EnableWAN varsayılan false, LAN transport kullanılacak
+	if c.config.Network.EnableWAN {
+		// WAN Transport oluştur ve başlat
+		log.Println("🌐 WAN Transport başlatılıyor...")
+		
+		wanTransport := wan.NewWANTransport(deviceID, deviceName, c.config.Network)
+		
+		if err := wanTransport.Start(ctx); err != nil {
+			log.Printf("⚠️ WAN transport başlatılamadı: %v (LAN transport'a geri dönülüyor)", err)
+			// WAN başarısız olursa LAN'a geri dön
+			lanTransport := lan.NewLANTransport(deviceID, deviceName, p2pPort)
+			if err := lanTransport.Start(ctx); err != nil {
+				return fmt.Errorf("LAN transport başlatılamadı: %w", err)
+			}
+			c.transportProvider = lanTransport
+			log.Printf("✓ P2P Transport başlatıldı (LAN fallback, device: %s, port: %d)", deviceName, p2pPort)
+			return nil
+		}
+		
+		c.transportProvider = wanTransport
+		log.Printf("✓ P2P Transport başlatıldı (WAN, device: %s, port: %d)", deviceName, p2pPort)
+	} else {
+		// LAN Transport oluştur ve başlat (MEVCUT DAVRANIŞ - DEĞİŞMEDİ)
+		lanTransport := lan.NewLANTransport(deviceID, deviceName, p2pPort)
+		
+		if err := lanTransport.Start(ctx); err != nil {
+			return fmt.Errorf("LAN transport başlatılamadı: %w", err)
+		}
+		
+		// Chunk handler'ı daha sonra bağlanacak (chunking use case hazır olduktan sonra)
+		
+		c.transportProvider = lanTransport
+		
+		log.Printf("✓ P2P Transport başlatıldı (LAN, device: %s, port: %d)", deviceName, p2pPort)
 	}
-	
-	// Chunk handler'ı daha sonra bağlanacak (chunking use case hazır olduktan sonra)
-	
-	c.transportProvider = lanTransport
-	
-	log.Printf("✓ P2P Transport başlatıldı (device: %s, port: %d)", deviceName, p2pPort)
 	
 	return nil
 }

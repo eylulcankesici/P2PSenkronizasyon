@@ -21,7 +21,7 @@ dependencies:
   
   # gRPC
   grpc: ^5.0.0
-  protobuf: ^5.1.0
+  protobuf: 5.1.0
   fixnum: ^1.1.1
   
   # Utils
