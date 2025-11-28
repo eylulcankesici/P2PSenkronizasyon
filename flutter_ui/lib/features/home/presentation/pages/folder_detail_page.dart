@@ -13,6 +13,9 @@ import 'package:aether_desktop/generated/api/proto/file.pb.dart' as file_pb;
 import 'package:aether_desktop/generated/api/proto/peer.pb.dart' as peer_pb;
 import 'package:aether_desktop/core/services/local_settings_service.dart';
 
+import 'package:aether_desktop/core/localization/app_strings.dart';
+import 'package:aether_desktop/data/providers/language_provider.dart';
+
 class FolderDetailPage extends ConsumerStatefulWidget {
   final Folder folder;
 
@@ -54,47 +57,47 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   @override
   Widget build(BuildContext context) {
     final filesAsync = ref.watch(filesProvider(widget.folder.id));
+    final currentLang = ref.watch(languageProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Klasör Detayı'),
+        title: Text(AppStrings.get('folder_detail', currentLang)),
         actions: [
           IconButton(
-            icon: Icon(LucideIcons.folderSync),
+            icon: const Icon(LucideIcons.folderSync),
             onPressed: () {
               _showSyncFolderDialog(context, ref);
             },
-            tooltip: 'Tüm Klasörü Senkronize Et',
+            tooltip: 'Tüm Klasörü Senkronize Et', // TODO: Localize
           ),
           IconButton(
-            icon: Icon(LucideIcons.refreshCw),
+            icon: const Icon(LucideIcons.refreshCw),
             onPressed: () {
               ref.invalidate(filesProvider(widget.folder.id));
             },
-            tooltip: 'Manuel Yenile (Otomatik: 2sn)',
+            tooltip: 'Manuel Yenile (Otomatik: 2sn)', // TODO: Localize
           ),
         ],
       ),
       body: Column(
         children: [
           // Klasör bilgileri
-          _buildFolderInfo(context),
-          Divider(),
+          _buildFolderInfo(context, currentLang),
+          const Divider(),
           
           // Dosya listesi
           Expanded(
             child: filesAsync.when(
-              data: (files) => _buildFileList(context, ref, files),
-              loading: () => Center(child: CircularProgressIndicator()),
+              data: (files) => _buildFileList(context, ref, files, currentLang),
+              loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, stack) => Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(LucideIcons.alertCircle, size: 48, color: Colors.red),
-                    SizedBox(height: 16),
-                    Text('Dosyalar yüklenirken hata oluştu'),
-                    SizedBox(height: 8),
-                    Text(error.toString(), style: TextStyle(fontSize: 12)),
+                    const Icon(LucideIcons.alertCircle, size: 48, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text('${AppStrings.get('error', currentLang)}: ${error.toString()}'),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),
@@ -105,18 +108,18 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     );
   }
 
-  Widget _buildFolderInfo(BuildContext context) {
+  Widget _buildFolderInfo(BuildContext context, String lang) {
     return Card(
-      margin: EdgeInsets.all(16),
+      margin: const EdgeInsets.all(16),
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Icon(LucideIcons.folder, size: 32, color: Theme.of(context).primaryColor),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,9 +130,9 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        _getSyncModeText(widget.folder.syncMode),
+                        _getSyncModeText(widget.folder.syncMode, lang),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
@@ -137,27 +140,29 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                 ),
               ],
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _buildInfoChip(
                   context,
                   icon: LucideIcons.clock,
-                  label: 'Son Tarama',
-                  value: _formatDateTime(widget.folder.lastScanTime.toDateTime()),
+                  label: AppStrings.get('last_scan', lang),
+                  value: _formatDateTime(widget.folder.lastScanTime.toDateTime(), lang),
                 ),
                 _buildInfoChip(
                   context,
                   icon: widget.folder.isActive ? LucideIcons.checkCircle : LucideIcons.pauseCircle,
-                  label: 'Durum',
-                  value: widget.folder.isActive ? 'Aktif' : 'Pasif',
+                  label: AppStrings.get('status', lang),
+                  value: widget.folder.isActive 
+                      ? AppStrings.get('active', lang) 
+                      : AppStrings.get('inactive', lang),
                 ),
               ],
             ),
             // Bağlı peerları listele
             Consumer(
-              builder: (context, ref, child) => _buildConnectedPeersList(context, ref),
+              builder: (context, ref, child) => _buildConnectedPeersList(context, ref, lang),
             ),
           ],
         ),
@@ -173,19 +178,19 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     return Row(
       children: [
         Icon(icon, size: 16, color: Colors.green),
-        SizedBox(width: 4),
+        const SizedBox(width: 4),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(fontSize: 10, color: Colors.grey)),
-            Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+            Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+            Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildConnectedPeersList(BuildContext context, WidgetRef ref) {
+  Widget _buildConnectedPeersList(BuildContext context, WidgetRef ref, String lang) {
     final connectedPeersAsync = ref.watch(connectedPeersProvider);
 
     return connectedPeersAsync.when(
@@ -194,8 +199,8 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
           return Padding(
             padding: const EdgeInsets.only(top: 8.0),
             child: Text(
-              'Bağlı peer yok',
-              style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
+              AppStrings.get('no_connected_peers_folder', lang),
+              style: const TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
             ),
           );
         }
@@ -203,38 +208,35 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Divider(height: 24),
+            const Divider(height: 24),
             Text(
-              'Bağlı Peerlar ve Senkronizasyon Durumu:',
+              '${AppStrings.get('connected', lang)} ${AppStrings.get('peers', lang)}:',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green[400]),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             ...peers.map((peer) {
-              // Şu anki veri modelinde folder bazlı tek bir sync mode var.
-              // İleride peer bazlı olursa burası güncellenebilir.
-              // Local settings'den peer bazlı sync mode'u al, yoksa folder'ın genel modunu kullan
               final savedMode = LocalSettingsService().getPeerSyncMode(widget.folder.id, peer.deviceId);
               final effectiveMode = savedMode ?? widget.folder.syncMode;
-              final syncModeText = _getSyncModeText(effectiveMode);
+              final syncModeText = _getSyncModeText(effectiveMode, lang);
               
               return Padding(
                 padding: const EdgeInsets.only(bottom: 4.0),
                 child: Row(
                   children: [
-                    Icon(LucideIcons.monitor, size: 14, color: Colors.blue),
-                    SizedBox(width: 8),
+                    const Icon(LucideIcons.monitor, size: 14, color: Colors.blue),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: RichText(
                         text: TextSpan(
-                          style: TextStyle(fontSize: 13, color: Colors.red),
+                          style: const TextStyle(fontSize: 13, color: Colors.red),
                           children: [
-                            TextSpan(text: peer.name, style: TextStyle(fontWeight: FontWeight.w600)),
-                            TextSpan(text: '  '),
+                            TextSpan(text: peer.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            const TextSpan(text: '  '),
                             TextSpan(
                               text: syncModeText, 
                               style: TextStyle(color: Colors.blue[700], fontWeight: FontWeight.w500)
                             ),
-                            TextSpan(text: ' : '),
+                            const TextSpan(text: ' : '),
                             TextSpan(
                               text: peer.deviceId.substring(0, 8), 
                               style: TextStyle(color: Colors.grey[600], fontFamily: 'monospace')
@@ -250,25 +252,21 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
           ],
         );
       },
-      loading: () => SizedBox(height: 20, child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
-      error: (_, __) => Text('Peer bilgisi alınamadı', style: TextStyle(color: Colors.red, fontSize: 12)),
+      loading: () => const SizedBox(height: 20, child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
+      error: (_, __) => Text(AppStrings.get('error', lang), style: const TextStyle(color: Colors.red, fontSize: 12)),
     );
   }
 
-  Widget _buildFileList(BuildContext context, WidgetRef ref, List files) {
+  Widget _buildFileList(BuildContext context, WidgetRef ref, List files, String lang) {
     if (files.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(LucideIcons.fileX, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('Bu klasörde dosya bulunamadı'),
-            SizedBox(height: 8),
-            Text(
-              'Klasör boş olabilir veya henüz taranmamış olabilir',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
+            const Icon(LucideIcons.fileX, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text(AppStrings.get('no_folders', lang)), // Reusing no_folders for now or add specific key
+            const SizedBox(height: 8),
           ],
         ),
       );
@@ -276,11 +274,11 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
 
     return ListView.builder(
       itemCount: files.length,
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       itemBuilder: (context, index) {
         final file = files[index];
         return Card(
-          margin: EdgeInsets.only(bottom: 8),
+          margin: const EdgeInsets.only(bottom: 8),
           child: ListTile(
             leading: Icon(
               _getFileIcon(file.relativePath),
@@ -298,29 +296,28 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
             ),
             subtitle: Row(
               children: [
-                Icon(LucideIcons.hardDrive, size: 12, color: Colors.grey),
-                SizedBox(width: 4),
+                const Icon(LucideIcons.hardDrive, size: 12, color: Colors.grey),
+                const SizedBox(width: 4),
                 Text(_formatFileSize(file.size.toInt())),
-                SizedBox(width: 16),
-                Icon(LucideIcons.clock, size: 12, color: Colors.grey),
-                SizedBox(width: 4),
-                Text(_formatDateTime(file.modTime.toDateTime())),
+                const SizedBox(width: 16),
+                const Icon(LucideIcons.clock, size: 12, color: Colors.grey),
+                const SizedBox(width: 4),
+                Text(_formatDateTime(file.modTime.toDateTime(), lang)),
               ],
             ),
             trailing: PopupMenuButton(
-              icon: Icon(LucideIcons.moreVertical),
+              icon: const Icon(LucideIcons.moreVertical),
               itemBuilder: (context) => [
                 PopupMenuItem(
                   child: Row(
                     children: [
-                      Icon(LucideIcons.send, size: 16),
-                      SizedBox(width: 8),
-                      Text('Senkronize Et'),
+                      const Icon(LucideIcons.send, size: 16),
+                      const SizedBox(width: 8),
+                      const Text('Senkronize Et'), // TODO: Localize
                     ],
                   ),
                   onTap: () {
-                    // PopupMenu kapandıktan sonra dialog'u göster
-                    Future.delayed(Duration(milliseconds: 100), () {
+                    Future.delayed(const Duration(milliseconds: 100), () {
                       _showSyncDialog(context, ref, file);
                     });
                   },
@@ -328,38 +325,13 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                 PopupMenuItem(
                   child: Row(
                     children: [
-                      Icon(LucideIcons.info, size: 16),
-                      SizedBox(width: 8),
-                      Text('Detaylar'),
+                      const Icon(LucideIcons.trash2, size: 16, color: Colors.red),
+                      const SizedBox(width: 8),
+                      Text(AppStrings.get('delete', ref.watch(languageProvider)), style: const TextStyle(color: Colors.red)),
                     ],
                   ),
                   onTap: () {
-                    // TODO: Dosya detay sayfası
-                  },
-                ),
-                PopupMenuItem(
-                  child: Row(
-                    children: [
-                      Icon(LucideIcons.download, size: 16),
-                      SizedBox(width: 8),
-                      Text('İndir'),
-                    ],
-                  ),
-                  onTap: () {
-                    // TODO: Dosya indirme
-                  },
-                ),
-                PopupMenuItem(
-                  child: Row(
-                    children: [
-                      Icon(LucideIcons.trash2, size: 16, color: Colors.red),
-                      SizedBox(width: 8),
-                      Text('Sil', style: TextStyle(color: Colors.red)),
-                    ],
-                  ),
-                  onTap: () {
-                    // PopupMenu kapandıktan sonra dialog'u göster
-                    Future.delayed(Duration(milliseconds: 100), () {
+                    Future.delayed(const Duration(milliseconds: 100), () {
                       _showDeleteFileDialog(context, ref, file);
                     });
                   },
@@ -372,36 +344,40 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     );
   }
 
-  void _showDeleteFileDialog(BuildContext context, WidgetRef ref, file_pb.File file) {
+  Future<void> _showDeleteFileDialog(BuildContext context, WidgetRef ref, file_pb.File file) async {
     bool deletePhysically = false;
     
-    showDialog(
+    final confirmed = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Dosyayı Sil'),
+          title: Text(AppStrings.get('delete_file_title', ref.watch(languageProvider))),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Dosya: ${file.relativePath}',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 4),
-              Text(
-                'Boyut: ${_formatFileSize(file.size.toInt())}',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              SizedBox(height: 16),
-              CheckboxListTile(
-                title: const Text(
-                  'Bilgisayarımdan tamamen kaldır',
-                  style: TextStyle(fontWeight: FontWeight.w500),
+              Text(AppStrings.get('delete_file_message', ref.watch(languageProvider))),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(4),
                 ),
-                subtitle: const Text(
-                  'İşaretlenirse dosya bilgisayardan silinir',
-                  style: TextStyle(fontSize: 11, color: Colors.red),
+                child: Text(
+                  file.relativePath,
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                ),
+              ),
+              const SizedBox(height: 16),
+              CheckboxListTile(
+                title: Text(
+                  AppStrings.get('delete_physically', ref.watch(languageProvider)),
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+                subtitle: Text(
+                  AppStrings.get('delete_physically_subtitle', ref.watch(languageProvider)),
+                  style: const TextStyle(fontSize: 11, color: Colors.red),
                 ),
                 value: deletePhysically,
                 onChanged: (value) {
@@ -412,11 +388,11 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                 contentPadding: EdgeInsets.zero,
                 dense: true,
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
                 deletePhysically
-                    ? '⚠️ UYARI: Dosya bilgisayardan silinecek!'
-                    : 'ℹ️ Dosya sadece uygulamadan kaldırılacak, fiziksel dosya korunacak.',
+                    ? AppStrings.get('delete_warning', ref.watch(languageProvider))
+                    : AppStrings.get('delete_info', ref.watch(languageProvider)),
                 style: TextStyle(
                   fontSize: 12,
                   color: deletePhysically ? Colors.red : Colors.grey,
@@ -427,83 +403,80 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('İptal'),
+              onPressed: () => Navigator.of(context).pop(null),
+              child: Text(AppStrings.get('cancel', ref.watch(languageProvider))),
             ),
             FilledButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                
-                await ref.read(fileNotifierProvider.notifier).deleteFile(
-                  file.id,
-                  file.folderId,
-                  deletePhysically: deletePhysically,
-                );
-                
-                if (context.mounted) {
-                  final fileState = ref.read(fileNotifierProvider);
-                  if (!fileState.hasError) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          deletePhysically
-                              ? 'Dosya bilgisayardan tamamen silindi'
-                              : 'Dosya uygulamadan kaldırıldı (fiziksel dosya korundu)',
-                        ),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Hata: ${fileState.error}'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              },
+              onPressed: () => Navigator.of(context).pop({
+                'confirmed': true,
+                'deletePhysically': deletePhysically,
+              }),
               style: FilledButton.styleFrom(
                 backgroundColor: deletePhysically ? Colors.red : Colors.orange,
               ),
-              child: Text(deletePhysically ? 'Tamamen Sil' : 'Uygulamadan Kaldır'),
+              child: Text(deletePhysically 
+                  ? AppStrings.get('delete_permanently', ref.watch(languageProvider)) 
+                  : AppStrings.get('remove_from_app', ref.watch(languageProvider))),
             ),
           ],
         ),
       ),
     );
+
+    if (confirmed != null && confirmed['confirmed'] == true) {
+      final shouldDeletePhysically = confirmed['deletePhysically'] as bool? ?? false;
+      
+      await ref.read(fileNotifierProvider.notifier).deleteFile(
+        file.id,
+        widget.folder.id,
+        deletePhysically: shouldDeletePhysically,
+      );
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              shouldDeletePhysically
+                  ? AppStrings.get('file_deleted_physically', ref.read(languageProvider))
+                  : AppStrings.get('file_removed_app', ref.read(languageProvider)),
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
   }
 
-  IconData _getFileIcon(String path) {
-    final ext = path.toLowerCase().split('.').last;
-    
-    switch (ext) {
-      case 'txt':
-      case 'doc':
-      case 'docx':
+  IconData _getFileIcon(String fileName) {
+    final extension = fileName.split('.').last.toLowerCase();
+    switch (extension) {
       case 'pdf':
         return LucideIcons.fileText;
       case 'jpg':
       case 'jpeg':
       case 'png':
       case 'gif':
-      case 'webp':
-        return LucideIcons.fileImage;
+        return LucideIcons.image;
       case 'mp4':
-      case 'avi':
-      case 'mkv':
       case 'mov':
-        return LucideIcons.fileVideo;
+      case 'avi':
+        return LucideIcons.video;
       case 'mp3':
       case 'wav':
-      case 'flac':
-        return LucideIcons.fileAudio;
+        return LucideIcons.music;
       case 'zip':
       case 'rar':
       case '7z':
-      case 'tar':
-      case 'gz':
-        return LucideIcons.fileArchive;
+        return LucideIcons.archive;
+      case 'doc':
+      case 'docx':
+        return LucideIcons.fileType2;
+      case 'xls':
+      case 'xlsx':
+        return LucideIcons.sheet;
+      case 'ppt':
+      case 'pptx':
+        return LucideIcons.presentation;
       default:
         return LucideIcons.file;
     }
@@ -512,37 +485,39 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   String _formatFileSize(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 
-  String _getSyncModeText(SyncMode mode) {
+  String _getSyncModeText(SyncMode mode, String lang) {
     switch (mode) {
       case SyncMode.SYNC_MODE_BIDIRECTIONAL:
-        return '📡 Çift Yönlü Senkronizasyon';
+        return AppStrings.get('sync_bidirectional', lang);
       case SyncMode.SYNC_MODE_SEND_ONLY:
-        return '⬆️ Gönderici';
+        return AppStrings.get('sync_send_only', lang);
       case SyncMode.SYNC_MODE_RECEIVE_ONLY:
-        return '⬇️ Alıcı';
+        return AppStrings.get('sync_receive_only', lang);
       case SyncMode.SYNC_MODE_UNSPECIFIED:
-        return 'Henüz Belirlenmemiş';
+        return AppStrings.get('sync_unspecified', lang);
       default:
-        return 'Bilinmiyor';
+        return AppStrings.get('unknown_status', lang);
     }
   }
 
-  String _formatDateTime(DateTime? dateTime) {
+  String _formatDateTime(DateTime? dateTime, String lang) {
     if (dateTime == null || dateTime.year == 1) {
-      return 'Henüz taranmadı';
+      return AppStrings.get('unknown', lang);
     }
     
     final now = DateTime.now();
     final diff = now.difference(dateTime);
     
-    if (diff.inMinutes < 1) return 'Az önce';
-    if (diff.inHours < 1) return '${diff.inMinutes} dakika önce';
-    if (diff.inDays < 1) return '${diff.inHours} saat önce';
-    if (diff.inDays < 7) return '${diff.inDays} gün önce';
+    if (diff.inMinutes < 1) return AppStrings.get('just_now', lang);
+    if (diff.inHours < 1) return '${diff.inMinutes} ${AppStrings.get('minutes_ago', lang)}';
+    if (diff.inDays < 1) return '${diff.inHours} ${AppStrings.get('hours_ago', lang)}';
+    if (diff.inDays < 7) return '${diff.inDays} ${AppStrings.get('days_ago', lang)}';
     
     return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
   }

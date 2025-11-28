@@ -5,6 +5,9 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:aether_desktop/data/providers/peer_provider.dart';
 import 'package:aether_desktop/generated/api/proto/peer.pb.dart' as peer_pb;
 import 'package:aether_desktop/generated/api/proto/common.pbenum.dart' as common_pb;
+import 'package:aether_desktop/data/providers/user_provider.dart';
+import 'package:aether_desktop/data/providers/language_provider.dart';
+import 'package:aether_desktop/core/localization/app_strings.dart';
 
 class PeersPage extends ConsumerStatefulWidget {
   const PeersPage({super.key});
@@ -44,26 +47,37 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('P2P Bağlantılar'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(AppStrings.get('p2p_connections', ref.watch(languageProvider))),
+            Text(
+              '${AppStrings.get('this_device', ref.watch(languageProvider))}: ${ref.watch(userProvider)}',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.white70,
+                  ),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(LucideIcons.refreshCw),
             onPressed: () {
               ref.read(peerNotifierProvider.notifier).discoverPeers();
             },
-            tooltip: 'Yenile',
+            tooltip: AppStrings.get('refresh', ref.watch(languageProvider)),
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
+          tabs: [
             Tab(
-              icon: Icon(LucideIcons.search),
-              text: 'Keşfedilen',
+              icon: const Icon(LucideIcons.search),
+              text: AppStrings.get('discovered', ref.watch(languageProvider)),
             ),
             Tab(
-              icon: Icon(LucideIcons.link),
-              text: 'Bağlı',
+              icon: const Icon(LucideIcons.link),
+              text: AppStrings.get('connected', ref.watch(languageProvider)),
             ),
           ],
         ),
@@ -97,9 +111,9 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
         if (availablePeers.isEmpty) {
           return _buildEmptyState(
             icon: LucideIcons.search,
-            title: 'Peer Bulunamadı',
-            message: 'Aynı ağdaki diğer Aether cihazları otomatik olarak keşfedilir.',
-            actionLabel: 'Yeniden Ara',
+            title: AppStrings.get('no_peers_found', ref.watch(languageProvider)),
+            message: AppStrings.get('no_peers_message', ref.watch(languageProvider)),
+            actionLabel: AppStrings.get('search_again', ref.watch(languageProvider)),
             onAction: () {
               ref.read(peerNotifierProvider.notifier).discoverPeers();
             },
@@ -148,8 +162,8 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
         if (peers.isEmpty) {
           return _buildEmptyState(
             icon: LucideIcons.link2Off,
-            title: 'Bağlı Peer Yok',
-            message: 'Keşfedilen peer\'lara bağlanmak için "Keşfedilen" sekmesine gidin.',
+            title: AppStrings.get('no_connected_peers', ref.watch(languageProvider)),
+            message: AppStrings.get('no_connected_message', ref.watch(languageProvider)),
           );
         }
 
@@ -257,7 +271,7 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
                       }
                     },
                     icon: const Icon(LucideIcons.link, size: 16),
-                    label: const Text('Bağlan'),
+                    label: Text(AppStrings.get('connect', ref.watch(languageProvider))),
                   ),
                 if (isConnected)
                   TextButton.icon(
@@ -265,7 +279,7 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
                       _confirmDisconnect(peer);
                     },
                     icon: const Icon(LucideIcons.link2Off, size: 16),
-                    label: const Text('Bağlantıyı Kes'),
+                    label: Text(AppStrings.get('disconnect', ref.watch(languageProvider))),
                     style: TextButton.styleFrom(foregroundColor: Colors.red),
                   ),
                 const SizedBox(width: 8),
@@ -275,7 +289,7 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
                       ref.read(peerNotifierProvider.notifier).trustPeer(peer.deviceId);
                     },
                     icon: const Icon(LucideIcons.shieldCheck, size: 16),
-                    label: const Text('Güven'),
+                    label: Text(AppStrings.get('trust', ref.watch(languageProvider))),
                   ),
                 if (peer.isTrusted)
                   TextButton.icon(
@@ -283,7 +297,7 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
                       ref.read(peerNotifierProvider.notifier).untrustPeer(peer.deviceId);
                     },
                     icon: const Icon(LucideIcons.shieldOff, size: 16),
-                    label: const Text('Güveni Kaldır'),
+                    label: Text(AppStrings.get('untrust', ref.watch(languageProvider))),
                     style: TextButton.styleFrom(foregroundColor: Colors.orange),
                   ),
                 const SizedBox(width: 8),
@@ -308,19 +322,19 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
 
     if (status == common_pb.PeerStatus.PEER_STATUS_ONLINE) {
       color = Colors.green;
-      text = 'Çevrimiçi';
+      text = AppStrings.get('online', ref.watch(languageProvider));
       icon = LucideIcons.circle;
     } else if (status == common_pb.PeerStatus.PEER_STATUS_OFFLINE) {
       color = Colors.grey;
-      text = 'Çevrimdışı';
+      text = AppStrings.get('offline', ref.watch(languageProvider));
       icon = LucideIcons.circle;
     } else if (status == common_pb.PeerStatus.PEER_STATUS_CONNECTING) {
       color = Colors.orange;
-      text = 'Bağlanıyor';
+      text = AppStrings.get('connecting', ref.watch(languageProvider));
       icon = LucideIcons.loader;
     } else {
       color = Colors.grey;
-      text = 'Bilinmiyor';
+      text = AppStrings.get('unknown', ref.watch(languageProvider));
       icon = LucideIcons.helpCircle;
     }
 
@@ -402,7 +416,7 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
           children: [
             ListTile(
               leading: const Icon(LucideIcons.info),
-              title: const Text('Detayları Göster'),
+              title: Text(AppStrings.get('show_details', ref.watch(languageProvider))),
               onTap: () {
                 Navigator.pop(context);
                 _showPeerDetails(peer);
@@ -410,7 +424,7 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
             ),
             ListTile(
               leading: const Icon(LucideIcons.trash2, color: Colors.red),
-              title: const Text('Peer\'ı Kaldır', style: TextStyle(color: Colors.red)),
+              title: Text(AppStrings.get('remove_peer', ref.watch(languageProvider)), style: const TextStyle(color: Colors.red)),
               onTap: () {
                 Navigator.pop(context);
                 _confirmRemovePeer(peer);
@@ -451,7 +465,7 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Kapat'),
+            child: Text(AppStrings.get('close', ref.watch(languageProvider))),
           ),
         ],
       ),
@@ -483,12 +497,12 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Peer\'ı Kaldır'),
-        content: Text('${peer.name} peer\'ını kaldırmak istediğinize emin misiniz?'),
+        title: Text(AppStrings.get('remove_confirm_title', ref.watch(languageProvider))),
+        content: Text('${peer.name} ${AppStrings.get('remove_confirm_message', ref.watch(languageProvider))}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('İptal'),
+            child: Text(AppStrings.get('cancel', ref.watch(languageProvider))),
           ),
           TextButton(
             onPressed: () {
@@ -496,7 +510,7 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
               ref.read(peerNotifierProvider.notifier).removePeer(peer.deviceId);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Kaldır'),
+            child: Text(AppStrings.get('remove', ref.watch(languageProvider))),
           ),
         ],
       ),
@@ -507,12 +521,12 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Bağlantıyı Kes'),
-        content: Text('${peer.name} cihazıyla bağlantıyı kesmek istediğinize emin misiniz?'),
+        title: Text(AppStrings.get('disconnect_confirm_title', ref.watch(languageProvider))),
+        content: Text('${AppStrings.get('disconnect_confirm_message', ref.watch(languageProvider))} ${peer.name}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('İptal'),
+            child: Text(AppStrings.get('cancel', ref.watch(languageProvider))),
           ),
           TextButton(
             onPressed: () async {
@@ -528,7 +542,7 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
               }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Kes'),
+            child: Text(AppStrings.get('disconnect', ref.watch(languageProvider))), // 'Kes' yerine 'Bağlantıyı Kes' (Disconnect) kullanıldı
           ),
         ],
       ),

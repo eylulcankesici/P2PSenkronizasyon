@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:aether_desktop/data/providers/transfer_provider.dart';
 
+import 'package:aether_desktop/core/localization/app_strings.dart';
+import 'package:aether_desktop/data/providers/language_provider.dart';
+
 class TransfersPage extends ConsumerStatefulWidget {
   const TransfersPage({super.key});
 
@@ -27,32 +30,34 @@ class _TransfersPageState extends ConsumerState<TransfersPage> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
+    final currentLang = ref.watch(languageProvider);
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dosya Transferleri'),
+        title: Text(AppStrings.get('file_transfers', currentLang)),
         actions: [
           IconButton(
             icon: const Icon(LucideIcons.trash2),
             onPressed: () {
               ref.read(transferNotifierProvider.notifier).clearCompleted();
             },
-            tooltip: 'Tamamlananları Temizle',
+            tooltip: 'Tamamlananları Temizle', // TODO: Add localization key
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
+          tabs: [
             Tab(
-              icon: Icon(LucideIcons.download),
-              text: 'Aktif',
+              icon: const Icon(LucideIcons.download),
+              text: AppStrings.get('active', currentLang),
             ),
             Tab(
-              icon: Icon(LucideIcons.checkCircle),
-              text: 'Tamamlandı',
+              icon: const Icon(LucideIcons.checkCircle),
+              text: AppStrings.get('completed', currentLang),
             ),
             Tab(
-              icon: Icon(LucideIcons.xCircle),
-              text: 'Başarısız',
+              icon: const Icon(LucideIcons.xCircle),
+              text: AppStrings.get('failed', currentLang),
             ),
           ],
         ),
@@ -60,22 +65,22 @@ class _TransfersPageState extends ConsumerState<TransfersPage> with SingleTicker
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildActiveTransfersTab(),
-          _buildCompletedTransfersTab(),
-          _buildFailedTransfersTab(),
+          _buildActiveTransfersTab(currentLang),
+          _buildCompletedTransfersTab(currentLang),
+          _buildFailedTransfersTab(currentLang),
         ],
       ),
     );
   }
 
-  Widget _buildActiveTransfersTab() {
+  Widget _buildActiveTransfersTab(String lang) {
     final activeTransfers = ref.watch(activeTransfersProvider);
 
     if (activeTransfers.isEmpty) {
       return _buildEmptyState(
         icon: LucideIcons.download,
-        title: 'Aktif Transfer Yok',
-        message: 'Dosya transferleri burada görünecek.',
+        title: AppStrings.get('no_active_transfers', lang),
+        message: AppStrings.get('transfers_will_appear_here', lang),
       );
     }
 
@@ -88,14 +93,14 @@ class _TransfersPageState extends ConsumerState<TransfersPage> with SingleTicker
     );
   }
 
-  Widget _buildCompletedTransfersTab() {
+  Widget _buildCompletedTransfersTab(String lang) {
     final completedTransfers = ref.watch(completedTransfersProvider);
 
     if (completedTransfers.isEmpty) {
       return _buildEmptyState(
         icon: LucideIcons.checkCircle,
-        title: 'Tamamlanan Transfer Yok',
-        message: 'Tamamlanan transferler burada görünecek.',
+        title: AppStrings.get('completed', lang), // Simplified for now
+        message: AppStrings.get('transfers_will_appear_here', lang), // Reusing message
       );
     }
 
@@ -108,14 +113,14 @@ class _TransfersPageState extends ConsumerState<TransfersPage> with SingleTicker
     );
   }
 
-  Widget _buildFailedTransfersTab() {
+  Widget _buildFailedTransfersTab(String lang) {
     final failedTransfers = ref.watch(failedTransfersProvider);
 
     if (failedTransfers.isEmpty) {
       return _buildEmptyState(
         icon: LucideIcons.checkCircle,
-        title: 'Başarısız Transfer Yok',
-        message: 'Başarısız transferler burada görünecek.',
+        title: AppStrings.get('failed', lang), // Simplified
+        message: AppStrings.get('transfers_will_appear_here', lang), // Reusing
       );
     }
 
