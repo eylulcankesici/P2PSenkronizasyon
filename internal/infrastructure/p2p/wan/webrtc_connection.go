@@ -180,9 +180,11 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 		exchangeCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		defer cancel()
 		
+		log.Printf("⏳ ExchangeSDP RPC çağrısı başlatılıyor (timeout: 30s)...")
 		exchangeResp, err := peerClient.ExchangeSDP(exchangeCtx, exchangeReq)
 		if err != nil {
 			log.Printf("❌ SDP exchange hatası: %v (connection devam edecek)", err)
+			log.Printf("   Hata detayı: %T - %s", err, err.Error())
 			m.connections[peer.DeviceID] = webrtcConn
 			return webrtcConn, nil
 		}
