@@ -37,11 +37,25 @@ func (h *PeerHandler) DiscoverPeers(ctx context.Context, req *pb.DiscoverPeersRe
 	lanOnly := req.GetLanOnly()
 	wanOnly := req.GetWanOnly()
 
+	log.Printf("🔍 DiscoverPeers çağrıldı - lanOnly: %v, wanOnly: %v, toplam keşfedilen: %d", lanOnly, wanOnly, len(discoveredPeers))
+
 	for _, discoveredPeer := range discoveredPeers {
+		transportTypeStr := "UNKNOWN"
+		if discoveredPeer.TransportType == transport.TransportTypeLAN {
+			transportTypeStr = "LAN"
+		} else if discoveredPeer.TransportType == transport.TransportTypeWAN {
+			transportTypeStr = "WAN"
+		}
+		
+		log.Printf("  📡 Peer bulundu: %s (%s) - Transport: %s, Adresler: %v", 
+			discoveredPeer.DeviceName, discoveredPeer.DeviceID[:8], transportTypeStr, discoveredPeer.Addresses)
+
 		if lanOnly && discoveredPeer.TransportType != transport.TransportTypeLAN {
+			log.Printf("    ⏭️ LAN filtresi nedeniyle atlandı")
 			continue
 		}
 		if wanOnly && discoveredPeer.TransportType != transport.TransportTypeWAN {
+			log.Printf("    ⏭️ WAN filtresi nedeniyle atlandı")
 			continue
 		}
 
@@ -54,7 +68,10 @@ func (h *PeerHandler) DiscoverPeers(ctx context.Context, req *pb.DiscoverPeersRe
 			WanSupported:   discoveredPeer.TransportType == transport.TransportTypeWAN,
 		}
 		pbPeers = append(pbPeers, pbPeer)
+		log.Printf("    ✅ Peer eklendi: %s", discoveredPeer.DeviceName)
 	}
+
+	log.Printf("📤 DiscoverPeers yanıtı: %d peer döndürülüyor", len(pbPeers))
 
 	return &pb.DiscoverPeersResponse{
 		Status: &pb.Status{
@@ -547,6 +564,9 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 		}, nil
 	}
 
+	log.Printf("📥 AddPeerByInvitation çağrıldı - DeviceID: %s, DeviceName: %s, PublicIP: %s, GRPCAddress: %s", 
+		invitationData.DeviceID[:8], invitationData.DeviceName, invitationData.PublicIP, invitationData.GRPCAddress)
+
 	// Peer'ı ekle (gRPC address ile)
 	err = discoveryService.AddPeerWithGRPC(
 		invitationData.DeviceID,
@@ -560,6 +580,7 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 		log.Printf("✅ gRPC address metadata'ya eklendi: %s", invitationData.GRPCAddress)
 	}
 	if err != nil {
+		log.Printf("❌ Peer eklenemedi: %v", err)
 		return &pb.Status{
 			Success: false,
 			Message: fmt.Sprintf("Peer eklenemedi: %v", err),
@@ -567,7 +588,13 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 		}, nil
 	}
 
+	// Peer'ın gerçekten eklendiğini doğrula
+	allPeers := discoveryService.GetDiscoveredPeers()
 	log.Printf("✅ Peer invitation code ile eklendi: %s (%s)", invitationData.DeviceName, invitationData.DeviceID[:8])
+	log.Printf("📊 WAN Discovery Service'te toplam peer sayısı: %d", len(allPeers))
+	for _, p := range allPeers {
+		log.Printf("  - %s (%s)", p.DeviceName, p.DeviceID[:8])
+	}
 
 	// (Opsiyonel) Otomatik bağlanmayı dene
 	go func() {

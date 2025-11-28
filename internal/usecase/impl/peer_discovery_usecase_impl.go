@@ -57,7 +57,17 @@ func (uc *PeerDiscoveryUseCaseImpl) StopDiscovery() error {
 func (uc *PeerDiscoveryUseCaseImpl) GetDiscoveredPeers(ctx context.Context) ([]*transport.DiscoveredPeer, error) {
 	discoveredPeers := uc.transportProvider.GetDiscoveredPeers()
 	
-	log.Printf("📊 Keşfedilen peer sayısı: %d", len(discoveredPeers))
+	log.Printf("📊 GetDiscoveredPeers çağrıldı - Toplam keşfedilen peer sayısı: %d", len(discoveredPeers))
+	for i, peer := range discoveredPeers {
+		transportTypeStr := "UNKNOWN"
+		if peer.TransportType == transport.TransportTypeLAN {
+			transportTypeStr = "LAN"
+		} else if peer.TransportType == transport.TransportTypeWAN {
+			transportTypeStr = "WAN"
+		}
+		log.Printf("  [%d] %s (%s) - Transport: %s, Adresler: %v", 
+			i+1, peer.DeviceName, peer.DeviceID[:8], transportTypeStr, peer.Addresses)
+	}
 	
 	return discoveredPeers, nil
 }

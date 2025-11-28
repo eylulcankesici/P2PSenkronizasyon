@@ -258,7 +258,8 @@ class _PeersPageState extends ConsumerState<PeersPage>
     final peersAsync = ref.watch(discoveredPeersProvider);
     final connectedPeersAsync = ref.watch(connectedPeersProvider);
     final grpcConfig = ref.watch(grpcConnectionConfigProvider);
-    final grpcConnected = ref.watch(grpcConnectionStateProvider);
+    final grpcConnectedAsync = ref.watch(grpcConnectionStateProvider);
+    final grpcConnected = grpcConnectedAsync.valueOrNull ?? false;
 
     return peersAsync.when(
       data: (peers) {
@@ -281,7 +282,8 @@ class _PeersPageState extends ConsumerState<PeersPage>
                 decoration: BoxDecoration(
                   color: Colors.blueGrey.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.2)),
+                  border:
+                      Border.all(color: Colors.blueGrey.withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   children: [

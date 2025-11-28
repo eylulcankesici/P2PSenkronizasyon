@@ -3,6 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/aether/sync/internal/domain/transport"
 	"github.com/aether/sync/internal/infrastructure/p2p/lan"
@@ -84,12 +85,24 @@ func (h *HybridTransportProvider) StopDiscovery() error {
 
 func (h *HybridTransportProvider) GetDiscoveredPeers() []*transport.DiscoveredPeer {
 	peers := make([]*transport.DiscoveredPeer, 0)
+	lanCount := 0
+	wanCount := 0
+	
 	if h.lan != nil {
-		peers = append(peers, h.lan.GetDiscoveredPeers()...)
+		lanPeers := h.lan.GetDiscoveredPeers()
+		lanCount = len(lanPeers)
+		peers = append(peers, lanPeers...)
 	}
 	if h.wan != nil {
-		peers = append(peers, h.wan.GetDiscoveredPeers()...)
+		wanPeers := h.wan.GetDiscoveredPeers()
+		wanCount = len(wanPeers)
+		peers = append(peers, wanPeers...)
 	}
+	
+	if len(peers) > 0 {
+		log.Printf("🔗 HybridTransportProvider: LAN'dan %d, WAN'dan %d peer (toplam: %d)", lanCount, wanCount, len(peers))
+	}
+	
 	return peers
 }
 
