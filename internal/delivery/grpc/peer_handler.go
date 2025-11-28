@@ -617,18 +617,17 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 		go func() {
 			log.Printf("🔄 Karşı tarafın backend'ine bağlanılıyor: %s", invitationData.GRPCAddress)
 			
-			// gRPC connection oluştur (blocking mode ile)
+			// gRPC connection oluştur (non-blocking, lazy connection)
 			grpcConn, err := grpc.NewClient(
 				invitationData.GRPCAddress,
 				grpc.WithTransportCredentials(insecure.NewCredentials()),
-				grpc.WithBlock(), // Bağlantının kurulmasını bekle
 			)
 			if err != nil {
-				log.Printf("⚠️ Karşı tarafın backend'ine bağlanılamadı: %v (karşılıklı ekleme yapılamadı)", err)
+				log.Printf("⚠️ gRPC client oluşturulamadı: %v (karşılıklı ekleme yapılamadı)", err)
 				return
 			}
 			defer grpcConn.Close()
-			log.Printf("✅ gRPC bağlantısı kuruldu: %s", invitationData.GRPCAddress)
+			log.Printf("✅ gRPC client oluşturuldu: %s", invitationData.GRPCAddress)
 
 			// Peer service client oluştur
 			peerClient := pb.NewPeerServiceClient(grpcConn)
@@ -668,10 +667,11 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 			log.Printf("📤 Karşı tarafa kendi bilgilerimizi gönderiyoruz: %s (%s) -> %s", 
 				myDeviceName, myDeviceID[:8], invitationData.GRPCAddress)
 			
-			// AddWANPeer çağrısı için context
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			// AddWANPeer çağrısı için context (uzun timeout - bağlantı kurulması için zaman tanı)
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 			
+			log.Printf("📞 AddWANPeer RPC çağrısı yapılıyor (timeout: 30s)...")
 			addPeerResp, err := peerClient.AddWANPeer(ctx, addPeerReq)
 			if err != nil {
 				log.Printf("⚠️ Karşı tarafa bilgi gönderilemedi: %v (karşılıklı ekleme yapılamadı)", err)
