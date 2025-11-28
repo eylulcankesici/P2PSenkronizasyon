@@ -107,16 +107,27 @@ func (h *HybridTransportProvider) GetDiscoveredPeers() []*transport.DiscoveredPe
 }
 
 func (h *HybridTransportProvider) Connect(ctx context.Context, peer *transport.DiscoveredPeer) (transport.Connection, error) {
+	transportTypeStr := "UNKNOWN"
+	if peer.TransportType == transport.TransportTypeWAN {
+		transportTypeStr = "WAN"
+	} else if peer.TransportType == transport.TransportTypeLAN {
+		transportTypeStr = "LAN"
+	}
+	log.Printf("🔌 HybridTransportProvider.Connect çağrıldı - Peer: %s (%s), Transport: %s", 
+		peer.DeviceName, peer.DeviceID[:8], transportTypeStr)
+	
 	switch peer.TransportType {
 	case transport.TransportTypeWAN:
 		if h.wan == nil {
 			return nil, fmt.Errorf("WAN transport aktif değil")
 		}
+		log.Printf("🌐 WAN transport üzerinden bağlantı kuruluyor: %s", peer.DeviceID[:8])
 		return h.wan.Connect(ctx, peer)
 	case transport.TransportTypeLAN:
 		if h.lan == nil {
 			return nil, fmt.Errorf("LAN transport aktif değil")
 		}
+		log.Printf("🏠 LAN transport üzerinden bağlantı kuruluyor: %s", peer.DeviceID[:8])
 		return h.lan.Connect(ctx, peer)
 	default:
 		// Transport tipi bilinmiyorsa sırasıyla LAN sonra WAN dene
