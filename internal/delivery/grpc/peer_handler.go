@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/pion/webrtc/v3"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	pb "github.com/aether/sync/api/proto"
 	"github.com/aether/sync/internal/container"
@@ -608,6 +610,75 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 	log.Printf("📊 WAN Discovery Service'te toplam peer sayısı: %d", len(allPeers))
 	for _, p := range allPeers {
 		log.Printf("  - %s (%s)", p.DeviceName, p.DeviceID[:8])
+	}
+
+	// Karşı tarafın backend'ine bağlanıp kendi bilgilerini gönder (karşılıklı ekleme)
+	if invitationData.GRPCAddress != "" {
+		go func() {
+			log.Printf("🔄 Karşı tarafın backend'ine bağlanılıyor: %s", invitationData.GRPCAddress)
+			
+			// gRPC connection oluştur
+			grpcConn, err := grpc.NewClient(invitationData.GRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				log.Printf("⚠️ Karşı tarafın backend'ine bağlanılamadı: %v (karşılıklı ekleme yapılamadı)", err)
+				return
+			}
+			defer grpcConn.Close()
+
+			// Peer service client oluştur
+			peerClient := pb.NewPeerServiceClient(grpcConn)
+
+			// Kendi bilgilerini al
+			myDeviceID := deviceID
+			myDeviceName := h.container.GetDeviceName()
+			
+			// Public IP al
+			myPublicIP, err := wanTransport.GetPublicIP(context.Background())
+			if err != nil {
+				log.Printf("⚠️ Public IP alınamadı: %v", err)
+				myPublicIP = ""
+			}
+
+			// ICE candidates al
+			myICECandidates, err := wanTransport.GetICECandidates()
+			if err != nil {
+				log.Printf("⚠️ ICE candidates alınamadı: %v", err)
+				myICECandidates = []wan.ICECandidate{}
+			}
+
+			// ICE candidates'ı string array'e çevir
+			iceCandidatesStr := make([]string, 0, len(myICECandidates))
+			for _, cand := range myICECandidates {
+				iceCandidatesStr = append(iceCandidatesStr, fmt.Sprintf("%s:%d", cand.IP.String(), cand.Port))
+			}
+
+			// AddWANPeer çağrısı yap
+			addPeerReq := &pb.AddWANPeerRequest{
+				PeerId:        myDeviceID,
+				PeerName:      myDeviceName,
+				PublicIp:      myPublicIP,
+				IceCandidates: iceCandidatesStr,
+			}
+
+			log.Printf("📤 Karşı tarafa kendi bilgilerimizi gönderiyoruz: %s (%s) -> %s", 
+				myDeviceName, myDeviceID[:8], invitationData.GRPCAddress)
+			
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			
+			addPeerResp, err := peerClient.AddWANPeer(ctx, addPeerReq)
+			if err != nil {
+				log.Printf("⚠️ Karşı tarafa bilgi gönderilemedi: %v (karşılıklı ekleme yapılamadı)", err)
+				return
+			}
+
+			if !addPeerResp.Success {
+				log.Printf("⚠️ Karşı taraf peer eklemedi: %s", addPeerResp.Message)
+				return
+			}
+
+			log.Printf("✅ Karşı taraf bizi otomatik olarak ekledi: %s", invitationData.DeviceName)
+		}()
 	}
 
 	// (Opsiyonel) Otomatik bağlanmayı dene
