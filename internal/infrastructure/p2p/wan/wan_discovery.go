@@ -21,6 +21,11 @@ type WANDiscoveryService struct {
 	discoveredPeers map[string]*transport.DiscoveredPeer
 	mu              sync.RWMutex
 
+	// Oluşturulan invitation code'lar (karşılıklı ekleme için)
+	// Key: invitation code, Value: invitation data
+	invitationCodes map[string]*InvitationData
+	invitationMu    sync.RWMutex
+
 	// State
 	started bool
 
@@ -35,6 +40,7 @@ func NewWANDiscoveryService(deviceID, deviceName string) *WANDiscoveryService {
 		deviceID:        deviceID,
 		deviceName:      deviceName,
 		discoveredPeers: make(map[string]*transport.DiscoveredPeer),
+		invitationCodes: make(map[string]*InvitationData),
 		started:         false,
 	}
 }
@@ -269,5 +275,31 @@ func (d *WANDiscoveryService) SetOnPeerDiscovered(callback func(*transport.Disco
 // SetOnPeerLost callback'i ayarlar
 func (d *WANDiscoveryService) SetOnPeerLost(callback func(string)) {
 	d.onPeerLost = callback
+}
+
+// SaveInvitationCode invitation code'u kaydeder (karşılıklı ekleme için)
+func (d *WANDiscoveryService) SaveInvitationCode(code string, data *InvitationData) {
+	d.invitationMu.Lock()
+	defer d.invitationMu.Unlock()
+
+	d.invitationCodes[code] = data
+	log.Printf("💾 Invitation code kaydedildi: %s (device: %s)", code[:20], data.DeviceName)
+}
+
+// GetInvitationCode invitation code'u döner
+func (d *WANDiscoveryService) GetInvitationCode(code string) *InvitationData {
+	d.invitationMu.RLock()
+	defer d.invitationMu.RUnlock()
+
+	return d.invitationCodes[code]
+}
+
+// RemoveInvitationCode invitation code'u kaldırır (expired olduğunda)
+func (d *WANDiscoveryService) RemoveInvitationCode(code string) {
+	d.invitationMu.Lock()
+	defer d.invitationMu.Unlock()
+
+	delete(d.invitationCodes, code)
+	log.Printf("🗑️ Invitation code kaldırıldı: %s", code[:20])
 }
 

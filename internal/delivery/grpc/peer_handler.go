@@ -4,12 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/pion/webrtc/v3"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 
 	pb "github.com/aether/sync/api/proto"
 	"github.com/aether/sync/internal/container"
@@ -35,13 +32,13 @@ func NewPeerHandler(cont *container.Container) *PeerHandler {
 func (h *PeerHandler) DiscoverPeers(ctx context.Context, req *pb.DiscoverPeersRequest) (*pb.DiscoverPeersResponse, error) {
 	// Sadece keşfedilen peer'ları döndür (henüz bağlanmamış olanlar)
 	discoveredPeers, _ := h.container.PeerDiscoveryUseCase().GetDiscoveredPeers(ctx)
-
+	
 	pbPeers := make([]*pb.Peer, 0, len(discoveredPeers))
 	lanOnly := req.GetLanOnly()
 	wanOnly := req.GetWanOnly()
 
 	log.Printf("🔍 DiscoverPeers çağrıldı - lanOnly: %v, wanOnly: %v, toplam keşfedilen: %d", lanOnly, wanOnly, len(discoveredPeers))
-
+	
 	for _, discoveredPeer := range discoveredPeers {
 		transportTypeStr := "UNKNOWN"
 		if discoveredPeer.TransportType == transport.TransportTypeLAN {
@@ -75,7 +72,7 @@ func (h *PeerHandler) DiscoverPeers(ctx context.Context, req *pb.DiscoverPeersRe
 	}
 
 	log.Printf("📤 DiscoverPeers yanıtı: %d peer döndürülüyor", len(pbPeers))
-
+	
 	return &pb.DiscoverPeersResponse{
 		Status: &pb.Status{
 			Success: true,
@@ -96,7 +93,7 @@ func (h *PeerHandler) ConnectToPeer(ctx context.Context, req *pb.ConnectToPeerRe
 			Code:    500,
 		}, nil
 	}
-
+	
 	return &pb.Status{
 		Success: true,
 		Message: "Bağlantı başarıyla kuruldu",
@@ -114,7 +111,7 @@ func (h *PeerHandler) DisconnectFromPeer(ctx context.Context, req *pb.Disconnect
 			Code:    500,
 		}, nil
 	}
-
+	
 	return &pb.Status{
 		Success: true,
 		Message: "Bağlantı başarıyla kesildi",
@@ -127,22 +124,22 @@ func (h *PeerHandler) ListPeers(ctx context.Context, req *pb.ListPeersRequest) (
 	// Bağlı peer'ları almak için transport provider'dan bağlantıları kontrol et
 	transportProvider := h.container.TransportProvider()
 	connections := transportProvider.GetAllConnections()
-
+	
 	pbPeers := make([]*pb.Peer, 0)
-
+	
 	// Sadece bağlı olan peer'ları ekle
 	for _, conn := range connections {
 		if !conn.IsConnected() {
 			continue
 		}
-
+		
 		// Peer bilgilerini veritabanından al
 		peer, err := h.container.PeerRepository().GetByID(ctx, conn.GetPeerID())
 		if err != nil {
 			// Veritabanında yoksa atla
 			continue
 		}
-
+		
 		pbPeer := &pb.Peer{
 			DeviceId:       peer.DeviceID,
 			Name:           peer.Name,
@@ -150,15 +147,15 @@ func (h *PeerHandler) ListPeers(ctx context.Context, req *pb.ListPeersRequest) (
 			IsTrusted:      peer.IsTrusted,
 			KnownAddresses: peer.KnownAddresses,
 		}
-
+		
 		// last_seen timestamp
 		if !peer.LastSeen.IsZero() {
 			pbPeer.LastSeen = timestamppb.New(peer.LastSeen)
 		}
-
+		
 		pbPeers = append(pbPeers, pbPeer)
 	}
-
+	
 	return &pb.ListPeersResponse{
 		Peers: pbPeers,
 		Pagination: &pb.PaginationResponse{
@@ -188,7 +185,7 @@ func (h *PeerHandler) TrustPeer(ctx context.Context, req *pb.TrustPeerRequest) (
 			Code:    404,
 		}, nil
 	}
-
+	
 	peer.IsTrusted = true
 	if err := h.container.PeerRepository().Update(ctx, peer); err != nil {
 		return &pb.Status{
@@ -197,7 +194,7 @@ func (h *PeerHandler) TrustPeer(ctx context.Context, req *pb.TrustPeerRequest) (
 			Code:    500,
 		}, nil
 	}
-
+	
 	return &pb.Status{
 		Success: true,
 		Message: "Peer güvenilir olarak işaretlendi",
@@ -215,7 +212,7 @@ func (h *PeerHandler) UntrustPeer(ctx context.Context, req *pb.UntrustPeerReques
 			Code:    404,
 		}, nil
 	}
-
+	
 	peer.IsTrusted = false
 	if err := h.container.PeerRepository().Update(ctx, peer); err != nil {
 		return &pb.Status{
@@ -224,7 +221,7 @@ func (h *PeerHandler) UntrustPeer(ctx context.Context, req *pb.UntrustPeerReques
 			Code:    500,
 		}, nil
 	}
-
+	
 	return &pb.Status{
 		Success: true,
 		Message: "Peer güvenilmez olarak işaretlendi",
@@ -254,10 +251,10 @@ func (h *PeerHandler) GetPendingConnections(ctx context.Context, req *pb.GetPend
 			PendingConnections: []*pb.PendingConnection{},
 		}, nil
 	}
-
+	
 	connMgr := lanTransport.GetTCPConnectionManager()
 	pendingConns := connMgr.GetPendingConnections()
-
+	
 	// Pending connections'ı proto mesajlarına çevir
 	pbPendingConns := make([]*pb.PendingConnection, 0, len(pendingConns))
 	for _, pending := range pendingConns {
@@ -268,7 +265,7 @@ func (h *PeerHandler) GetPendingConnections(ctx context.Context, req *pb.GetPend
 		}
 		pbPendingConns = append(pbPendingConns, pbPending)
 	}
-
+	
 	return &pb.GetPendingConnectionsResponse{
 		Status: &pb.Status{
 			Success: true,
@@ -290,7 +287,7 @@ func (h *PeerHandler) AcceptConnection(ctx context.Context, req *pb.AcceptConnec
 			Code:    500,
 		}, nil
 	}
-
+	
 	return &pb.Status{
 		Success: true,
 		Message: "Bağlantı başarıyla onaylandı",
@@ -309,7 +306,7 @@ func (h *PeerHandler) RejectConnection(ctx context.Context, req *pb.RejectConnec
 			Code:    500,
 		}, nil
 	}
-
+	
 	return &pb.Status{
 		Success: true,
 		Message: "Bağlantı başarıyla reddedildi",
@@ -322,7 +319,7 @@ func AcceptConnectionHelper(lanTransport *lan.LANTransport, deviceID string) err
 	if lanTransport == nil {
 		return fmt.Errorf("LAN transport bulunamadı")
 	}
-
+	
 	connMgr := lanTransport.GetTCPConnectionManager()
 	return connMgr.AcceptConnection(deviceID)
 }
@@ -332,7 +329,7 @@ func RejectConnectionHelper(lanTransport *lan.LANTransport, deviceID string) err
 	if lanTransport == nil {
 		return fmt.Errorf("LAN transport bulunamadı")
 	}
-
+	
 	connMgr := lanTransport.GetTCPConnectionManager()
 	return connMgr.RejectConnection(deviceID)
 }
@@ -346,21 +343,21 @@ func GetPendingConnectionsHelper(lanTransport *lan.LANTransport) ([]interface {
 	if lanTransport == nil {
 		return nil, fmt.Errorf("LAN transport bulunamadı")
 	}
-
+	
 	connMgr := lanTransport.GetTCPConnectionManager()
 	pendingConns := connMgr.GetPendingConnections()
-
+	
 	// PendingConnection'ları interface'e dönüştür
 	result := make([]interface {
 		DeviceID() string
 		DeviceName() string
 		Timestamp() int64
 	}, len(pendingConns))
-
+	
 	for i, p := range pendingConns {
 		result[i] = pendingConnWrapper{p}
 	}
-
+	
 	return result, nil
 }
 
@@ -490,6 +487,24 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 	// Expiry timestamp
 	expiresAt := time.Now().Add(expiryDuration).Unix()
 
+	// Invitation code'u discovery service'e kaydet (karşılıklı ekleme için)
+	discoveryService := wanTransport.GetDiscoveryService()
+	if discoveryService != nil {
+		invitationData := &wan.InvitationData{
+			DeviceID:      deviceID,
+			DeviceName:    deviceName,
+			PublicIP:      publicIP,
+			GRPCAddress:   grpcAddress,
+			NATType:       natType,
+			ICECandidates: iceCandidates,
+			CreatedAt:     time.Now(),
+			ExpiresAt:     time.Now().Add(expiryDuration),
+			Version:       "1.0",
+		}
+		discoveryService.SaveInvitationCode(code, invitationData)
+		log.Printf("💾 Invitation code discovery service'e kaydedildi (karşılıklı ekleme için)")
+	}
+
 	log.Printf("✅ Invitation code oluşturuldu: %s (expires in %d hours)", code[:20], expiryHours)
 
 	return &pb.CreateInvitationResponse{
@@ -592,7 +607,7 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 		invitationData.GRPCAddress, // gRPC address direkt ekleniyor
 		invitationData.ICECandidates,
 	)
-
+	
 	if invitationData.GRPCAddress != "" {
 		log.Printf("✅ gRPC address metadata'ya eklendi: %s", invitationData.GRPCAddress)
 	}
@@ -613,103 +628,32 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 		log.Printf("  - %s (%s)", p.DeviceName, p.DeviceID[:8])
 	}
 
-	// Karşı tarafın backend'ine bağlanıp kendi bilgilerini gönder (karşılıklı ekleme)
-	if invitationData.GRPCAddress != "" {
-		go func() {
-			log.Printf("🔄 Karşı tarafın backend'ine bağlanılıyor: %s", invitationData.GRPCAddress)
-			
-			// gRPC address formatını kontrol et
-			grpcAddr := invitationData.GRPCAddress
-			// Direkt IP:port formatını kullan (Go gRPC bunu destekler)
-			// Eğer zaten bir scheme varsa (dns://, unix://), olduğu gibi kullan
-			if !strings.Contains(grpcAddr, "://") {
-				// Scheme yoksa, direkt kullan (Go gRPC otomatik olarak IP:port olarak algılar)
-				log.Printf("🔗 gRPC address (direct IP:port): %s", grpcAddr)
-			} else {
-				log.Printf("🔗 gRPC address (with scheme): %s", grpcAddr)
-			}
-			
-			// gRPC connection oluştur (non-blocking, lazy connection)
-			grpcConn, err := grpc.NewClient(
-				grpcAddr,
-				grpc.WithTransportCredentials(insecure.NewCredentials()),
-			)
-			if err != nil {
-				log.Printf("⚠️ gRPC client oluşturulamadı: %v (karşılıklı ekleme yapılamadı)", err)
-				return
-			}
-			defer grpcConn.Close()
-			log.Printf("✅ gRPC client oluşturuldu: %s", grpcAddr)
+	// Karşılıklı ekleme: Eğer bu invitation code'u biz oluşturduysak, karşı tarafı otomatik ekle
+	// (gRPC çağrısına gerek yok, invitation code'dan bilgileri alıyoruz)
+	originalInvitationData := discoveryService.GetInvitationCode(req.InvitationCode)
+	if originalInvitationData != nil {
+		log.Printf("🔄 Karşılıklı ekleme: Bu invitation code'u biz oluşturduk, karşı tarafı otomatik ekliyoruz...")
+		log.Printf("   📋 Invitation code sahibi: %s (%s)", originalInvitationData.DeviceName, originalInvitationData.DeviceID[:8])
+		log.Printf("   📋 Invitation code'u giren: %s (%s)", invitationData.DeviceName, invitationData.DeviceID[:8])
 
-			// Peer service client oluştur
-			peerClient := pb.NewPeerServiceClient(grpcConn)
-
-			// Kendi bilgilerini al
-			myDeviceID := deviceID
-			myDeviceName := h.container.GetDeviceName()
-			
-			// Public IP al
-			myPublicIP, err := wanTransport.GetPublicIP(context.Background())
-			if err != nil {
-				log.Printf("⚠️ Public IP alınamadı: %v", err)
-				myPublicIP = ""
-			}
-
-			// ICE candidates al
-			myICECandidates, err := wanTransport.GetICECandidates()
-			if err != nil {
-				log.Printf("⚠️ ICE candidates alınamadı: %v", err)
-				myICECandidates = []wan.ICECandidate{}
-			}
-
-			// ICE candidates'ı string array'e çevir
-			iceCandidatesStr := make([]string, 0, len(myICECandidates))
-			for _, cand := range myICECandidates {
-				iceCandidatesStr = append(iceCandidatesStr, fmt.Sprintf("%s:%d", cand.IP.String(), cand.Port))
-			}
-
-			// AddWANPeer çağrısı yap
-			addPeerReq := &pb.AddWANPeerRequest{
-				PeerId:        myDeviceID,
-				PeerName:      myDeviceName,
-				PublicIp:      myPublicIP,
-				IceCandidates: iceCandidatesStr,
-			}
-
-			log.Printf("📤 Karşı tarafa kendi bilgilerimizi gönderiyoruz: %s (%s) -> %s", 
-				myDeviceName, myDeviceID[:8], invitationData.GRPCAddress)
-			
-			// AddWANPeer çağrısı için context (uzun timeout - bağlantı kurulması için zaman tanı)
-			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			defer cancel()
-			
-			log.Printf("📞 AddWANPeer RPC çağrısı yapılıyor (timeout: 30s)...")
-			log.Printf("   📋 Request: PeerID=%s, PeerName=%s, PublicIP=%s, ICECandidates=%d", 
-				myDeviceID[:8], myDeviceName, myPublicIP, len(iceCandidatesStr))
-			
-			// RPC çağrısını yap
-			addPeerResp, err := peerClient.AddWANPeer(ctx, addPeerReq)
-			if err != nil {
-				log.Printf("❌ AddWANPeer RPC çağrısı başarısız: %v", err)
-				log.Printf("   🔍 Hata detayı: type=%T, error=%s", err, err.Error())
-				// Timeout hatası mı kontrol et
-				if ctx.Err() == context.DeadlineExceeded {
-					log.Printf("   ⏱️ Timeout hatası: 30 saniye içinde yanıt alınamadı")
-				}
-				log.Printf("⚠️ Karşı tarafa bilgi gönderilemedi (karşılıklı ekleme yapılamadı)")
-				return
-			}
-
-			log.Printf("✅ AddWANPeer RPC çağrısı başarılı: Success=%v, Message=%s", 
-				addPeerResp.Success, addPeerResp.Message)
-
-			if !addPeerResp.Success {
-				log.Printf("⚠️ Karşı taraf peer eklemedi: %s", addPeerResp.Message)
-				return
-			}
-
-			log.Printf("✅ Karşı taraf bizi otomatik olarak ekledi: %s", invitationData.DeviceName)
-		}()
+		// Karşı tarafı ekle (invitation code'u giren tarafın bilgileri invitationData'da)
+		// NOT: invitationData, invitation code'u giren tarafın bilgilerini içerir
+		// Biz ise invitation code'u oluşturan tarafız, karşı tarafı ekliyoruz
+		err = discoveryService.AddPeerWithGRPC(
+			invitationData.DeviceID,      // Karşı tarafın device ID'si
+			invitationData.DeviceName,    // Karşı tarafın device name'i
+			invitationData.PublicIP,      // Karşı tarafın public IP'si
+			invitationData.GRPCAddress,   // Karşı tarafın gRPC address'i
+			invitationData.ICECandidates, // Karşı tarafın ICE candidates'ı
+		)
+		if err != nil {
+			log.Printf("⚠️ Karşı taraf eklenemedi (karşılıklı ekleme): %v", err)
+		} else {
+			log.Printf("✅ Karşı taraf otomatik olarak eklendi: %s (%s)", 
+				invitationData.DeviceName, invitationData.DeviceID[:8])
+		}
+	} else {
+		log.Printf("ℹ️ Bu invitation code'u biz oluşturmadık, karşılıklı ekleme yapılmadı")
 	}
 
 	// (Opsiyonel) Otomatik bağlanmayı dene
