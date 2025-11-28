@@ -617,13 +617,18 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 		go func() {
 			log.Printf("🔄 Karşı tarafın backend'ine bağlanılıyor: %s", invitationData.GRPCAddress)
 			
-			// gRPC connection oluştur
-			grpcConn, err := grpc.NewClient(invitationData.GRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			// gRPC connection oluştur (blocking mode ile)
+			grpcConn, err := grpc.NewClient(
+				invitationData.GRPCAddress,
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+				grpc.WithBlock(), // Bağlantının kurulmasını bekle
+			)
 			if err != nil {
 				log.Printf("⚠️ Karşı tarafın backend'ine bağlanılamadı: %v (karşılıklı ekleme yapılamadı)", err)
 				return
 			}
 			defer grpcConn.Close()
+			log.Printf("✅ gRPC bağlantısı kuruldu: %s", invitationData.GRPCAddress)
 
 			// Peer service client oluştur
 			peerClient := pb.NewPeerServiceClient(grpcConn)
@@ -663,6 +668,7 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 			log.Printf("📤 Karşı tarafa kendi bilgilerimizi gönderiyoruz: %s (%s) -> %s", 
 				myDeviceName, myDeviceID[:8], invitationData.GRPCAddress)
 			
+			// AddWANPeer çağrısı için context
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 			
@@ -708,7 +714,11 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 
 // AddWANPeer manuel olarak WAN peer ekler (invitation code olmadan)
 func (h *PeerHandler) AddWANPeer(ctx context.Context, req *pb.AddWANPeerRequest) (*pb.Status, error) {
+	log.Printf("🔵 AddWANPeer FONKSİYONU ÇAĞRILDI - PeerID: %s, PeerName: %s, PublicIP: %s", 
+		req.PeerId[:8], req.PeerName, req.PublicIp)
+	
 	if req.PeerId == "" {
+		log.Printf("❌ AddWANPeer: Peer ID boş")
 		return &pb.Status{
 			Success: false,
 			Message: "Peer ID boş olamaz",
