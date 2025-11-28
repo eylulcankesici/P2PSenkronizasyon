@@ -5,11 +5,14 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:aether_desktop/data/providers/peer_provider.dart';
 import 'package:aether_desktop/features/peers/presentation/widgets/create_invitation_dialog.dart';
 import 'package:aether_desktop/features/peers/presentation/widgets/add_peer_by_invitation_dialog.dart';
+import 'package:aether_desktop/features/peers/presentation/widgets/configure_grpc_server_dialog.dart';
 import 'package:aether_desktop/generated/api/proto/peer.pb.dart' as peer_pb;
-import 'package:aether_desktop/generated/api/proto/common.pbenum.dart' as common_pb;
+import 'package:aether_desktop/generated/api/proto/common.pbenum.dart'
+    as common_pb;
 import 'package:aether_desktop/data/providers/user_provider.dart';
 import 'package:aether_desktop/data/providers/language_provider.dart';
 import 'package:aether_desktop/core/localization/app_strings.dart';
+import 'package:aether_desktop/data/services/grpc_provider.dart';
 
 class PeersPage extends ConsumerStatefulWidget {
   const PeersPage({super.key});
@@ -18,7 +21,8 @@ class PeersPage extends ConsumerStatefulWidget {
   ConsumerState<PeersPage> createState() => _PeersPageState();
 }
 
-class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProviderStateMixin {
+class _PeersPageState extends ConsumerState<PeersPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   Timer? _refreshTimer;
 
@@ -29,10 +33,12 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
     // Peer listelerini düzenli olarak yenile (her 2 saniyede bir)
     _refreshTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       if (!mounted) return;
-      
-      if (_tabController.index == 0) { // Keşfedilen sekmesinde ise
+
+      if (_tabController.index == 0) {
+        // Keşfedilen sekmesinde ise
         ref.read(peerNotifierProvider.notifier).discoverPeers();
-      } else if (_tabController.index == 1) { // Bağlı sekmesinde ise
+      } else if (_tabController.index == 1) {
+        // Bağlı sekmesinde ise
         ref.invalidate(connectedPeersProvider);
       }
     });
@@ -54,7 +60,8 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(AppStrings.get('p2p_connections', ref.watch(languageProvider))),
+            Text(
+                AppStrings.get('p2p_connections', ref.watch(languageProvider))),
             Text(
               '${AppStrings.get('this_device', ref.watch(languageProvider))}: ${ref.watch(userProvider)}',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -173,7 +180,7 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
 
   Widget _buildDiscoveredPeersTab() {
     final networkMode = ref.watch(networkModeProvider);
-    
+
     // LOCAL veya WAN moduna göre farklı içerik göster
     if (networkMode == NetworkMode.local) {
       return _buildLocalDiscoveryTab();
@@ -189,21 +196,24 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
     return peersAsync.when(
       data: (peers) {
         // Bağlı peer'ların ID'lerini al
-        final connectedIds = connectedPeersAsync.valueOrNull
-            ?.map((p) => p.deviceId)
-            .toSet() ?? {};
-        
+        final connectedIds =
+            connectedPeersAsync.valueOrNull?.map((p) => p.deviceId).toSet() ??
+                {};
+
         // Zaten bağlı olan peer'ları filtrele
         final availablePeers = peers
             .where((peer) => !connectedIds.contains(peer.deviceId))
             .toList();
-        
+
         if (availablePeers.isEmpty) {
           return _buildEmptyState(
             icon: LucideIcons.search,
-            title: AppStrings.get('no_peers_found', ref.watch(languageProvider)),
-            message: AppStrings.get('no_peers_message', ref.watch(languageProvider)),
-            actionLabel: AppStrings.get('search_again', ref.watch(languageProvider)),
+            title:
+                AppStrings.get('no_peers_found', ref.watch(languageProvider)),
+            message:
+                AppStrings.get('no_peers_message', ref.watch(languageProvider)),
+            actionLabel:
+                AppStrings.get('search_again', ref.watch(languageProvider)),
             onAction: () {
               ref.read(peerNotifierProvider.notifier).discoverPeers();
             },
@@ -247,21 +257,80 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
   Widget _buildWANDiscoveryTab() {
     final peersAsync = ref.watch(discoveredPeersProvider);
     final connectedPeersAsync = ref.watch(connectedPeersProvider);
+    final grpcConfig = ref.watch(grpcConnectionConfigProvider);
+    final grpcConnected = ref.watch(grpcConnectionStateProvider);
 
     return peersAsync.when(
       data: (peers) {
         // Bağlı peer'ların ID'lerini al
-        final connectedIds = connectedPeersAsync.valueOrNull
-            ?.map((p) => p.deviceId)
-            .toSet() ?? {};
-        
+        final connectedIds =
+            connectedPeersAsync.valueOrNull?.map((p) => p.deviceId).toSet() ??
+                {};
+
         // Zaten bağlı olan peer'ları filtrele
         final availablePeers = peers
             .where((peer) => !connectedIds.contains(peer.deviceId))
             .toList();
-        
+
         return Column(
           children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blueGrey.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.2)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      grpcConnected
+                          ? LucideIcons.checkCircle
+                          : LucideIcons.alertTriangle,
+                      color: grpcConnected ? Colors.green : Colors.orange,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'WAN gRPC Sunucusu',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${grpcConfig.host}:${grpcConfig.port}',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          if (!grpcConnected)
+                            const Text(
+                              'Bağlantı kurulamadı, ayarları kontrol edin.',
+                              style:
+                                  TextStyle(fontSize: 12, color: Colors.orange),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) =>
+                              const ConfigureGrpcServerDialog(),
+                        );
+                      },
+                      icon: const Icon(LucideIcons.settings2, size: 16),
+                      label: const Text('Sunucu Ayarları'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             // WAN butonları (Invitation oluştur / Invitation gir)
             Padding(
               padding: const EdgeInsets.all(16),
@@ -285,7 +354,8 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
                       onPressed: () {
                         showDialog(
                           context: context,
-                          builder: (context) => const AddPeerByInvitationDialog(),
+                          builder: (context) =>
+                              const AddPeerByInvitationDialog(),
                         );
                       },
                       icon: const Icon(LucideIcons.link),
@@ -302,19 +372,23 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
                   ? _buildEmptyState(
                       icon: LucideIcons.globe,
                       title: 'WAN Peer Bulunamadı',
-                      message: 'WAN üzerinden bağlanmak için invitation link oluşturun veya bir invitation link ile bağlanın.',
+                      message:
+                          'WAN üzerinden bağlanmak için invitation link oluşturun veya bir invitation link ile bağlanın.',
                       actionLabel: null,
                       onAction: null,
                     )
                   : RefreshIndicator(
                       onRefresh: () async {
-                        await ref.read(peerNotifierProvider.notifier).discoverPeers();
+                        await ref
+                            .read(peerNotifierProvider.notifier)
+                            .discoverPeers();
                       },
                       child: ListView.builder(
                         itemCount: availablePeers.length,
                         padding: const EdgeInsets.all(16),
                         itemBuilder: (context, index) {
-                          return _buildPeerCard(availablePeers[index], isConnected: false);
+                          return _buildPeerCard(availablePeers[index],
+                              isConnected: false);
                         },
                       ),
                     ),
@@ -351,8 +425,10 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
         if (peers.isEmpty) {
           return _buildEmptyState(
             icon: LucideIcons.link2Off,
-            title: AppStrings.get('no_connected_peers', ref.watch(languageProvider)),
-            message: AppStrings.get('no_connected_message', ref.watch(languageProvider)),
+            title: AppStrings.get(
+                'no_connected_peers', ref.watch(languageProvider)),
+            message: AppStrings.get(
+                'no_connected_message', ref.watch(languageProvider)),
           );
         }
 
@@ -387,8 +463,8 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
                   height: 48,
                   decoration: BoxDecoration(
                     color: isConnected
-                        ? Colors.green.withOpacity(0.1)
-                        : Colors.blue.withOpacity(0.1),
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : Colors.blue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: Icon(
@@ -422,7 +498,7 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        peer.deviceId.substring(0, 16) + '...',
+                        '${peer.deviceId.substring(0, 16)}...',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[600],
@@ -460,7 +536,8 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
                       }
                     },
                     icon: const Icon(LucideIcons.link, size: 16),
-                    label: Text(AppStrings.get('connect', ref.watch(languageProvider))),
+                    label: Text(
+                        AppStrings.get('connect', ref.watch(languageProvider))),
                   ),
                 if (isConnected)
                   TextButton.icon(
@@ -468,25 +545,32 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
                       _confirmDisconnect(peer);
                     },
                     icon: const Icon(LucideIcons.link2Off, size: 16),
-                    label: Text(AppStrings.get('disconnect', ref.watch(languageProvider))),
+                    label: Text(AppStrings.get(
+                        'disconnect', ref.watch(languageProvider))),
                     style: TextButton.styleFrom(foregroundColor: Colors.red),
                   ),
                 const SizedBox(width: 8),
                 if (!peer.isTrusted)
                   TextButton.icon(
                     onPressed: () {
-                      ref.read(peerNotifierProvider.notifier).trustPeer(peer.deviceId);
+                      ref
+                          .read(peerNotifierProvider.notifier)
+                          .trustPeer(peer.deviceId);
                     },
                     icon: const Icon(LucideIcons.shieldCheck, size: 16),
-                    label: Text(AppStrings.get('trust', ref.watch(languageProvider))),
+                    label: Text(
+                        AppStrings.get('trust', ref.watch(languageProvider))),
                   ),
                 if (peer.isTrusted)
                   TextButton.icon(
                     onPressed: () {
-                      ref.read(peerNotifierProvider.notifier).untrustPeer(peer.deviceId);
+                      ref
+                          .read(peerNotifierProvider.notifier)
+                          .untrustPeer(peer.deviceId);
                     },
                     icon: const Icon(LucideIcons.shieldOff, size: 16),
-                    label: Text(AppStrings.get('untrust', ref.watch(languageProvider))),
+                    label: Text(
+                        AppStrings.get('untrust', ref.watch(languageProvider))),
                     style: TextButton.styleFrom(foregroundColor: Colors.orange),
                   ),
                 const SizedBox(width: 8),
@@ -530,7 +614,7 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -605,7 +689,8 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
           children: [
             ListTile(
               leading: const Icon(LucideIcons.info),
-              title: Text(AppStrings.get('show_details', ref.watch(languageProvider))),
+              title: Text(
+                  AppStrings.get('show_details', ref.watch(languageProvider))),
               onTap: () {
                 Navigator.pop(context);
                 _showPeerDetails(peer);
@@ -613,7 +698,9 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
             ),
             ListTile(
               leading: const Icon(LucideIcons.trash2, color: Colors.red),
-              title: Text(AppStrings.get('remove_peer', ref.watch(languageProvider)), style: const TextStyle(color: Colors.red)),
+              title: Text(
+                  AppStrings.get('remove_peer', ref.watch(languageProvider)),
+                  style: const TextStyle(color: Colors.red)),
               onTap: () {
                 Navigator.pop(context);
                 _confirmRemovePeer(peer);
@@ -626,7 +713,9 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
   }
 
   Future<void> _showPeerDetails(peer_pb.Peer peer) async {
-    final peerInfo = await ref.read(peerNotifierProvider.notifier).getPeerInfo(peer.deviceId);
+    final peerInfo = await ref
+        .read(peerNotifierProvider.notifier)
+        .getPeerInfo(peer.deviceId);
 
     if (!mounted) return;
 
@@ -686,8 +775,10 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(AppStrings.get('remove_confirm_title', ref.watch(languageProvider))),
-        content: Text('${peer.name} ${AppStrings.get('remove_confirm_message', ref.watch(languageProvider))}?'),
+        title: Text(AppStrings.get(
+            'remove_confirm_title', ref.watch(languageProvider))),
+        content: Text(
+            '${peer.name} ${AppStrings.get('remove_confirm_message', ref.watch(languageProvider))}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -710,8 +801,10 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(AppStrings.get('disconnect_confirm_title', ref.watch(languageProvider))),
-        content: Text('${AppStrings.get('disconnect_confirm_message', ref.watch(languageProvider))} ${peer.name}?'),
+        title: Text(AppStrings.get(
+            'disconnect_confirm_title', ref.watch(languageProvider))),
+        content: Text(
+            '${AppStrings.get('disconnect_confirm_message', ref.watch(languageProvider))} ${peer.name}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -731,11 +824,13 @@ class _PeersPageState extends ConsumerState<PeersPage> with SingleTickerProvider
               }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text(AppStrings.get('disconnect', ref.watch(languageProvider))), // 'Kes' yerine 'Bağlantıyı Kes' (Disconnect) kullanıldı
+            child: Text(AppStrings.get(
+                'disconnect',
+                ref.watch(
+                    languageProvider))), // 'Kes' yerine 'Bağlantıyı Kes' (Disconnect) kullanıldı
           ),
         ],
       ),
     );
   }
 }
-
