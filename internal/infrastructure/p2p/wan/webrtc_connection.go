@@ -151,13 +151,17 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 		log.Printf("📡 gRPC üzerinden SDP exchange başlatılıyor: %s -> %s", peer.DeviceID[:8], grpcAddress)
 		
 		// gRPC connection oluştur
-		grpcConn, err := grpc.NewClient(grpcAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		log.Printf("🔌 gRPC client oluşturuluyor: %s", grpcAddress)
+		grpcConn, err := grpc.NewClient(grpcAddress, 
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+		)
 		if err != nil {
-			log.Printf("⚠️ gRPC client oluşturulamadı: %v (connection devam edecek)", err)
+			log.Printf("❌ gRPC client oluşturulamadı: %v (connection devam edecek)", err)
 			m.connections[peer.DeviceID] = webrtcConn
 			return webrtcConn, nil
 		}
 		defer grpcConn.Close()
+		log.Printf("✅ gRPC client bağlantısı kuruldu: %s", grpcAddress)
 
 		// Peer service client oluştur
 		peerClient := pb.NewPeerServiceClient(grpcConn)
@@ -169,13 +173,22 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 			Sdp:     offer.SDP, // SDP string
 		}
 
-		log.Printf("📤 SDP offer gönderiliyor: %s", peer.DeviceID[:8])
-		exchangeResp, err := peerClient.ExchangeSDP(ctx, exchangeReq)
+		log.Printf("📤 SDP offer gönderiliyor: %s -> %s (SDP uzunluk: %d)", 
+			peer.DeviceID[:8], grpcAddress, len(exchangeReq.Sdp))
+		
+		// Timeout ekle (30 saniye)
+		exchangeCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+		
+		exchangeResp, err := peerClient.ExchangeSDP(exchangeCtx, exchangeReq)
 		if err != nil {
-			log.Printf("⚠️ SDP exchange hatası: %v (connection devam edecek)", err)
+			log.Printf("❌ SDP exchange hatası: %v (connection devam edecek)", err)
 			m.connections[peer.DeviceID] = webrtcConn
 			return webrtcConn, nil
 		}
+		
+		log.Printf("📥 SDP exchange yanıtı alındı: success=%v, type=%s, SDP uzunluk=%d", 
+			exchangeResp.Status.Success, exchangeResp.SdpType, len(exchangeResp.Sdp))
 
 		if !exchangeResp.Status.Success {
 			log.Printf("⚠️ SDP exchange başarısız: %s (connection devam edecek)", exchangeResp.Status.Message)

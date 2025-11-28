@@ -711,6 +711,9 @@ func (h *PeerHandler) AddWANPeer(ctx context.Context, req *pb.AddWANPeerRequest)
 
 // ExchangeSDP SDP offer/answer exchange yapar (WAN WebRTC için)
 func (h *PeerHandler) ExchangeSDP(ctx context.Context, req *pb.ExchangeSDPRequest) (*pb.ExchangeSDPResponse, error) {
+	log.Printf("📥 ExchangeSDP çağrıldı - PeerID: %s, SDPType: %s, SDP uzunluk: %d", 
+		req.PeerId[:8], req.SdpType, len(req.Sdp))
+	
 	if req.PeerId == "" {
 		return &pb.ExchangeSDPResponse{
 			Status: &pb.Status{
