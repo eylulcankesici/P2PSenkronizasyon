@@ -46,7 +46,7 @@ class LocalSettingsService {
   }
   
   // Sync Mode Persistence
-  // Structure: { "sync_modes": { "folderId": { "peerId": "mode_string" } } }
+  // Structure: { "sync_modes": { "folderId": { "peerId": "mode_string" } } } a
   
   Future<void> savePeerSyncMode(String folderId, String peerId, SyncMode mode) async {
     if (!_initialized) await init();
