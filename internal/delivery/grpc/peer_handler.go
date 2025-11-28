@@ -504,7 +504,10 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 
 // AddPeerByInvitation invitation code ile peer ekler (WAN için)
 func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerByInvitationRequest) (*pb.Status, error) {
+	log.Printf("🔵 AddPeerByInvitation FONKSİYONU ÇAĞRILDI - InvitationCode: %s", req.InvitationCode)
+	
 	if req.InvitationCode == "" {
+		log.Printf("❌ AddPeerByInvitation: Invitation code boş")
 		return &pb.Status{
 			Success: false,
 			Message: "Invitation code boş olamaz",
@@ -515,38 +518,47 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 	// WAN transport kontrolü
 	wanTransport := h.container.WANTransport()
 	if wanTransport == nil {
+		log.Printf("❌ AddPeerByInvitation: WAN transport aktif değil")
 		return &pb.Status{
 			Success: false,
 			Message: "WAN transport aktif değil",
 			Code:    400,
 		}, nil
 	}
+	log.Printf("✅ AddPeerByInvitation: WAN transport bulundu")
 
 	// Device ID al (invitation service için)
 	deviceID, err := h.container.GetDeviceID()
 	if err != nil {
+		log.Printf("❌ AddPeerByInvitation: Device ID alınamadı: %v", err)
 		return &pb.Status{
 			Success: false,
 			Message: fmt.Sprintf("Device ID alınamadı: %v", err),
 			Code:    500,
 		}, nil
 	}
+	log.Printf("✅ AddPeerByInvitation: Device ID alındı: %s", deviceID[:8])
 
 	// Invitation service oluştur
 	invitationService := wan.NewInvitationService(deviceID, nil)
 
 	// Invitation code parse et
+	log.Printf("🔍 AddPeerByInvitation: Invitation code parse ediliyor...")
 	invitationData, err := invitationService.ParseInvitationCode(req.InvitationCode)
 	if err != nil {
+		log.Printf("❌ AddPeerByInvitation: Invitation code parse edilemedi: %v", err)
 		return &pb.Status{
 			Success: false,
 			Message: fmt.Sprintf("Invitation code parse edilemedi: %v", err),
 			Code:    400,
 		}, nil
 	}
+	log.Printf("✅ AddPeerByInvitation: Invitation code parse edildi - DeviceID: %s, DeviceName: %s", 
+		invitationData.DeviceID[:8], invitationData.DeviceName)
 
 	// Kendi device ID'si ile eşleşirse hata
 	if invitationData.DeviceID == deviceID {
+		log.Printf("❌ AddPeerByInvitation: Kendi invitation code'u kullanılamaz")
 		return &pb.Status{
 			Success: false,
 			Message: "Kendi invitation code'unuzu kullanamazsınız",
@@ -557,12 +569,14 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 	// Discovery service al
 	discoveryService := wanTransport.GetDiscoveryService()
 	if discoveryService == nil {
+		log.Printf("❌ AddPeerByInvitation: Discovery service bulunamadı")
 		return &pb.Status{
 			Success: false,
 			Message: "Discovery service bulunamadı",
 			Code:    500,
 		}, nil
 	}
+	log.Printf("✅ AddPeerByInvitation: Discovery service bulundu")
 
 	log.Printf("📥 AddPeerByInvitation çağrıldı - DeviceID: %s, DeviceName: %s, PublicIP: %s, GRPCAddress: %s", 
 		invitationData.DeviceID[:8], invitationData.DeviceName, invitationData.PublicIP, invitationData.GRPCAddress)
