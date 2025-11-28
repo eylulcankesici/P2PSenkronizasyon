@@ -134,6 +134,9 @@ class _HomePageState extends ConsumerState<HomePage> {
               IconButton(
                 icon: const Icon(LucideIcons.bell),
                 onPressed: () {
+                  // Mark all as read when opening
+                  ref.read(notificationsProvider.notifier).markAllAsRead();
+                  
                   // Show notifications
                   showDialog(
                     context: context,
