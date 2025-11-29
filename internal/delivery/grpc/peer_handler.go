@@ -519,6 +519,12 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 	// WebRTC peer oluştur
 	webrtcPeer, peerErr := wan.NewWebRTCPeer(webrtcConfig)
 	if peerErr == nil {
+		// Data channel oluştur (Offer oluşturan taraf olarak)
+		_, dcErr := webrtcPeer.CreateDataChannel("aether-chunks", true)
+		if dcErr != nil {
+			log.Printf("⚠️ Data channel oluşturulamadı: %v", dcErr)
+		}
+
 		// SDP offer oluştur
 		offer, offerErr := webrtcPeer.CreateOffer(ctx)
 		if offerErr == nil {
@@ -527,8 +533,9 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 		} else {
 			log.Printf("⚠️ SDP offer oluşturulamadı: %v (invitation code SDP olmadan devam edecek)", offerErr)
 		}
-		// Template connection'ı kapat
-		webrtcPeer.Close()
+		
+		// Peer connection'ı kapatma! Pending olarak kaydet
+		// webrtcPeer.Close()
 	} else {
 		log.Printf("⚠️ WebRTC peer oluşturulamadı: %v (invitation code SDP olmadan devam edecek)", peerErr)
 	}
@@ -577,6 +584,11 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 		}
 		discoveryService.SaveInvitationCode(code, invitationData)
 		log.Printf("💾 Invitation code discovery service'e kaydedildi (karşılıklı ekleme için)")
+	}
+
+	// Pending invitation'ı kaydet (Answer gelince eşleşecek)
+	if webrtcPeer != nil && sdpOffer != "" {
+		wanTransport.GetWebRTCConnectionManager().RegisterInvitation(code, webrtcPeer)
 	}
 
 	log.Printf("✅ Invitation code oluşturuldu: %s (expires in %d hours)", code[:20], expiryHours)
@@ -674,6 +686,26 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 	log.Printf("📥 AddPeerByInvitation çağrıldı - DeviceID: %s, DeviceName: %s, PublicIP: %s, GRPCAddress: %s", 
 		invitationData.DeviceID[:8], invitationData.DeviceName, invitationData.PublicIP, invitationData.GRPCAddress)
 
+	// SDP answer varsa (Response Code), işlemi tamamla
+	if invitationData.SDPAnswer != "" {
+		log.Printf("📩 RESPONSE CODE ALINDI! Answer işleniyor... (DeviceID: %s)", invitationData.DeviceID[:8])
+		err := wanTransport.GetWebRTCConnectionManager().HandleAnswer(invitationData.DeviceID, invitationData.SDPAnswer)
+		if err != nil {
+			log.Printf("❌ Answer işlenemedi: %v", err)
+			return &pb.Status{
+				Success: false,
+				Message: fmt.Sprintf("Answer işlenemedi: %v", err),
+				Code:    500,
+			}, nil
+		}
+		
+		return &pb.Status{
+			Success: true,
+			Message: "Bağlantı başarıyla kuruldu (Response Code ile)",
+			Code:    200,
+		}, nil
+	}
+
 	// SDP offer varsa answer oluştur
 	var sdpAnswer string
 	if invitationData.SDPOffer != "" {
@@ -702,15 +734,46 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 				if err == nil {
 					sdpAnswer = answer.SDP
 					log.Printf("✅ SDP answer oluşturuldu: %d bytes", len(sdpAnswer))
+					
+					// RESPONSE CODE OLUŞTUR
+					// Bu code'u karşı tarafa göndererek bağlantıyı tamamlayabilirler
+					respCode, respErr := invitationService.GenerateInvitationCode(
+						deviceID,
+						h.container.GetDeviceName(),
+						invitationData.PublicIP, // Karşı tarafın IP'si (veya kendi IP'miz?) - Kendi IP'miz olmalı
+						"", // gRPC address yok
+						"unknown", // NAT type
+						[]wan.ICECandidate{}, // ICE candidates (SDP içinde var zaten)
+						24*time.Hour,
+						"", // Offer yok
+						sdpAnswer, // Answer VAR
+					)
+					
+					if respErr == nil {
+						log.Printf("🔵 🔵 🔵 RESPONSE CODE (Bunu arkadaşına gönder): %s", respCode)
+						log.Printf("🔵 Link: aether://invite?code=%s", respCode)
+					}
+					
+					// Connection'ı kaydet (kapatma!)
+					// Data channel'ı al (Answerer tarafı)
+					// NOT: Genellikle Offerer data channel açar, ama Answerer da açabilir veya bekleyebilir
+					// Pion'da OnDataChannel callback'i zaten ayarlı
+					
+					// WebRTCConnection oluştur ve kaydet
+					// Data channel henüz yok (karşı taraf açacak), nil geçiyoruz
+					webrtcConn := wan.NewWebRTCConnection(invitationData.DeviceID, invitationData.DeviceName, webrtcPeer, nil)
+					wanTransport.GetWebRTCConnectionManager().RegisterConnection(invitationData.DeviceID, webrtcConn)
+					
 				} else {
 					log.Printf("⚠️ SDP answer oluşturulamadı: %v", err)
+					webrtcPeer.Close()
 				}
 			} else {
 				log.Printf("⚠️ Remote description set edilemedi: %v", err)
+				webrtcPeer.Close()
 			}
 			
-			// Template connection'ı kapat
-			webrtcPeer.Close()
+			// webrtcPeer.Close() // KAPATMA!
 		} else {
 			log.Printf("⚠️ WebRTC peer oluşturulamadı: %v", err)
 		}

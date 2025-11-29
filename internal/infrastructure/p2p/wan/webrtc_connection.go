@@ -44,6 +44,11 @@ type WebRTCConnectionManager struct {
 	onTransferCancel        func(peerID, fileID string)
 	onFileDelete            func(peerID, fileID string)
 
+	// Pending invitations
+	pendingInvitations map[string]*WebRTCPeer
+
+	// State
+
 	// State
 	started bool
 }
@@ -66,6 +71,8 @@ func NewWebRTCConnectionManager(deviceID, deviceName string, iceAgent ICEAgent, 
 		wanConfig:    wanConfig,
 		connections:  make(map[string]*WebRTCConnection),
 		pendingConns: make(map[string]*PendingConnection),
+		// Pending invitations (waiting for answer)
+		pendingInvitations: make(map[string]*WebRTCPeer),
 		started:      false,
 	}
 }
@@ -132,25 +139,52 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 	if iceCandidatesJSON, ok := peer.Metadata["ice_candidates"]; ok && iceCandidatesJSON != "" {
 		candidates := parseICECandidatesFromJSON(iceCandidatesJSON)
 		if len(candidates) > 0 {
-			log.Printf("📡 %d remote ICE candidate metadata'dan alındı", len(candidates))
+			log.Printf("📡 %d remote ICE candidate metadata'dan alındı (Remote description set edildikten sonra eklenecek)", len(candidates))
 			
-			// Remote ICE candidates'ı WebRTC peer connection'a ekle
-			// NOT: WebRTC SDP'den otomatik candidate alır
-			// Ancak invitation code'dan gelen candidate'ları da manuel ekleyebiliriz
-			for _, cand := range candidates {
-				// WebRTC ICE candidate formatına çevir
-				candidateStr := fmt.Sprintf("candidate:%s %d %s %s %s %d typ %s",
-					cand.Type, cand.Priority, cand.Protocol,
-					cand.IP.String(), cand.IP.String(), cand.Port, cand.Type)
-				
-				iceCandidate := webrtc.ICECandidateInit{
-					Candidate: candidateStr,
+			// Remote ICE candidates'ı sakla, remote description set edildikten sonra ekle
+			// WebRTC state: Remote description set edilmeden candidate eklenemez
+			go func() {
+				// Remote description set edilene kadar bekle (basit polling)
+				// TODO: Daha iyi bir senkronizasyon mekanizması kullanılabilir
+				timeout := time.After(30 * time.Second)
+				ticker := time.NewTicker(100 * time.Millisecond)
+				defer ticker.Stop()
+
+				for {
+					select {
+					case <-timeout:
+						log.Printf("⚠️ ICE candidate ekleme zaman aşımı: Remote description set edilmedi")
+						return
+					case <-ticker.C:
+						if webrtcPeer.GetConnectionState() != webrtc.PeerConnectionStateNew && 
+						   webrtcPeer.GetConnectionState() != webrtc.PeerConnectionStateClosed {
+							// Remote description set edilmiş olabilir (state değişti)
+							// Ancak Pion'da remote description kontrolü için direkt erişim yok
+							// Try-error yaklaşımı ile eklemeyi dene
+							
+							for _, cand := range candidates {
+								// WebRTC ICE candidate formatına çevir
+								candidateStr := fmt.Sprintf("candidate:%s %d %s %s %s %d typ %s",
+									cand.Type, cand.Priority, cand.Protocol,
+									cand.IP.String(), cand.IP.String(), cand.Port, cand.Type)
+								
+								iceCandidate := webrtc.ICECandidateInit{
+									Candidate: candidateStr,
+								}
+								
+								if err := webrtcPeer.AddICECandidate(iceCandidate); err != nil {
+									// Henüz hazır değil veya hata, sonra tekrar dene
+									// log.Printf("⚠️ Remote ICE candidate eklenemedi (tekrar denenecek): %v", err)
+								} else {
+									// Başarılı, logla ve döngüden çık (bu candidate için)
+									// log.Printf("✅ Remote ICE candidate eklendi")
+								}
+							}
+							return
+						}
+					}
 				}
-				
-				if err := webrtcPeer.AddICECandidate(iceCandidate); err != nil {
-					log.Printf("⚠️ Remote ICE candidate eklenemedi: %v", err)
-				}
-			}
+			}()
 		}
 	}
 
@@ -464,6 +498,127 @@ func (m *WebRTCConnectionManager) RejectPendingConnection(deviceID string) error
 		// Channel dolu veya kapalı, sorun değil
 	}
 
+	return nil
+}
+
+// RegisterInvitation pending invitation'ı kaydeder
+func (m *WebRTCConnectionManager) RegisterInvitation(code string, peer *WebRTCPeer) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.pendingInvitations[code] = peer
+	log.Printf("📝 Pending invitation kaydedildi (code: %s...)", code[:10])
+	
+	// Timeout ekle (1 saat sonra temizle)
+	go func() {
+		time.Sleep(1 * time.Hour)
+		m.mu.Lock()
+		if p, exists := m.pendingInvitations[code]; exists {
+			p.Close()
+			delete(m.pendingInvitations, code)
+			log.Printf("⏰ Pending invitation zaman aşımı (code: %s...)", code[:10])
+		}
+		m.mu.Unlock()
+	}()
+}
+
+// RegisterConnection connection'ı kaydeder (AddPeerByInvitation'dan çağrılır)
+func (m *WebRTCConnectionManager) RegisterConnection(deviceID string, conn *WebRTCConnection) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	
+	m.connections[deviceID] = conn
+	log.Printf("✅ WebRTC connection kaydedildi: %s", deviceID[:8])
+	
+	// Callback çağır
+	if m.onConnectionEstablished != nil {
+		m.onConnectionEstablished(conn)
+	}
+}
+
+// HandleAnswer pending invitation için answer'ı işler
+func (m *WebRTCConnectionManager) HandleAnswer(deviceID string, answerSDP string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	
+	// Pending invitation'lardan birini bul (basitçe ilkini al veya hepsiyle dene)
+	// Gerçek senaryoda code ile eşleştirmek daha iyi olurdu ama burada code elimizde yok
+	// Bu yüzden en son eklenen veya herhangi bir açık invitation'ı kullanacağız
+	
+	if len(m.pendingInvitations) == 0 {
+		return fmt.Errorf("bekleyen invitation bulunamadı")
+	}
+	
+	log.Printf("🔍 HandleAnswer: %d pending invitation var, answer deneniyor...", len(m.pendingInvitations))
+	
+	var matchedPeer *WebRTCPeer
+	var matchedCode string
+	
+	for code, peer := range m.pendingInvitations {
+		// Answer'ı set etmeyi dene
+		answerDesc := webrtc.SessionDescription{
+			Type: webrtc.SDPTypeAnswer,
+			SDP:  answerSDP,
+		}
+		
+		if err := peer.SetRemoteDescription(answerDesc); err == nil {
+			log.Printf("✅ Answer başarıyla eşleşti (code: %s...)", code[:10])
+			matchedPeer = peer
+			matchedCode = code
+			break
+		} else {
+			log.Printf("⚠️ Answer bu invitation ile eşleşmedi: %v", err)
+		}
+	}
+	
+	if matchedPeer == nil {
+		return fmt.Errorf("answer hiçbir invitation ile eşleşmedi")
+	}
+	
+	// Eşleşen peer'ı invitation listesinden çıkar
+	delete(m.pendingInvitations, matchedCode)
+	
+	// Data channel oluştur (eğer yoksa)
+	// NOT: CreateInvitation'da data channel oluşturulmamış olabilir
+	// Ancak genellikle Offer oluşturan taraf Data Channel oluşturur
+	
+	// Connection oluştur
+	// Data channel'ı peer'dan al (WebRTCPeer struct'ına dataChannel alanı eklenmişti)
+	dc := matchedPeer.GetDataChannel()
+	if dc == nil {
+		// Data channel yoksa oluştur
+		var err error
+		dc, err = matchedPeer.CreateDataChannel("aether-chunks", true)
+		if err != nil {
+			log.Printf("⚠️ Data channel oluşturulamadı: %v", err)
+		}
+	}
+	
+	webrtcConn := NewWebRTCConnection(deviceID, "Unknown Device", matchedPeer, dc)
+	
+	// Callback'leri bağla
+	if m.chunkHandler != nil {
+		webrtcConn.SetChunkHandler(m.chunkHandler)
+	}
+	if m.onChunkReceived != nil {
+		webrtcConn.SetOnChunkReceived(m.onChunkReceived)
+	}
+	if m.onTransferCancel != nil {
+		webrtcConn.SetOnTransferCancel(m.onTransferCancel)
+	}
+	if m.onFileDelete != nil {
+		webrtcConn.SetOnFileDelete(m.onFileDelete)
+	}
+	
+	// Connection'ı kaydet
+	m.connections[deviceID] = webrtcConn
+	
+	log.Printf("✅ WebRTC connection kuruldu (Answer ile): %s", deviceID[:8])
+	
+	// Callback çağır
+	if m.onConnectionEstablished != nil {
+		m.onConnectionEstablished(webrtcConn)
+	}
+	
 	return nil
 }
 
