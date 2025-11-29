@@ -126,7 +126,8 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 	}
 
 	// Pending peer var mı kontrol et (AddPeerByInvitation ile eklenen)
-	if pendingPeer := m.GetPendingPeer(peer.DeviceID); pendingPeer != nil {
+	// NOT: GetPendingPeer çağırmıyoruz çünkü m.mu zaten kilitli (Deadlock önleme)
+	if pendingPeer, ok := m.pendingPeers[peer.DeviceID]; ok {
 		log.Printf("🔌 Pending peer bulundu, mevcut WebRTC session kullanılıyor: %s", peer.DeviceID[:8])
 		
 		// Data channel oluştur (eğer yoksa)
