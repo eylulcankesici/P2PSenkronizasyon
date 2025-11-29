@@ -139,6 +139,12 @@ func (s *InvitationService) ParseInvitationCode(code string) (*InvitationData, e
 	if len(code) == 0 {
 		return nil, fmt.Errorf("invitation code boş")
 	}
+
+	// Whitespace temizle (terminal copy-paste sorunları için)
+	code = strings.ReplaceAll(code, "\n", "")
+	code = strings.ReplaceAll(code, "\r", "")
+	code = strings.ReplaceAll(code, " ", "")
+	code = strings.TrimSpace(code)
 	
 	// Debug: Code'un başını ve sonunu logla
 	start := code
