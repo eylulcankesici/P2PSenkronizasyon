@@ -137,9 +137,12 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 		// Bu durumda yeni bir data channel oluşturmayı deneyebiliriz veya OnDataChannel bekleyebiliriz.
 		// Pion'da OnDataChannel callback'i zaten ayarlı (NewWebRTCPeer içinde).
 		
+		// Data channel'ı peer'dan al
+		dc := pendingPeer.GetDataChannel()
+		
 		// WebRTC connection oluştur
-		// Data channel nil geçiyoruz, OnDataChannel ile set edilecek veya biz oluşturacağız
-		webrtcConn := NewWebRTCConnection(peer.DeviceID, peer.DeviceName, pendingPeer, nil)
+		// Data channel varsa onu kullan, yoksa nil geç (OnDataChannel ile beklenecek)
+		webrtcConn := NewWebRTCConnection(peer.DeviceID, peer.DeviceName, pendingPeer, dc)
 		
 		// Callback'leri bağla
 		webrtcConn.SetOnConnectionRequested(func(deviceID, deviceName string) {
