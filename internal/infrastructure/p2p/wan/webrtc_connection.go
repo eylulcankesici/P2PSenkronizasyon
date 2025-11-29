@@ -126,7 +126,7 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 	}
 
 	// Pending peer var mı kontrol et (AddPeerByInvitation ile eklenen)
-	if pendingPeer := m.GetPendingPeer(peer.DeviceID); pendingPeer != nil {
+	if pendingPeer := m.getPendingPeerLocked(peer.DeviceID); pendingPeer != nil {
 		log.Printf("🔌 Pending peer bulundu, mevcut WebRTC session kullanılıyor: %s", peer.DeviceID[:8])
 		
 		// Data channel oluştur (eğer yoksa)
@@ -501,15 +501,20 @@ func (m *WebRTCConnectionManager) AddPendingPeer(deviceID string, peer *WebRTCPe
 	m.pendingPeers[deviceID] = peer
 }
 
-// GetPendingPeer gets and removes a pending peer
-func (m *WebRTCConnectionManager) GetPendingPeer(deviceID string) *WebRTCPeer {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+// getPendingPeerLocked gets and removes a pending peer (internal, assumes m.mu is locked)
+func (m *WebRTCConnectionManager) getPendingPeerLocked(deviceID string) *WebRTCPeer {
 	if peer, ok := m.pendingPeers[deviceID]; ok {
 		delete(m.pendingPeers, deviceID)
 		return peer
 	}
 	return nil
+}
+
+// GetPendingPeer gets and removes a pending peer
+func (m *WebRTCConnectionManager) GetPendingPeer(deviceID string) *WebRTCPeer {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.getPendingPeerLocked(deviceID)
 }
 
 // GetPendingConnections bekleyen bağlantı isteklerini döner
