@@ -140,11 +140,16 @@ func (s *InvitationService) ParseInvitationCode(code string) (*InvitationData, e
 		return nil, fmt.Errorf("invitation code boş")
 	}
 
-	// Whitespace temizle (terminal copy-paste sorunları için)
-	code = strings.ReplaceAll(code, "\n", "")
-	code = strings.ReplaceAll(code, "\r", "")
-	code = strings.ReplaceAll(code, " ", "")
-	code = strings.TrimSpace(code)
+	// AGRESIF whitespace temizle - HER TÜRLÜ BOŞLUĞU SİL
+	// Unicode whitespace dahil tüm boşlukları temizle
+	code = strings.Map(func(r rune) rune {
+		// Sadece Base64 için geçerli karakterleri tut: A-Z, a-z, 0-9, +, /, -, _
+		if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '+' || r == '/' || r == '-' || r == '_' {
+			return r
+		}
+		// Diğer tüm karakterleri (boşluklar, özel karakterler) çıkar
+		return -1
+	}, code)
 	
 	// Debug: Code'un başını ve sonunu logla
 	start := code
