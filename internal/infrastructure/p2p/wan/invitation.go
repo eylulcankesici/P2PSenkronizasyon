@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 )
@@ -47,6 +48,10 @@ func NewInvitationService(deviceID string, encryptionKey []byte) *InvitationServ
 		key = hasher.Sum(nil) // 32 bytes
 	}
 	
+	// Key hash'ini logla (Debugging için)
+	keyHash := sha256.Sum256(key)
+	log.Printf("🔑 InvitationService Key Hash: %x", keyHash[:8])
+
 	return &InvitationService{
 		encryptionKey: key,
 	}
