@@ -34,6 +34,7 @@ type WANTransport struct {
 	onPeerLost              func(string)
 	onConnectionEstablished func(transport.Connection)
 	onConnectionLost        func(string)
+	onConnectionRequested   func(deviceID, deviceName string)
 
 	// State
 	mu     sync.RWMutex
@@ -413,3 +414,10 @@ func (t *WANTransport) GetDiscoveryService() *WANDiscoveryService {
 	return t.discovery
 }
 
+// SetOnConnectionRequested callback'i ayarlar
+func (t *WANTransport) SetOnConnectionRequested(callback func(deviceID, deviceName string)) {
+	t.onConnectionRequested = callback
+	if t.connMgr != nil {
+		t.connMgr.SetOnConnectionRequestedCallback(callback)
+	}
+}

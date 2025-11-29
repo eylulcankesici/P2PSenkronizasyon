@@ -33,24 +33,24 @@ type WebRTCConnectionManager struct {
 
 	// Pending connections (WAN için)
 	pendingConns map[string]*PendingConnection
-	pendingMu   sync.RWMutex
-
-	// Callbacks
-	onConnectionEstablished func(transport.Connection)
-	onConnectionLost        func(string)
-	onConnectionRequested   func(deviceID, deviceName string) // WAN için pending connection callback
-	chunkHandler            func(chunkHash string) ([]byte, error)
-	onChunkReceived         func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error
-	onTransferCancel        func(peerID, fileID string)
-	onFileDelete            func(peerID, fileID string)
-
+	pendingMu    sync.RWMutex
+	
 	// Pending invitations
 	pendingInvitations map[string]*WebRTCPeer
 
 	// State
-
-	// State
 	started bool
+	
+	// Callbacks
+	onConnectionEstablished func(conn transport.Connection)
+	onConnectionLost        func(peerID string)
+	onConnectionRequested   func(deviceID, deviceName string)
+	
+	// Chunk callbacks
+	chunkHandler     func(chunkHash string) ([]byte, error)
+	onChunkReceived  func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error
+	onTransferCancel func(peerID, fileID string)
+	onFileDelete     func(peerID, fileID string)
 }
 
 // PendingConnection WAN için bekleyen bağlantı isteği
@@ -65,15 +65,13 @@ type PendingConnection struct {
 // NewWebRTCConnectionManager yeni WebRTC connection manager oluşturur
 func NewWebRTCConnectionManager(deviceID, deviceName string, iceAgent ICEAgent, wanConfig config.NetworkConfig) *WebRTCConnectionManager {
 	return &WebRTCConnectionManager{
-		deviceID:     deviceID,
-		deviceName:   deviceName,
-		iceAgent:     iceAgent,
-		wanConfig:    wanConfig,
-		connections:  make(map[string]*WebRTCConnection),
-		pendingConns: make(map[string]*PendingConnection),
-		// Pending invitations (waiting for answer)
+		deviceID:           deviceID,
+		deviceName:         deviceName,
+		iceAgent:           iceAgent,
+		wanConfig:          wanConfig,
+		connections:        make(map[string]*WebRTCConnection),
+		pendingConns:       make(map[string]*PendingConnection),
 		pendingInvitations: make(map[string]*WebRTCPeer),
-		started:      false,
 	}
 }
 
@@ -85,12 +83,38 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 	// Zaten bağlı mı kontrol et
 	// Zaten bağlı mı kontrol et
 	if conn, exists := m.connections[peer.DeviceID]; exists {
-		// Bağlantı varsa ve durumu closed/failed değilse, mevcut bağlantıyı döndür
-		// Bu, kullanıcının "Connect" butonuna tekrar tekrar basması durumunda
-		// devam eden bağlantı sürecini bozmayı engeller
+		// Bağlantı varsa ve durumu closed/failed değilse
 		state := conn.GetState()
 		if state != webrtc.PeerConnectionStateClosed && state != webrtc.PeerConnectionStateFailed {
-			log.Printf("🔌 Mevcut bağlantı kullanılıyor (%s): %s", peer.DeviceID[:8], state.String())
+			log.Printf("🔌 Mevcut bağlantı bulundu (%s): %s", peer.DeviceID[:8], state.String())
+			
+			// Handshake tamamlanmış mı?
+			if conn.isHandshakeComplete {
+				log.Printf("✅ Handshake zaten tamamlanmış, bağlantı aktif")
+				return conn, nil
+			}
+			
+			// Handshake tamamlanmamış, istek gönder
+			log.Printf("👋 Handshake isteği gönderiliyor: %s", peer.DeviceID[:8])
+			
+			// Request oluştur
+			reqData, err := conn.protocol.EncodeConnectionRequest(m.deviceID, m.deviceName)
+			if err != nil {
+				log.Printf("❌ Handshake request encode hatası: %v", err)
+				return nil, err
+			}
+			
+			// Data channel üzerinden gönder
+			if conn.dataChannel != nil {
+				if err := conn.dataChannel.Send(reqData); err != nil {
+					log.Printf("❌ Handshake request gönderme hatası: %v", err)
+					return nil, err
+				}
+				log.Printf("📤 Handshake request gönderildi")
+			} else {
+				log.Printf("⚠️ Data channel henüz hazır değil, istek gönderilemedi")
+			}
+			
 			return conn, nil
 		}
 		// Failed/Closed ise yeni bağlantı oluşturmaya devam et
@@ -123,6 +147,9 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 	webrtcConn := NewWebRTCConnection(peer.DeviceID, peer.DeviceName, webrtcPeer, dataChannel)
 
 	// Callback'leri bağla
+	webrtcConn.SetOnConnectionRequested(func(deviceID, deviceName string) {
+		m.AddPendingConnection(deviceID, deviceName, "")
+	})
 	if m.chunkHandler != nil {
 		webrtcConn.SetChunkHandler(m.chunkHandler)
 	}
@@ -274,24 +301,12 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 					log.Printf("⚠️ Remote description set edilemedi: %v", err)
 				} else {
 					log.Printf("✅ SDP answer gRPC'den alındı ve set edildi: %s", peer.DeviceID[:8])
+				}
 			}
-			}
-		}
-	
-	// Connection'ı map'e ekle
-	m.connections[peer.DeviceID] = webrtcConn
-
-	log.Printf("✅ WebRTC connection oluşturuldu: %s", peer.DeviceID[:8])
-
-	// Callback çağır
-	if m.onConnectionEstablished != nil {
-		m.onConnectionEstablished(webrtcConn)
 	}
-
+	
 	return webrtcConn, nil
 }
-
-// Disconnect peer bağlantısını keser
 func (m *WebRTCConnectionManager) Disconnect(peerID string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -356,21 +371,8 @@ func (m *WebRTCConnectionManager) Close() error {
 
 	m.connections = make(map[string]*WebRTCConnection)
 	m.started = false
-
 	return nil
 }
-
-// SetOnConnectionEstablished callback'i ayarlar
-func (m *WebRTCConnectionManager) SetOnConnectionEstablished(callback func(transport.Connection)) {
-	m.onConnectionEstablished = callback
-}
-
-// SetOnConnectionLost callback'i ayarlar
-func (m *WebRTCConnectionManager) SetOnConnectionLost(callback func(string)) {
-	m.onConnectionLost = callback
-}
-
-// SetChunkHandler chunk handler'ı ayarlar
 func (m *WebRTCConnectionManager) SetChunkHandler(handler func(chunkHash string) ([]byte, error)) {
 	m.chunkHandler = handler
 
@@ -401,9 +403,19 @@ func (m *WebRTCConnectionManager) SetOnFileDelete(callback func(peerID, fileID s
 	m.onFileDelete = callback
 }
 
-// SetOnConnectionRequested pending connection callback'ini ayarlar
-func (m *WebRTCConnectionManager) SetOnConnectionRequested(callback func(deviceID, deviceName string)) {
+// SetOnConnectionRequestedCallback pending connection callback'ini ayarlar
+func (m *WebRTCConnectionManager) SetOnConnectionRequestedCallback(callback func(deviceID, deviceName string)) {
 	m.onConnectionRequested = callback
+}
+
+// SetOnConnectionEstablished connection established callback'ini ayarlar
+func (m *WebRTCConnectionManager) SetOnConnectionEstablished(callback func(conn transport.Connection)) {
+	m.onConnectionEstablished = callback
+}
+
+// SetOnConnectionLost connection lost callback'ini ayarlar
+func (m *WebRTCConnectionManager) SetOnConnectionLost(callback func(peerID string)) {
+	m.onConnectionLost = callback
 }
 
 // GetPendingConnections bekleyen bağlantı isteklerini döner
@@ -452,7 +464,7 @@ func (m *WebRTCConnectionManager) AddPendingConnection(deviceID, deviceName, sdp
 // AcceptPendingConnection pending connection'ı onaylar
 func (m *WebRTCConnectionManager) AcceptPendingConnection(deviceID string) error {
 	m.pendingMu.Lock()
-	pending, exists := m.pendingConns[deviceID]
+	_, exists := m.pendingConns[deviceID]
 	if exists {
 		delete(m.pendingConns, deviceID)
 	}
@@ -462,21 +474,22 @@ func (m *WebRTCConnectionManager) AcceptPendingConnection(deviceID string) error
 		return fmt.Errorf("pending connection bulunamadı: %s", deviceID[:8])
 	}
 
-	// Response channel'a true gönder
-	select {
-	case pending.ResponseCh <- true:
-		log.Printf("✅ WAN pending connection onaylandı: %s", deviceID[:8])
-	default:
-		// Channel dolu veya kapalı, sorun değil
+	// Connection'ı bul ve accept gönder
+	m.mu.RLock()
+	conn, connExists := m.connections[deviceID]
+	m.mu.RUnlock()
+
+	if !connExists {
+		return fmt.Errorf("aktif bağlantı bulunamadı: %s", deviceID[:8])
 	}
 
-	return nil
+	return conn.AcceptConnection()
 }
 
 // RejectPendingConnection pending connection'ı reddeder
 func (m *WebRTCConnectionManager) RejectPendingConnection(deviceID string) error {
 	m.pendingMu.Lock()
-	pending, exists := m.pendingConns[deviceID]
+	_, exists := m.pendingConns[deviceID]
 	if exists {
 		delete(m.pendingConns, deviceID)
 	}
@@ -486,15 +499,42 @@ func (m *WebRTCConnectionManager) RejectPendingConnection(deviceID string) error
 		return fmt.Errorf("pending connection bulunamadı: %s", deviceID[:8])
 	}
 
-	// Response channel'a false gönder
-	select {
-	case pending.ResponseCh <- false:
-		log.Printf("❌ WAN pending connection reddedildi: %s", deviceID[:8])
-	default:
-		// Channel dolu veya kapalı, sorun değil
+	// Connection'ı bul ve reject gönder
+	m.mu.RLock()
+	conn, connExists := m.connections[deviceID]
+	m.mu.RUnlock()
+
+	if !connExists {
+		return fmt.Errorf("aktif bağlantı bulunamadı: %s", deviceID[:8])
 	}
 
-	return nil
+	return conn.RejectConnection()
+}
+
+// AcceptConnection bağlantı isteğini kabul eder
+func (m *WebRTCConnectionManager) AcceptConnection(deviceID string) error {
+	m.mu.RLock()
+	conn, exists := m.connections[deviceID]
+	m.mu.RUnlock()
+	
+	if !exists {
+		return fmt.Errorf("bağlantı bulunamadı: %s", deviceID)
+	}
+	
+	return conn.AcceptConnection()
+}
+
+// RejectConnection bağlantı isteğini reddeder
+func (m *WebRTCConnectionManager) RejectConnection(deviceID string) error {
+	m.mu.RLock()
+	conn, exists := m.connections[deviceID]
+	m.mu.RUnlock()
+	
+	if !exists {
+		return fmt.Errorf("bağlantı bulunamadı: %s", deviceID)
+	}
+	
+	return conn.RejectConnection()
 }
 
 // RegisterInvitation pending invitation'ı kaydeder
@@ -522,13 +562,18 @@ func (m *WebRTCConnectionManager) RegisterConnection(deviceID string, conn *WebR
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	
-	m.connections[deviceID] = conn
-	log.Printf("✅ WebRTC connection kaydedildi: %s", deviceID[:8])
+	// Callback'leri bağla
+	conn.SetOnConnectionRequested(func(deviceID, deviceName string) {
+		m.AddPendingConnection(deviceID, deviceName, "")
+	})
 	
-	// Callback çağır
-	if m.onConnectionEstablished != nil {
-		m.onConnectionEstablished(conn)
-	}
+	m.connections[deviceID] = conn
+	log.Printf("✅ WebRTC connection kaydedildi: %s (Handshake bekleniyor)", deviceID[:8])
+	
+	// Callback çağırMA - Handshake tamamlanınca çağrılacak
+	// if m.onConnectionEstablished != nil {
+	// 	m.onConnectionEstablished(conn)
+	// }
 }
 
 // HandleAnswer pending invitation için answer'ı işler
@@ -611,6 +656,9 @@ func (m *WebRTCConnectionManager) HandleAnswer(deviceID string, answerSDP string
 	webrtcConn := NewWebRTCConnection(deviceID, "Unknown Device", matchedPeer, dc)
 	
 	// Callback'leri bağla
+	webrtcConn.SetOnConnectionRequested(func(deviceID, deviceName string) {
+		m.AddPendingConnection(deviceID, deviceName, "")
+	})
 	if m.chunkHandler != nil {
 		webrtcConn.SetChunkHandler(m.chunkHandler)
 	}
@@ -627,12 +675,12 @@ func (m *WebRTCConnectionManager) HandleAnswer(deviceID string, answerSDP string
 	// Connection'ı kaydet
 	m.connections[deviceID] = webrtcConn
 	
-	log.Printf("✅ WebRTC connection kuruldu (Answer ile): %s", deviceID[:8])
+	log.Printf("✅ WebRTC connection kuruldu (Answer ile): %s (Handshake bekleniyor)", deviceID[:8])
 	
-	// Callback çağır
-	if m.onConnectionEstablished != nil {
-		m.onConnectionEstablished(webrtcConn)
-	}
+	// Callback çağırMA - Handshake tamamlanınca çağrılacak
+	// if m.onConnectionEstablished != nil {
+	// 	m.onConnectionEstablished(webrtcConn)
+	// }
 	
 	return nil
 }
@@ -654,6 +702,7 @@ type WebRTCConnection struct {
 	protocol    *lan.Protocol
 	
 	connected   bool
+	isHandshakeComplete bool
 	mu          sync.RWMutex
 	chunkHandler func(chunkHash string) ([]byte, error)
 	connectedAt time.Time
@@ -662,6 +711,8 @@ type WebRTCConnection struct {
 	onChunkReceived  func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error
 	onTransferCancel func(peerID, fileID string)
 	onFileDelete     func(peerID, fileID string)
+	onConnectionRequested func(deviceID, deviceName string)
+	onConnectionAccepted  func(deviceID string)
 }
 
 // NewWebRTCConnection yeni WebRTC connection oluşturur
@@ -673,6 +724,7 @@ func NewWebRTCConnection(peerID, peerName string, webrtcPeer *WebRTCPeer, dataCh
 		dataChannel: dataChannel,
 		protocol:    lan.NewProtocol(),
 		connected:   false,
+		isHandshakeComplete: false,
 		connectedAt: time.Now(),
 	}
 	
@@ -756,6 +808,12 @@ func (c *WebRTCConnection) handleIncomingMessage(data []byte) {
 		c.handlePing(payload)
 	case lan.MessageTypePong:
 		c.handlePong(payload)
+	case lan.MessageTypeConnectionRequest:
+		c.handleConnectionRequest(payload)
+	case lan.MessageTypeConnectionAccept:
+		c.handleConnectionAccept(payload)
+	case lan.MessageTypeConnectionReject:
+		c.handleConnectionReject(payload)
 	default:
 		log.Printf("⚠️ Bilinmeyen mesaj tipi: 0x%04x", messageType)
 	}
@@ -854,24 +912,10 @@ func (c *WebRTCConnection) handlePing(payload []byte) {
 		return
 	}
 	
-	c.mu.RLock()
-	dc := c.dataChannel
-	c.mu.RUnlock()
-	
-	if dc != nil && dc.ReadyState() == webrtc.DataChannelStateOpen {
-		if err := dc.Send(pongData); err != nil {
+	if c.dataChannel != nil {
+		if err := c.dataChannel.Send(pongData); err != nil {
 			log.Printf("⚠️ Pong gönderilemedi: %v", err)
 		}
-	}
-}
-
-// handlePong pong mesajını işler
-func (c *WebRTCConnection) handlePong(payload []byte) {
-	// Pong alındı (latency ölçümü için kullanılabilir)
-	_, err := c.protocol.DecodePong(payload)
-	if err != nil {
-		log.Printf("⚠️ Pong parse edilemedi: %v", err)
-		return
 	}
 }
 
@@ -1039,12 +1083,105 @@ func (c *WebRTCConnection) Ping(ctx context.Context) (time.Duration, error) {
 	}
 
 	log.Printf("🏓 Ping gönderildi (WebRTC): %s", c.peerID[:8])
-
-	// NOT: Pong response'u async olarak gelecek
-	// Şimdilik latency hesaplanmıyor, response callback ile gelir
-	// TODO: Sync ping/pong implementasyonu (channel veya promise ile)
-	
 	return time.Since(startTime), nil
+}
+
+
+// handlePong pong mesajını işler
+func (c *WebRTCConnection) handlePong(payload []byte) {
+	// Pong alındı, logla
+	log.Printf("✅ Pong alındı: %s", c.peerID[:8])
+}
+
+// AcceptConnection bağlantıyı kabul eder ve karşı tarafa bildirir
+func (c *WebRTCConnection) AcceptConnection() error {
+	// Accept mesajı gönder
+	acceptData, err := c.protocol.EncodeConnectionAccept(c.peerID)
+	if err != nil {
+		return err
+	}
+	
+	if c.dataChannel != nil {
+		if err := c.dataChannel.Send(acceptData); err != nil {
+			return err
+		}
+	}
+	
+	c.mu.Lock()
+	c.isHandshakeComplete = true
+	c.mu.Unlock()
+	
+	// Callback tetikle (Manager'ın onConnectionEstablished'ını çağırır)
+	if c.onConnectionAccepted != nil {
+		c.onConnectionAccepted(c.peerID)
+	}
+	
+	log.Printf("✅ Bağlantı kabul edildi ve aktif: %s", c.peerID[:8])
+	return nil
+}
+
+// RejectConnection bağlantıyı reddeder ve karşı tarafa bildirir
+func (c *WebRTCConnection) RejectConnection() error {
+	// Reject mesajı gönder
+	rejectData, err := c.protocol.EncodeConnectionReject(c.peerID)
+	if err != nil {
+		return err
+	}
+	
+	if c.dataChannel != nil {
+		if err := c.dataChannel.Send(rejectData); err != nil {
+			return err
+		}
+	}
+	
+	log.Printf("❌ Bağlantı reddedildi: %s", c.peerID[:8])
+	return nil
+}
+
+// handleConnectionRequest connection request mesajını işler
+func (c *WebRTCConnection) handleConnectionRequest(payload []byte) {
+	deviceID, deviceName, err := c.protocol.DecodeConnectionRequest(payload)
+	if err != nil {
+		log.Printf("⚠️ Connection request parse edilemedi: %v", err)
+		return
+	}
+	
+	log.Printf("📥 Handshake isteği alındı: %s (%s)", deviceName, deviceID[:8])
+	
+	if c.onConnectionRequested != nil {
+		c.onConnectionRequested(deviceID, deviceName)
+	}
+}
+
+// handleConnectionAccept connection accept mesajını işler
+func (c *WebRTCConnection) handleConnectionAccept(payload []byte) {
+	deviceID, err := c.protocol.DecodeConnectionAccept(payload)
+	if err != nil {
+		log.Printf("⚠️ Connection accept parse edilemedi: %v", err)
+		return
+	}
+	
+	log.Printf("✅ Handshake kabul edildi: %s", deviceID[:8])
+	
+	c.mu.Lock()
+	c.isHandshakeComplete = true
+	c.mu.Unlock()
+	
+	if c.onConnectionAccepted != nil {
+		c.onConnectionAccepted(deviceID)
+	}
+}
+
+// handleConnectionReject connection reject mesajını işler
+func (c *WebRTCConnection) handleConnectionReject(payload []byte) {
+	deviceID, err := c.protocol.DecodeConnectionReject(payload)
+	if err != nil {
+		log.Printf("⚠️ Connection reject parse edilemedi: %v", err)
+		return
+	}
+	
+	log.Printf("❌ Handshake reddedildi: %s", deviceID[:8])
+	// Bağlantıyı kapatabiliriz veya kullanıcıya bildirebiliriz
 }
 
 // Close bağlantıyı kapatır
@@ -1096,7 +1233,7 @@ func (c *WebRTCConnection) GetLatency() time.Duration {
 func (c *WebRTCConnection) IsConnected() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	return c.connected
+	return c.connected && c.isHandshakeComplete
 }
 
 // GetTransportType transport tipini döner
@@ -1107,6 +1244,11 @@ func (c *WebRTCConnection) GetTransportType() transport.TransportType {
 // GetConnectionTime bağlantı zamanını döner
 func (c *WebRTCConnection) GetConnectionTime() time.Time {
 	return c.connectedAt
+}
+
+// SetOnConnectionRequested callback'i ayarlar
+func (c *WebRTCConnection) SetOnConnectionRequested(callback func(deviceID, deviceName string)) {
+	c.onConnectionRequested = callback
 }
 
 // SetChunkHandler chunk handler'ı ayarlar
