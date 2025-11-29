@@ -591,7 +591,27 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 		wanTransport.GetWebRTCConnectionManager().RegisterInvitation(code, webrtcPeer)
 	}
 
-	log.Printf("✅ Invitation code oluşturuldu: %s (expires in %d hours)", code[:20], expiryHours)
+	log.Printf("\n\n")
+	log.Printf("🔵 🔵 🔵 INVITATION CODE (Bunu arkadaşına gönder) 🔵 🔵 🔵")
+	log.Printf("⚠️ LÜTFEN KODUN TAMAMINI KOPYALADIĞINIZDAN EMİN OLUN")
+	log.Printf("⚠️ Tüm satırları birlikte seçip kopyalayın!")
+	log.Printf("=== START CODE ===")
+	
+	// Kodu 50 karakterlik satırlara böl (terminal wrapping önlemek için)
+	chunkSize := 50
+	for i := 0; i < len(code); i += chunkSize {
+		end := i + chunkSize
+		if end > len(code) {
+			end = len(code)
+		}
+		log.Printf("%s", code[i:end])
+	}
+	
+	log.Printf("=== END CODE ===")
+	log.Printf("⚠️ TOPLAM UZUNLUK: %d karakter", len(code))
+	log.Printf("\n")
+
+	log.Printf("✅ Invitation code oluşturuldu: %s... (expires in %d hours)", code[:20], expiryHours)
 
 	return &pb.CreateInvitationResponse{
 		Status: &pb.Status{
