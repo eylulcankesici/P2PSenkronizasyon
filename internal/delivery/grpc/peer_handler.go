@@ -791,11 +791,22 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 						log.Printf("\n\n")
 						log.Printf("🔵 🔵 🔵 RESPONSE CODE (Bunu arkadaşına gönder) 🔵 🔵 🔵")
 						log.Printf("⚠️ LÜTFEN KODUN TAMAMINI KOPYALADIĞINIZDAN EMİN OLUN")
+						log.Printf("⚠️ Tüm satırları birlikte seçip kopyalayın!")
 						log.Printf("=== START CODE ===")
-						log.Printf("%s", respCode)
+						
+						// Kodu 50 karakterlik satırlara böl (terminal wrapping önlemek için)
+						chunkSize := 50
+						for i := 0; i < len(respCode); i += chunkSize {
+							end := i + chunkSize
+							if end > len(respCode) {
+								end = len(respCode)
+							}
+							log.Printf("%s", respCode[i:end])
+						}
+						
 						log.Printf("=== END CODE ===")
+						log.Printf("⚠️ TOPLAM UZUNLUK: %d karakter", len(respCode))
 						log.Printf("\n")
-						log.Printf("🔵 Link: aether://invite?code=%s", respCode)
 					}
 					
 					// WebRTCConnection oluşturma! Sadece pending peer olarak ekle.
