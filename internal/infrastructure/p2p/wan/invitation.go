@@ -129,6 +129,17 @@ func (s *InvitationService) ParseInvitationCode(code string) (*InvitationData, e
 		return nil, fmt.Errorf("invitation code boş")
 	}
 	
+	// Debug: Code'un başını ve sonunu logla
+	start := code
+	if len(start) > 10 {
+		start = start[:10]
+	}
+	end := code
+	if len(end) > 10 {
+		end = end[len(end)-10:]
+	}
+	log.Printf("🔍 Parsed Code Start: %s... End: ...%s (Length: %d)", start, end, len(code))
+	
 	// 1. Base64 decode (Robust: Farklı encoding'leri dene)
 	var encrypted []byte
 	var err error
