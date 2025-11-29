@@ -83,8 +83,18 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 	defer m.mu.Unlock()
 
 	// Zaten bağlı mı kontrol et
-	if conn, exists := m.connections[peer.DeviceID]; exists && conn.IsConnected() {
-		return conn, nil
+	// Zaten bağlı mı kontrol et
+	if conn, exists := m.connections[peer.DeviceID]; exists {
+		// Bağlantı varsa ve durumu closed/failed değilse, mevcut bağlantıyı döndür
+		// Bu, kullanıcının "Connect" butonuna tekrar tekrar basması durumunda
+		// devam eden bağlantı sürecini bozmayı engeller
+		state := conn.GetState()
+		if state != webrtc.PeerConnectionStateClosed && state != webrtc.PeerConnectionStateFailed {
+			log.Printf("🔌 Mevcut bağlantı kullanılıyor (%s): %s", peer.DeviceID[:8], state.String())
+			return conn, nil
+		}
+		// Failed/Closed ise yeni bağlantı oluşturmaya devam et
+		log.Printf("♻️ Eski bağlantı durumu %s, yeni bağlantı oluşturuluyor: %s", state.String(), peer.DeviceID[:8])
 	}
 
 	log.Printf("🔌 WebRTC bağlantısı başlatılıyor: %s", peer.DeviceID[:8])
@@ -189,32 +199,19 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 	}
 
 	// SDP exchange yap (invitation code içinden veya gRPC üzerinden)
-	// Önce invitation code'dan SDP answer'ı kontrol et
-	sdpAnswer, hasAnswer := peer.Metadata["sdp_answer"]
-	if hasAnswer && sdpAnswer != "" {
-		// Invitation code içinden SDP answer alındı
-		log.Printf("📋 SDP answer invitation code'dan alındı: %s (SDP uzunluk: %d)", peer.DeviceID[:8], len(sdpAnswer))
-		
-		answerDesc := webrtc.SessionDescription{
-			Type: webrtc.SDPTypeAnswer,
-			SDP:  sdpAnswer,
-		}
-
-		if err := webrtcPeer.SetRemoteDescription(answerDesc); err != nil {
-			log.Printf("⚠️ Remote description set edilemedi: %v", err)
-		} else {
-			log.Printf("✅ SDP answer invitation code'dan set edildi: %s", peer.DeviceID[:8])
-		}
+	// NOT: Connect metodu her zaman YENİ bir Offer oluşturur.
+	// Bu nedenle metadata'daki eski SDP Answer'ı ASLA kullanmamalıyız.
+	// Eski Answer, eski Offer'a aittir ve yeni Offer ile çalışmaz.
+	
+	// gRPC üzerinden SDP exchange yap
+	grpcAddress, ok := peer.Metadata["grpc_address"]
+	if !ok || grpcAddress == "" {
+		log.Printf("⚠️ gRPC adresi ve SDP answer bulunamadı, SDP exchange yapılamıyor: %s", peer.DeviceID[:8])
+		log.Printf("   ℹ️ Invitation code içinde SDP answer olmalı veya gRPC adresi verilmeli")
+		// Connection'ı map'e ekle (SDP exchange olmadan)
+		m.connections[peer.DeviceID] = webrtcConn
+		log.Printf("✅ WebRTC connection oluşturuldu (SDP exchange bekleniyor): %s", peer.DeviceID[:8])
 	} else {
-		// gRPC üzerinden SDP exchange yap (geriye uyumluluk için)
-		grpcAddress, ok := peer.Metadata["grpc_address"]
-		if !ok || grpcAddress == "" {
-			log.Printf("⚠️ gRPC adresi ve SDP answer bulunamadı, SDP exchange yapılamıyor: %s", peer.DeviceID[:8])
-			log.Printf("   ℹ️ Invitation code içinde SDP answer olmalı veya gRPC adresi verilmeli")
-			// Connection'ı map'e ekle (SDP exchange olmadan)
-			m.connections[peer.DeviceID] = webrtcConn
-			log.Printf("✅ WebRTC connection oluşturuldu (SDP exchange bekleniyor): %s", peer.DeviceID[:8])
-		} else {
 			// gRPC client oluştur ve SDP exchange yap (geriye uyumluluk)
 			log.Printf("📡 gRPC üzerinden SDP exchange başlatılıyor (geriye uyumluluk): %s -> %s", peer.DeviceID[:8], grpcAddress)
 			
@@ -277,11 +274,10 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 					log.Printf("⚠️ Remote description set edilemedi: %v", err)
 				} else {
 					log.Printf("✅ SDP answer gRPC'den alındı ve set edildi: %s", peer.DeviceID[:8])
-				}
+			}
 			}
 		}
-	}
-
+	
 	// Connection'ı map'e ekle
 	m.connections[peer.DeviceID] = webrtcConn
 
@@ -536,7 +532,7 @@ func (m *WebRTCConnectionManager) RegisterConnection(deviceID string, conn *WebR
 }
 
 // HandleAnswer pending invitation için answer'ı işler
-func (m *WebRTCConnectionManager) HandleAnswer(deviceID string, answerSDP string) error {
+func (m *WebRTCConnectionManager) HandleAnswer(deviceID string, answerSDP string, iceCandidates []ICECandidate) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	
@@ -576,6 +572,25 @@ func (m *WebRTCConnectionManager) HandleAnswer(deviceID string, answerSDP string
 	
 	// Eşleşen peer'ı invitation listesinden çıkar
 	delete(m.pendingInvitations, matchedCode)
+
+	// Remote ICE candidates'ı ekle
+	if len(iceCandidates) > 0 {
+		log.Printf("📡 %d remote ICE candidate ekleniyor...", len(iceCandidates))
+		for _, cand := range iceCandidates {
+			// WebRTC ICE candidate formatına çevir
+			candidateStr := fmt.Sprintf("candidate:%s %d %s %s %s %d typ %s",
+				cand.Type, cand.Priority, cand.Protocol,
+				cand.IP.String(), cand.IP.String(), cand.Port, cand.Type)
+			
+			iceCandidate := webrtc.ICECandidateInit{
+				Candidate: candidateStr,
+			}
+			
+			if err := matchedPeer.AddICECandidate(iceCandidate); err != nil {
+				log.Printf("⚠️ Remote ICE candidate eklenemedi: %v", err)
+			}
+		}
+	}
 	
 	// Data channel oluştur (eğer yoksa)
 	// NOT: CreateInvitation'da data channel oluşturulmamış olabilir
@@ -620,6 +635,14 @@ func (m *WebRTCConnectionManager) HandleAnswer(deviceID string, answerSDP string
 	}
 	
 	return nil
+}
+
+// GetState connection state döner
+func (c *WebRTCConnection) GetState() webrtc.PeerConnectionState {
+	if c.webrtcPeer == nil {
+		return webrtc.PeerConnectionStateClosed
+	}
+	return c.webrtcPeer.GetConnectionState()
 }
 
 // WebRTCConnection WebRTC data channel connection implementasyonu
