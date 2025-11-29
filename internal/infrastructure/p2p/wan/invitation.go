@@ -88,8 +88,9 @@ func (s *InvitationService) GenerateInvitationCode(
 		return "", fmt.Errorf("invitation data encryption hatası: %w", err)
 	}
 
-	// 4. Base64 URL-safe encode
-	code := base64.URLEncoding.EncodeToString(encrypted)
+	// 4. Base64 URL-safe encode (padding olmadan - RawURLEncoding)
+	// Padding (=) karakterleri kopyalama sırasında sorun olabiliyor
+	code := base64.RawURLEncoding.EncodeToString(encrypted)
 
 	return code, nil
 }
@@ -123,19 +124,36 @@ func (s *InvitationService) ParseInvitationCode(code string) (*InvitationData, e
 		return nil, fmt.Errorf("invitation code boş")
 	}
 	
-	// 1. Base64 decode (URL-safe encoding kullanılıyor)
-	encrypted, err := base64.URLEncoding.DecodeString(code)
-	if err != nil {
-		// Eğer URL-safe decode başarısız olursa, standart base64 dene
-		encrypted, err = base64.StdEncoding.DecodeString(code)
-		if err != nil {
-			preview := code
-			if len(preview) > 50 {
-				preview = preview[:50] + "..."
-			}
-			return nil, fmt.Errorf("invitation code decode hatası (uzunluk: %d, önizleme: %s): %w", 
-				len(code), preview, err)
+	// 1. Base64 decode (Robust: Farklı encoding'leri dene)
+	var encrypted []byte
+	var err error
+	
+	// Denenecek decoder'lar (sırayla)
+	// RawURLEncoding: Padding'siz URL-safe (tercih edilen)
+	// URLEncoding: Padding'li URL-safe
+	// RawStdEncoding: Padding'siz Standart
+	// StdEncoding: Padding'li Standart
+	encodings := []*base64.Encoding{
+		base64.RawURLEncoding,
+		base64.URLEncoding,
+		base64.RawStdEncoding,
+		base64.StdEncoding,
+	}
+	
+	for _, enc := range encodings {
+		encrypted, err = enc.DecodeString(code)
+		if err == nil {
+			break
 		}
+	}
+	
+	if err != nil {
+		preview := code
+		if len(preview) > 50 {
+			preview = preview[:50] + "..."
+		}
+		return nil, fmt.Errorf("invitation code decode hatası (uzunluk: %d, önizleme: %s): %w", 
+			len(code), preview, err)
 	}
 
 	// 2. Decrypt
