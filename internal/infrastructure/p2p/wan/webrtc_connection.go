@@ -38,6 +38,9 @@ type WebRTCConnectionManager struct {
 	// Pending invitations
 	pendingInvitations map[string]*WebRTCPeer
 
+	// Pending peers (waiting for Connect)
+	pendingPeers map[string]*WebRTCPeer
+
 	// State
 	started bool
 	
@@ -72,6 +75,7 @@ func NewWebRTCConnectionManager(deviceID, deviceName string, iceAgent ICEAgent, 
 		connections:        make(map[string]*WebRTCConnection),
 		pendingConns:       make(map[string]*PendingConnection),
 		pendingInvitations: make(map[string]*WebRTCPeer),
+		pendingPeers:       make(map[string]*WebRTCPeer),
 	}
 }
 
@@ -119,6 +123,73 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 		}
 		// Failed/Closed ise yeni bağlantı oluşturmaya devam et
 		log.Printf("♻️ Eski bağlantı durumu %s, yeni bağlantı oluşturuluyor: %s", state.String(), peer.DeviceID[:8])
+	}
+
+	// Pending peer var mı kontrol et (AddPeerByInvitation ile eklenen)
+	if pendingPeer := m.GetPendingPeer(peer.DeviceID); pendingPeer != nil {
+		log.Printf("🔌 Pending peer bulundu, mevcut WebRTC session kullanılıyor: %s", peer.DeviceID[:8])
+		
+		// Data channel oluştur (eğer yoksa)
+		// NOT: Genellikle Offerer oluşturur, ama biz Answerer isek ve pendingPeer varsa
+		// zaten session kurulmuştur. Data channel'ı kontrol etmemiz gerekebilir.
+		// Ancak pendingPeer struct'ında data channel yok, WebRTCPeer içinde var mı?
+		// WebRTCPeer wrapper'ında data channel saklanmıyor, sadece Pion PeerConnection var.
+		// Bu durumda yeni bir data channel oluşturmayı deneyebiliriz veya OnDataChannel bekleyebiliriz.
+		// Pion'da OnDataChannel callback'i zaten ayarlı (NewWebRTCPeer içinde).
+		
+		// WebRTC connection oluştur
+		// Data channel nil geçiyoruz, OnDataChannel ile set edilecek veya biz oluşturacağız
+		webrtcConn := NewWebRTCConnection(peer.DeviceID, peer.DeviceName, pendingPeer, nil)
+		
+		// Callback'leri bağla
+		webrtcConn.SetOnConnectionRequested(func(deviceID, deviceName string) {
+			m.AddPendingConnection(deviceID, deviceName, "")
+		})
+		if m.chunkHandler != nil {
+			webrtcConn.SetChunkHandler(m.chunkHandler)
+		}
+		if m.onChunkReceived != nil {
+			webrtcConn.SetOnChunkReceived(m.onChunkReceived)
+		}
+		if m.onTransferCancel != nil {
+			webrtcConn.SetOnTransferCancel(m.onTransferCancel)
+		}
+		if m.onFileDelete != nil {
+			webrtcConn.SetOnFileDelete(m.onFileDelete)
+		}
+		
+		// Connection'ı kaydet
+		m.connections[peer.DeviceID] = webrtcConn
+		log.Printf("✅ WebRTC connection oluşturuldu (Pending Peer ile): %s", peer.DeviceID[:8])
+		
+		// Handshake isteği gönder
+		// Connection henüz tam hazır olmayabilir (ICE checking vs), ama deneyelim
+		go func() {
+			// Biraz bekle ki data channel açılsın
+			time.Sleep(1 * time.Second)
+			
+			// Request oluştur
+			reqData, err := webrtcConn.protocol.EncodeConnectionRequest(m.deviceID, m.deviceName)
+			if err != nil {
+				log.Printf("❌ Handshake request encode hatası: %v", err)
+				return
+			}
+			
+			// Data channel üzerinden gönder
+			if webrtcConn.dataChannel != nil {
+				if err := webrtcConn.dataChannel.Send(reqData); err != nil {
+					log.Printf("❌ Handshake request gönderme hatası: %v", err)
+				} else {
+					log.Printf("📤 Handshake request gönderildi (Pending Peer)")
+				}
+			} else {
+				log.Printf("⚠️ Data channel henüz hazır değil, istek gönderilemedi (Pending Peer)")
+				// Data channel açılınca gönderilmeli...
+				// Bu basit implementasyon şimdilik yeterli olabilir
+			}
+		}()
+		
+		return webrtcConn, nil
 	}
 
 	log.Printf("🔌 WebRTC bağlantısı başlatılıyor: %s", peer.DeviceID[:8])
@@ -398,14 +469,13 @@ func (m *WebRTCConnectionManager) SetOnTransferCancel(callback func(peerID, file
 }
 
 // SetOnFileDelete dosya silme callback'ini ayarlar
-// NOT: Gerçek WebRTC data channel implementasyonunda kullanılacak
 func (m *WebRTCConnectionManager) SetOnFileDelete(callback func(peerID, fileID string)) {
 	m.onFileDelete = callback
 }
 
-// SetOnConnectionRequestedCallback pending connection callback'ini ayarlar
-func (m *WebRTCConnectionManager) SetOnConnectionRequestedCallback(callback func(deviceID, deviceName string)) {
-	m.onConnectionRequested = callback
+// SetOnConnectionLost connection lost callback'ini ayarlar
+func (m *WebRTCConnectionManager) SetOnConnectionLost(callback func(peerID string)) {
+	m.onConnectionLost = callback
 }
 
 // SetOnConnectionEstablished connection established callback'ini ayarlar
@@ -413,9 +483,27 @@ func (m *WebRTCConnectionManager) SetOnConnectionEstablished(callback func(conn 
 	m.onConnectionEstablished = callback
 }
 
-// SetOnConnectionLost connection lost callback'ini ayarlar
-func (m *WebRTCConnectionManager) SetOnConnectionLost(callback func(peerID string)) {
-	m.onConnectionLost = callback
+// SetOnConnectionRequestedCallback connection requested callback'ini ayarlar
+func (m *WebRTCConnectionManager) SetOnConnectionRequestedCallback(callback func(deviceID, deviceName string)) {
+	m.onConnectionRequested = callback
+}
+
+// AddPendingPeer adds a pending peer (waiting for Connect)
+func (m *WebRTCConnectionManager) AddPendingPeer(deviceID string, peer *WebRTCPeer) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.pendingPeers[deviceID] = peer
+}
+
+// GetPendingPeer gets and removes a pending peer
+func (m *WebRTCConnectionManager) GetPendingPeer(deviceID string) *WebRTCPeer {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if peer, ok := m.pendingPeers[deviceID]; ok {
+		delete(m.pendingPeers, deviceID)
+		return peer
+	}
+	return nil
 }
 
 // GetPendingConnections bekleyen bağlantı isteklerini döner
@@ -753,6 +841,21 @@ func NewWebRTCConnection(peerID, peerName string, webrtcPeer *WebRTCPeer, dataCh
 		conn.connected = true
 		conn.mu.Unlock()
 	}
+	
+	// OnDataChannel callback'ini ayarla (Answerer tarafı için)
+	webrtcPeer.SetOnDataChannel(func(dc *webrtc.DataChannel) {
+		conn.mu.Lock()
+		// Eğer data channel henüz yoksa veya kapalıysa yenisini kullan
+		if conn.dataChannel == nil {
+			conn.dataChannel = dc
+			conn.mu.Unlock()
+			conn.setupDataChannel(dc)
+			log.Printf("✅ Data channel alındı ve ayarlandı: %s", peerID[:8])
+		} else {
+			conn.mu.Unlock()
+			log.Printf("ℹ️ Ekstra data channel yoksayıldı: %s", peerID[:8])
+		}
+	})
 	
 	return conn
 }

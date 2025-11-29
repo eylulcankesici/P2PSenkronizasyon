@@ -759,10 +759,10 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 					// NOT: Genellikle Offerer data channel açar, ama Answerer da açabilir veya bekleyebilir
 					// Pion'da OnDataChannel callback'i zaten ayarlı
 					
-					// WebRTCConnection oluştur ve kaydet
-					// Data channel henüz yok (karşı taraf açacak), nil geçiyoruz
-					webrtcConn := wan.NewWebRTCConnection(invitationData.DeviceID, invitationData.DeviceName, webrtcPeer, nil)
-					wanTransport.GetWebRTCConnectionManager().RegisterConnection(invitationData.DeviceID, webrtcConn)
+					// WebRTCConnection oluşturma! Sadece pending peer olarak ekle.
+					// Kullanıcı "Connect" dediğinde bu peer kullanılacak.
+					wanTransport.GetWebRTCConnectionManager().AddPendingPeer(invitationData.DeviceID, webrtcPeer)
+					log.Printf("✅ Pending peer eklendi (Connect bekleniyor): %s", invitationData.DeviceID[:8])
 					
 				} else {
 					log.Printf("⚠️ SDP answer oluşturulamadı: %v", err)
@@ -789,6 +789,11 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 		invitationData.GRPCAddress, // gRPC address (opsiyonel, geriye uyumluluk için)
 		invitationData.ICECandidates,
 	)
+	if err != nil {
+		log.Printf("❌ AddPeerWithGRPC hatası: %v", err)
+	} else {
+		log.Printf("✅ WAN peer discovery service'e eklendi: %s", invitationData.DeviceName)
+	}
 	
 	// SDP answer'ı metadata'ya ekle (Connect çağrıldığında kullanılacak)
 	if sdpAnswer != "" {
