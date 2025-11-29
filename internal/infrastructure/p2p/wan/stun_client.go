@@ -276,17 +276,34 @@ func (c *stunClientImpl) DetectNATType(ctx context.Context) (NATType, error) {
 		c.cachedNATType = NATTypeNone
 		c.lastUpdate = time.Now()
 		c.mu.Unlock()
+		log.Printf("📡 NAT type tespit edildi: %s (public IP = local IP: %s)", NATTypeNone, publicIP)
 		return NATTypeNone, nil
 	}
 
-	// Şimdilik symmetric NAT varsayıyoruz (en güvenli varsayım)
-	// Daha detaylı detection için ek testler gerekir
+	// NAT var, tipini tespit etmek için mapped port testi yap
+	// Basit detection: Mapped port'u al ve farklı STUN server'lardan test et
+	mappedPort, err := c.GetMappedPort(ctx)
+	if err != nil {
+		// Port alınamazsa symmetric NAT varsay (en güvenli varsayım)
+		c.mu.Lock()
+		c.cachedNATType = NATTypeSymmetric
+		c.lastUpdate = time.Now()
+		c.mu.Unlock()
+		log.Printf("📡 NAT type tespit edildi: %s (public: %s, local: %s, port testi başarısız)", 
+			NATTypeSymmetric, publicIP, localIP)
+		return NATTypeSymmetric, nil
+	}
+
+	// Port alındı, şimdilik symmetric NAT varsayıyoruz (en güvenli varsayım)
+	// Daha detaylı detection için multiple endpoint testleri gerekir
+	// Mobil veri ve kafe internetinde genelde symmetric NAT olur
 	c.mu.Lock()
 	c.cachedNATType = NATTypeSymmetric
 	c.lastUpdate = time.Now()
 	c.mu.Unlock()
 
-	log.Printf("📡 NAT type tespit edildi: %s (public: %s, local: %s)", NATTypeSymmetric, publicIP, localIP)
+	log.Printf("📡 NAT type tespit edildi: %s (public: %s:%d, local: %s)", 
+		NATTypeSymmetric, publicIP, mappedPort, localIP)
 	return NATTypeSymmetric, nil
 }
 

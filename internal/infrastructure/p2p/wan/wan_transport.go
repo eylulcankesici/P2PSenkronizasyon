@@ -101,8 +101,16 @@ func (t *WANTransport) Start(ctx context.Context) error {
 	natType, err := t.stunClient.DetectNATType(ctx)
 	if err != nil {
 		log.Printf("⚠️ NAT type tespit edilemedi: %v (devam ediliyor)", err)
+		log.Printf("📡 NAT type: unknown (hata nedeniyle tespit edilemedi)")
 	} else {
-		log.Printf("✅ NAT type: %s", natType)
+		log.Printf("✅ NAT type tespit edildi: %s", string(natType))
+		if natType == NATTypeSymmetric {
+			log.Printf("   ⚠️ Symmetric NAT tespit edildi - TURN server gerekebilir")
+		} else if natType == NATTypeNone {
+			log.Printf("   ✅ NAT yok - Doğrudan bağlantı mümkün")
+		} else {
+			log.Printf("   ℹ️ NAT type: %s - STUN ile bağlantı mümkün olabilir", string(natType))
+		}
 	}
 
 	// ICE agent ile candidate gathering başlat
