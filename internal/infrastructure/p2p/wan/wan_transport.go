@@ -113,6 +113,16 @@ func (t *WANTransport) Start(ctx context.Context) error {
 		}
 	}
 
+	// TURN server bilgilerini logla
+	if len(t.wanConfig.TURNServers) > 0 {
+		log.Printf("🔄 TURN server'lar yapılandırıldı: %d server", len(t.wanConfig.TURNServers))
+		for i, turnServer := range t.wanConfig.TURNServers {
+			log.Printf("   [%d] %s", i+1, turnServer.URL)
+		}
+	} else {
+		log.Println("ℹ️ TURN server yapılandırılmamış (sadece STUN kullanılacak)")
+	}
+
 	// ICE agent ile candidate gathering başlat
 	log.Println("📡 ICE candidate gathering başlatılıyor...")
 	if err := t.iceAgent.StartGathering(ctx); err != nil {

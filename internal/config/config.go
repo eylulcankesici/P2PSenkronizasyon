@@ -106,7 +106,7 @@ func Load() (*Config, error) {
 
 			// WAN varsayılan ayarları (pasif)
 			EnableWAN:             getEnvOrDefaultBool("AETHER_ENABLE_WAN", false), // Ortam değişkeni ile açılabilir
-			TURNServers:           []TURNServerConfig{},
+			TURNServers:           getTURNServers(), // Public TURN server'lar (test için)
 			EnableTLS:             true, // WAN için TLS varsayılan açık
 			TLSInsecureSkipVerify: false,
 			EnableRelay:           false,
@@ -226,4 +226,37 @@ func getEnvOrDefaultBool(key string, defaultValue bool) bool {
 		}
 	}
 	return defaultValue
+}
+
+// getTURNServers TURN server yapılandırmalarını döner
+// Ortam değişkeni ile kontrol edilebilir (AETHER_USE_PUBLIC_TURN)
+// Varsayılan: Public TURN server'lar aktif (test için)
+func getTURNServers() []TURNServerConfig {
+	// Ortam değişkeni ile kontrol et
+	usePublicTURN := getEnvOrDefaultBool("AETHER_USE_PUBLIC_TURN", true)
+	
+	if !usePublicTURN {
+		return []TURNServerConfig{}
+	}
+	
+	// Test için ücretsiz public TURN server'lar
+	// NOT: Production'da kendi TURN server'ınızı kullanın
+	// Kaynak: https://www.metered.ca/tools/openrelay/
+	return []TURNServerConfig{
+		{
+			URL:      "turn:openrelay.metered.ca:80",
+			Username: "openrelayproject",
+			Password: "openrelayproject",
+		},
+		{
+			URL:      "turn:openrelay.metered.ca:443",
+			Username: "openrelayproject",
+			Password: "openrelayproject",
+		},
+		{
+			URL:      "turn:openrelay.metered.ca:443?transport=tcp",
+			Username: "openrelayproject",
+			Password: "openrelayproject",
+		},
+	}
 }

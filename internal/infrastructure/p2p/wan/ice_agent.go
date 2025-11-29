@@ -88,6 +88,7 @@ func (a *iceAgentImpl) StartGathering(ctx context.Context) error {
 	}
 
 	// TURN server'ları ekle
+	turnCount := 0
 	for _, turnServer := range a.turnServers {
 		url, err := parseICEURL(turnServer.URL)
 		if err != nil {
@@ -98,10 +99,14 @@ func (a *iceAgentImpl) StartGathering(ctx context.Context) error {
 		url.Username = turnServer.Username
 		url.Password = turnServer.Password
 		iceURLs = append(iceURLs, url)
+		turnCount++
+		log.Printf("✅ TURN server eklendi: %s (username: %s)", turnServer.URL, turnServer.Username)
 	}
 
 	if len(iceURLs) == 0 {
 		log.Println("⚠️ Hiç STUN/TURN server yok, sadece host candidate'lar kullanılacak")
+	} else {
+		log.Printf("📡 ICE server yapılandırması: %d STUN, %d TURN server", len(a.stunServers), turnCount)
 	}
 
 	// ICE agent config
