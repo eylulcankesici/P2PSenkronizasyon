@@ -251,7 +251,7 @@ class TransferNotifier extends StateNotifier<Map<String, TransferState>> {
   /// Gerçek zamanlı güncelleme için polling başlat
   void _startPolling() {
     _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       _loadTransfers();
     });
     

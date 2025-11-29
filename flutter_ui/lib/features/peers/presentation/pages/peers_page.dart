@@ -30,8 +30,8 @@ class _PeersPageState extends ConsumerState<PeersPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    // Peer listelerini düzenli olarak yenile (her 2 saniyede bir)
-    _refreshTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+    // Peer listelerini düzenli olarak yenile (her 15 saniyede bir)
+    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (!mounted) return;
 
       if (_tabController.index == 0) {

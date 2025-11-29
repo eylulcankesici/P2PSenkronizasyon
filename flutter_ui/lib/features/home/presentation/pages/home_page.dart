@@ -72,8 +72,8 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
   
   void _listenToPendingConnections() {
-    // Polling ile pending connections'ı kontrol et (her 1 saniyede bir)
-    Timer.periodic(const Duration(seconds: 1), (timer) {
+    // Polling ile pending connections'ı kontrol et (her 5 saniyede bir)
+    Timer.periodic(const Duration(seconds: 5), (timer) {
       if (!mounted) {
         timer.cancel();
         return;

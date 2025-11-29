@@ -19,8 +19,8 @@ class PeerMonitor {
     // İlk durumu al
     _updatePreviousState();
 
-    // Polling başlat (her 2 saniyede bir)
-    _pollingTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
+    // Polling başlat (her 15 saniyede bir)
+    _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) async {
       await _checkConnections();
     });
   }
