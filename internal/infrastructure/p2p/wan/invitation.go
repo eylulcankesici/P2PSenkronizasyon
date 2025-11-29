@@ -23,7 +23,7 @@ type InvitationData struct {
 	PublicIP      string         `json:"public_ip"`
 	GRPCAddress   string         `json:"grpc_address"`   // gRPC server adresi (public IP:port) - opsiyonel, SDP exchange için gerekli değil
 	NATType       string         `json:"nat_type"`
-	ICECandidates []ICECandidate `json:"ice_candidates"`
+	ICECandidates []ICECandidate `json:"ice_candidates,omitempty"`
 	SDPOffer      string         `json:"sdp_offer,omitempty"`  // SDP offer (opsiyonel)
 	SDPAnswer     string         `json:"sdp_answer,omitempty"`  // SDP answer (opsiyonel)
 	CreatedAt     time.Time      `json:"created_at"`
