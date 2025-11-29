@@ -179,6 +179,12 @@ func (s *InvitationService) ParseInvitationCode(code string) (*InvitationData, e
 		if len(preview) > 50 {
 			preview = preview[:50] + "..."
 		}
+		
+		// Özel hata mesajları
+		if len(code)%4 == 1 {
+			return nil, fmt.Errorf("invitation code eksik/hatalı (uzunluk: %d, mod 4 = 1). Kopyalama sırasında karakterler eksik kalmış olabilir. Lütfen tüm kodu kopyaladığınızdan emin olun.", len(code))
+		}
+		
 		return nil, fmt.Errorf("invitation code decode hatası (uzunluk: %d, önizleme: %s): %w", 
 			len(code), preview, err)
 	}

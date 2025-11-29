@@ -772,7 +772,13 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 					)
 					
 					if respErr == nil {
-						log.Printf("🔵 🔵 🔵 RESPONSE CODE (Bunu arkadaşına gönder): %s", respCode)
+						log.Printf("\n\n")
+						log.Printf("🔵 🔵 🔵 RESPONSE CODE (Bunu arkadaşına gönder) 🔵 🔵 🔵")
+						log.Printf("⚠️ LÜTFEN KODUN TAMAMINI KOPYALADIĞINIZDAN EMİN OLUN (Satır atlamalarına dikkat edin)")
+						log.Printf("=== START CODE ===")
+						log.Printf("%s", respCode)
+						log.Printf("=== END CODE ===")
+						log.Printf("\n")
 						log.Printf("🔵 Link: aether://invite?code=%s", respCode)
 					}
 					
