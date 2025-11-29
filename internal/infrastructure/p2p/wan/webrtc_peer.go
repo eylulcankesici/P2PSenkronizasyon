@@ -32,8 +32,20 @@ type WebRTCPeer struct {
 
 // NewWebRTCPeer yeni WebRTC peer oluşturur
 func NewWebRTCPeer(config webrtc.Configuration) (*WebRTCPeer, error) {
+	// SettingEngine oluştur ve timeout'ları ayarla
+	settingEngine := webrtc.SettingEngine{}
+	
+	// ICE timeout'larını uzat (Manuel signaling için gerekli)
+	// Disconnected: 3 dakika (kullanıcının kodu kopyalaması için)
+	// Failed: 5 dakika
+	// KeepAlive: 2 saniye (default)
+	settingEngine.SetICETimeouts(3*time.Minute, 5*time.Minute, 2*time.Second)
+	
+	// API oluştur
+	api := webrtc.NewAPI(webrtc.WithSettingEngine(settingEngine))
+
 	// Peer connection oluştur
-	peerConnection, err := webrtc.NewPeerConnection(config)
+	peerConnection, err := api.NewPeerConnection(config)
 	if err != nil {
 		return nil, fmt.Errorf("peer connection oluşturulamadı: %w", err)
 	}
