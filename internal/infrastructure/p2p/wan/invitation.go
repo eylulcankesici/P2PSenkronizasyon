@@ -1,6 +1,8 @@
 package wan
 
 import (
+	"bytes"
+	"compress/gzip"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -8,6 +10,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"strings"
 	"time"
@@ -87,8 +90,19 @@ func (s *InvitationService) GenerateInvitationCode(
 		return "", fmt.Errorf("invitation data marshal hatası: %w", err)
 	}
 
+	// 2.5. Sıkıştır (Gzip) - Kodu kısaltmak için
+	var b bytes.Buffer
+	gz := gzip.NewWriter(&b)
+	if _, err := gz.Write(jsonData); err != nil {
+		return "", fmt.Errorf("gzip write hatası: %w", err)
+	}
+	if err := gz.Close(); err != nil {
+		return "", fmt.Errorf("gzip close hatası: %w", err)
+	}
+	compressedData := b.Bytes()
+
 	// 3. Şifrele (AES-256-GCM)
-	encrypted, err := s.encrypt(jsonData)
+	encrypted, err := s.encrypt(compressedData)
 	if err != nil {
 		return "", fmt.Errorf("invitation data encryption hatası: %w", err)
 	}
@@ -206,9 +220,31 @@ func (s *InvitationService) ParseInvitationCode(code string) (*InvitationData, e
 		return nil, fmt.Errorf("invitation code decryption hatası: %w", err)
 	}
 
+	// 2.5. Decompress (Gzip) - Eğer sıkıştırılmışsa
+	// Gzip header kontrolü (1f 8b)
+	var jsonData []byte
+	if len(decrypted) > 2 && decrypted[0] == 0x1f && decrypted[1] == 0x8b {
+		gr, err := gzip.NewReader(bytes.NewBuffer(decrypted))
+		if err == nil {
+			var b bytes.Buffer
+			if _, err := io.Copy(&b, gr); err == nil {
+				gr.Close()
+				jsonData = b.Bytes()
+			} else {
+				// Decompression hatası, belki sıkıştırılmamıştır (fallback)
+				jsonData = decrypted
+			}
+		} else {
+			jsonData = decrypted
+		}
+	} else {
+		// Sıkıştırılmamış veri (eski versiyon uyumluluğu)
+		jsonData = decrypted
+	}
+
 	// 3. JSON parse
 	var data InvitationData
-	if err := json.Unmarshal(decrypted, &data); err != nil {
+	if err := json.Unmarshal(jsonData, &data); err != nil {
 		return nil, fmt.Errorf("invitation data unmarshal hatası: %w", err)
 	}
 
