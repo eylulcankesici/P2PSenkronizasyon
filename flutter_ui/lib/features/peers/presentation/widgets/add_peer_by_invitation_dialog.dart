@@ -115,11 +115,13 @@ class _AddPeerByInvitationDialogState extends ConsumerState<AddPeerByInvitationD
     // Boşlukları ve yeni satırları temizle
     invitationCode = invitationCode.replaceAll(RegExp(r'\s+'), '');
     
-    if (text.startsWith('aether://invite?code=') || text.contains('aether://invite?code=')) {
-      // URL'den code parametresini çıkar
+    // URL formatından code'u çıkar
+    if (text.contains('aether://invite?code=') || text.contains('code=')) {
       try {
+        // Önce URL parse et
         final uri = Uri.tryParse(text);
         if (uri != null && uri.queryParameters.containsKey('code')) {
+          // Query parameter'dan al
           invitationCode = uri.queryParameters['code']!;
         } else {
           // Manuel parse (aether://invite?code=... formatından)
@@ -137,28 +139,31 @@ class _AddPeerByInvitationDialogState extends ConsumerState<AddPeerByInvitationD
             }
           }
         }
-        // URL decode et (özel karakterler encode edilmiş olabilir)
-        invitationCode = Uri.decodeComponent(invitationCode);
-      } catch (e) {
-        // URL decode başarısız olursa, orijinal string'i kullan
-        print('URL decode hatası: $e');
-      }
-    } else if (text.contains('code=')) {
-      // URL formatında ama farklı bir format olabilir
-      try {
-        final uri = Uri.tryParse(text);
-        if (uri != null && uri.queryParameters.containsKey('code')) {
-          invitationCode = uri.queryParameters['code']!;
-          invitationCode = Uri.decodeComponent(invitationCode);
+        
+        // URL decode et (sadece bir kez, çünkü backend de temizleyecek)
+        // Eğer zaten decode edilmişse, tekrar decode etmeye çalışmayalım
+        try {
+          final decoded = Uri.decodeComponent(invitationCode);
+          // Eğer decode sonrası farklıysa ve geçerli base64 karakterler içeriyorsa kullan
+          if (decoded != invitationCode && 
+              RegExp(r'^[A-Za-z0-9\-_+/=]+$').hasMatch(decoded)) {
+            invitationCode = decoded;
+          }
+        } catch (e) {
+          // URL decode başarısız olursa, orijinal string'i kullan
+          print('URL decode hatası: $e');
         }
       } catch (e) {
-        // URI parse başarısız olursa, orijinal string'i kullan
-        print('URI parse hatası: $e');
+        // URL parse başarısız olursa, orijinal string'i kullan
+        print('URL parse hatası: $e');
       }
     }
     
-    // Son temizlik: boşluklar ve yeni satırlar
+    // Son temizlik: boşluklar, yeni satırlar ve geçersiz karakterler
     invitationCode = invitationCode.trim().replaceAll(RegExp(r'\s+'), '');
+    
+    // Base64 karakterlerini kontrol et (sadece geçerli karakterler)
+    invitationCode = invitationCode.replaceAll(RegExp(r'[^A-Za-z0-9\-_+/=]'), '');
 
     setState(() => _isLoading = true);
 

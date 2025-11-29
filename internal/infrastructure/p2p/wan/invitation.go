@@ -101,6 +101,39 @@ func (s *InvitationService) ParseInvitationCode(code string) (*InvitationData, e
 	code = strings.ReplaceAll(code, "\n", "")
 	code = strings.ReplaceAll(code, "\r", "")
 	code = strings.ReplaceAll(code, " ", "")
+	code = strings.ReplaceAll(code, "\t", "")
+	
+	// URL'den code parametresini çıkar (eğer tam URL ise)
+	if strings.Contains(code, "aether://invite?code=") {
+		// URL formatından code'u çıkar
+		codeIndex := strings.Index(code, "code=")
+		if codeIndex != -1 {
+			code = code[codeIndex+5:]
+			// Fragment veya başka parametreler varsa kes
+			if fragmentIndex := strings.Index(code, "#"); fragmentIndex != -1 {
+				code = code[:fragmentIndex]
+			}
+			if paramIndex := strings.Index(code, "&"); paramIndex != -1 {
+				code = code[:paramIndex]
+			}
+		}
+	}
+	
+	// Base64 karakterlerini kontrol et ve geçersiz karakterleri temizle
+	// Base64 URL-safe: A-Z, a-z, 0-9, -, _
+	// Base64 standart: A-Z, a-z, 0-9, +, /, = (padding)
+	var cleanedCode strings.Builder
+	for _, r := range code {
+		if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') ||
+			r == '-' || r == '_' || r == '+' || r == '/' || r == '=' {
+			cleanedCode.WriteRune(r)
+		}
+	}
+	code = cleanedCode.String()
+	
+	if len(code) == 0 {
+		return nil, fmt.Errorf("invitation code temizlendikten sonra boş kaldı")
+	}
 	
 	// 1. Base64 decode (URL-safe encoding kullanılıyor)
 	encrypted, err := base64.URLEncoding.DecodeString(code)
@@ -108,7 +141,12 @@ func (s *InvitationService) ParseInvitationCode(code string) (*InvitationData, e
 		// Eğer URL-safe decode başarısız olursa, standart base64 dene
 		encrypted, err = base64.StdEncoding.DecodeString(code)
 		if err != nil {
-			return nil, fmt.Errorf("invitation code decode hatası: %w", err)
+			preview := code
+			if len(preview) > 50 {
+				preview = preview[:50] + "..."
+			}
+			return nil, fmt.Errorf("invitation code decode hatası (uzunluk: %d, önizleme: %s): %w", 
+				len(code), preview, err)
 		}
 	}
 
