@@ -358,6 +358,14 @@ func (t *WANTransport) SetChunkHandler(handler func(chunkHash string) ([]byte, e
 	}
 }
 
+// GetPendingConnections bekleyen bağlantı isteklerini döner
+func (t *WANTransport) GetPendingConnections() []*PendingConnection {
+	if t.connMgr == nil {
+		return []*PendingConnection{}
+	}
+	return t.connMgr.GetPendingConnections()
+}
+
 // GetWebRTCConnectionManager WebRTC connection manager'ı döner (callback bağlamak için)
 func (t *WANTransport) GetWebRTCConnectionManager() *WebRTCConnectionManager {
 	return t.connMgr

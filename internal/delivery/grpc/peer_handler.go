@@ -239,32 +239,39 @@ func (h *PeerHandler) RemovePeer(ctx context.Context, req *pb.RemovePeerRequest)
 	}, nil
 }
 
-// GetPendingConnections bekleyen bağlantı isteklerini döner
+// GetPendingConnections bekleyen bağlantı isteklerini döner (LAN ve WAN)
 func (h *PeerHandler) GetPendingConnections(ctx context.Context, req *pb.GetPendingConnectionsRequest) (*pb.GetPendingConnectionsResponse, error) {
+	pbPendingConns := make([]*pb.PendingConnection, 0)
+	
+	// LAN transport'tan pending connections al
 	lanTransport := h.container.LANTransport()
-	if lanTransport == nil {
-		return &pb.GetPendingConnectionsResponse{
-			Status: &pb.Status{
-				Success: false,
-				Message: "LAN transport bulunamadı",
-				Code:    500,
-			},
-			PendingConnections: []*pb.PendingConnection{},
-		}, nil
+	if lanTransport != nil {
+		connMgr := lanTransport.GetTCPConnectionManager()
+		if connMgr != nil {
+			lanPendingConns := connMgr.GetPendingConnections()
+			for _, pending := range lanPendingConns {
+				pbPending := &pb.PendingConnection{
+					DeviceId:   pending.DeviceID,
+					DeviceName: pending.DeviceName,
+					Timestamp:  pending.Timestamp.Unix(),
+				}
+				pbPendingConns = append(pbPendingConns, pbPending)
+			}
+		}
 	}
 	
-	connMgr := lanTransport.GetTCPConnectionManager()
-	pendingConns := connMgr.GetPendingConnections()
-	
-	// Pending connections'ı proto mesajlarına çevir
-	pbPendingConns := make([]*pb.PendingConnection, 0, len(pendingConns))
-	for _, pending := range pendingConns {
-		pbPending := &pb.PendingConnection{
-			DeviceId:   pending.DeviceID,
-			DeviceName: pending.DeviceName,
-			Timestamp:  pending.Timestamp.Unix(),
+	// WAN transport'tan pending connections al
+	wanTransport := h.container.WANTransport()
+	if wanTransport != nil {
+		wanPendingConns := wanTransport.GetPendingConnections()
+		for _, pending := range wanPendingConns {
+			pbPending := &pb.PendingConnection{
+				DeviceId:   pending.DeviceID,
+				DeviceName: pending.DeviceName,
+				Timestamp:  pending.Timestamp.Unix(),
+			}
+			pbPendingConns = append(pbPendingConns, pbPending)
 		}
-		pbPendingConns = append(pbPendingConns, pbPending)
 	}
 	
 	return &pb.GetPendingConnectionsResponse{
@@ -277,41 +284,79 @@ func (h *PeerHandler) GetPendingConnections(ctx context.Context, req *pb.GetPend
 	}, nil
 }
 
-// AcceptConnection bağlantı isteğini onaylar
+// AcceptConnection bağlantı isteğini onaylar (LAN ve WAN)
 func (h *PeerHandler) AcceptConnection(ctx context.Context, req *pb.AcceptConnectionRequest) (*pb.Status, error) {
+	// Önce LAN transport'ta dene
 	lanTransport := h.container.LANTransport()
-	err := AcceptConnectionHelper(lanTransport, req.DeviceId)
-	if err != nil {
-		return &pb.Status{
-			Success: false,
-			Message: fmt.Sprintf("Bağlantı onaylanamadı: %v", err),
-			Code:    500,
-		}, nil
+	if lanTransport != nil {
+		err := AcceptConnectionHelper(lanTransport, req.DeviceId)
+		if err == nil {
+			return &pb.Status{
+				Success: true,
+				Message: "Bağlantı başarıyla onaylandı",
+				Code:    200,
+			}, nil
+		}
+	}
+	
+	// WAN transport'ta dene
+	wanTransport := h.container.WANTransport()
+	if wanTransport != nil {
+		connMgr := wanTransport.GetWebRTCConnectionManager()
+		if connMgr != nil {
+			err := connMgr.AcceptPendingConnection(req.DeviceId)
+			if err == nil {
+				return &pb.Status{
+					Success: true,
+					Message: "Bağlantı başarıyla onaylandı",
+					Code:    200,
+				}, nil
+			}
+		}
 	}
 	
 	return &pb.Status{
-		Success: true,
-		Message: "Bağlantı başarıyla onaylandı",
-		Code:    200,
+		Success: false,
+		Message: fmt.Sprintf("Bağlantı onaylanamadı: peer bulunamadı veya pending connection yok"),
+		Code:    404,
 	}, nil
 }
 
-// RejectConnection bağlantı isteğini reddeder
+// RejectConnection bağlantı isteğini reddeder (LAN ve WAN)
 func (h *PeerHandler) RejectConnection(ctx context.Context, req *pb.RejectConnectionRequest) (*pb.Status, error) {
+	// Önce LAN transport'ta dene
 	lanTransport := h.container.LANTransport()
-	err := RejectConnectionHelper(lanTransport, req.DeviceId)
-	if err != nil {
-		return &pb.Status{
-			Success: false,
-			Message: fmt.Sprintf("Bağlantı reddedilemedi: %v", err),
-			Code:    500,
-		}, nil
+	if lanTransport != nil {
+		err := RejectConnectionHelper(lanTransport, req.DeviceId)
+		if err == nil {
+			return &pb.Status{
+				Success: true,
+				Message: "Bağlantı başarıyla reddedildi",
+				Code:    200,
+			}, nil
+		}
+	}
+	
+	// WAN transport'ta dene
+	wanTransport := h.container.WANTransport()
+	if wanTransport != nil {
+		connMgr := wanTransport.GetWebRTCConnectionManager()
+		if connMgr != nil {
+			err := connMgr.RejectPendingConnection(req.DeviceId)
+			if err == nil {
+				return &pb.Status{
+					Success: true,
+					Message: "Bağlantı başarıyla reddedildi",
+					Code:    200,
+				}, nil
+			}
+		}
 	}
 	
 	return &pb.Status{
-		Success: true,
-		Message: "Bağlantı başarıyla reddedildi",
-		Code:    200,
+		Success: false,
+		Message: fmt.Sprintf("Bağlantı reddedilemedi: peer bulunamadı veya pending connection yok"),
+		Code:    404,
 	}, nil
 }
 
@@ -936,7 +981,19 @@ func (h *PeerHandler) ExchangeSDP(ctx context.Context, req *pb.ExchangeSDPReques
 
 	// SDP type'a göre işle
 	if req.SdpType == "offer" {
-		// Remote offer alındı, answer oluştur
+		// Incoming offer - pending connection oluştur
+		deviceName := targetPeer.DeviceName
+		if deviceName == "" {
+			deviceName = req.PeerId[:8] + "..."
+		}
+		
+		// Pending connection oluştur (UI'a bildir)
+		connMgr.AddPendingConnection(req.PeerId, deviceName, req.Sdp)
+		log.Printf("🔔 WAN bağlantı isteği oluşturuldu: %s (%s)", deviceName, req.PeerId[:8])
+		
+		// Hemen answer döndürme, pending connection olarak işaretle
+		// NOT: Şimdilik answer oluşturup döndürüyoruz, ama aslında kullanıcı onayı beklemeliyiz
+		// Geçici olarak answer oluşturup döndürüyoruz (geriye uyumluluk için)
 		sdpDesc := webrtc.SessionDescription{
 			Type: webrtc.SDPTypeOffer,
 			SDP:  req.Sdp,

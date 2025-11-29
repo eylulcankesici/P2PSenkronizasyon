@@ -31,9 +31,14 @@ type WebRTCConnectionManager struct {
 	connections map[string]*WebRTCConnection
 	mu          sync.RWMutex
 
+	// Pending connections (WAN için)
+	pendingConns map[string]*PendingConnection
+	pendingMu   sync.RWMutex
+
 	// Callbacks
 	onConnectionEstablished func(transport.Connection)
 	onConnectionLost        func(string)
+	onConnectionRequested   func(deviceID, deviceName string) // WAN için pending connection callback
 	chunkHandler            func(chunkHash string) ([]byte, error)
 	onChunkReceived         func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error
 	onTransferCancel        func(peerID, fileID string)
@@ -43,15 +48,25 @@ type WebRTCConnectionManager struct {
 	started bool
 }
 
+// PendingConnection WAN için bekleyen bağlantı isteği
+type PendingConnection struct {
+	DeviceID   string
+	DeviceName string
+	SDPOffer   string
+	Timestamp  time.Time
+	ResponseCh chan bool
+}
+
 // NewWebRTCConnectionManager yeni WebRTC connection manager oluşturur
 func NewWebRTCConnectionManager(deviceID, deviceName string, iceAgent ICEAgent, wanConfig config.NetworkConfig) *WebRTCConnectionManager {
 	return &WebRTCConnectionManager{
-		deviceID:    deviceID,
-		deviceName:  deviceName,
-		iceAgent:    iceAgent,
-		wanConfig:   wanConfig,
-		connections: make(map[string]*WebRTCConnection),
-		started:     false,
+		deviceID:     deviceID,
+		deviceName:   deviceName,
+		iceAgent:     iceAgent,
+		wanConfig:    wanConfig,
+		connections:  make(map[string]*WebRTCConnection),
+		pendingConns: make(map[string]*PendingConnection),
+		started:      false,
 	}
 }
 
@@ -354,6 +369,102 @@ func (m *WebRTCConnectionManager) SetOnTransferCancel(callback func(peerID, file
 // NOT: Gerçek WebRTC data channel implementasyonunda kullanılacak
 func (m *WebRTCConnectionManager) SetOnFileDelete(callback func(peerID, fileID string)) {
 	m.onFileDelete = callback
+}
+
+// SetOnConnectionRequested pending connection callback'ini ayarlar
+func (m *WebRTCConnectionManager) SetOnConnectionRequested(callback func(deviceID, deviceName string)) {
+	m.onConnectionRequested = callback
+}
+
+// GetPendingConnections bekleyen bağlantı isteklerini döner
+func (m *WebRTCConnectionManager) GetPendingConnections() []*PendingConnection {
+	m.pendingMu.RLock()
+	defer m.pendingMu.RUnlock()
+
+	result := make([]*PendingConnection, 0, len(m.pendingConns))
+	for _, pending := range m.pendingConns {
+		result = append(result, pending)
+	}
+
+	return result
+}
+
+// AddPendingConnection pending connection ekler (ExchangeSDP'den çağrılacak)
+func (m *WebRTCConnectionManager) AddPendingConnection(deviceID, deviceName, sdpOffer string) *PendingConnection {
+	m.pendingMu.Lock()
+	defer m.pendingMu.Unlock()
+
+	// Zaten pending connection varsa, mevcut olanı döndür
+	if existing, exists := m.pendingConns[deviceID]; exists {
+		return existing
+	}
+
+	pending := &PendingConnection{
+		DeviceID:   deviceID,
+		DeviceName: deviceName,
+		SDPOffer:   sdpOffer,
+		Timestamp:  time.Now(),
+		ResponseCh: make(chan bool, 1),
+	}
+
+	m.pendingConns[deviceID] = pending
+
+	// Callback çağır (UI'a bildir)
+	if m.onConnectionRequested != nil {
+		m.onConnectionRequested(deviceID, deviceName)
+	}
+
+	log.Printf("🔔 WAN bağlantı isteği eklendi: %s (%s)", deviceName, deviceID[:8])
+
+	return pending
+}
+
+// AcceptPendingConnection pending connection'ı onaylar
+func (m *WebRTCConnectionManager) AcceptPendingConnection(deviceID string) error {
+	m.pendingMu.Lock()
+	pending, exists := m.pendingConns[deviceID]
+	if exists {
+		delete(m.pendingConns, deviceID)
+	}
+	m.pendingMu.Unlock()
+
+	if !exists {
+		return fmt.Errorf("pending connection bulunamadı: %s", deviceID[:8])
+	}
+
+	// Response channel'a true gönder
+	select {
+	case pending.ResponseCh <- true:
+		log.Printf("✅ WAN pending connection onaylandı: %s", deviceID[:8])
+	default:
+		// Channel dolu veya kapalı, sorun değil
+	}
+
+	return nil
+}
+
+// RejectPendingConnection pending connection'ı reddeder
+func (m *WebRTCConnectionManager) RejectPendingConnection(deviceID string) error {
+	m.pendingMu.Lock()
+	pending, exists := m.pendingConns[deviceID]
+	if exists {
+		delete(m.pendingConns, deviceID)
+	}
+	m.pendingMu.Unlock()
+
+	if !exists {
+		return fmt.Errorf("pending connection bulunamadı: %s", deviceID[:8])
+	}
+
+	// Response channel'a false gönder
+	select {
+	case pending.ResponseCh <- false:
+		log.Printf("❌ WAN pending connection reddedildi: %s", deviceID[:8])
+	default:
+		// Channel dolu veya kapalı, sorun değil
+	}
+
+	return nil
 }
 
 // WebRTCConnection WebRTC data channel connection implementasyonu
