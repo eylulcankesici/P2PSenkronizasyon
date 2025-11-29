@@ -145,6 +145,12 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 		webrtcConn.SetOnConnectionRequested(func(deviceID, deviceName string) {
 			m.AddPendingConnection(deviceID, deviceName, "")
 		})
+		webrtcConn.SetOnConnectionAccepted(func(deviceID string) {
+			// Handshake tamamlandı, bağlantı kuruldu
+			if m.onConnectionEstablished != nil {
+				m.onConnectionEstablished(webrtcConn)
+			}
+		})
 		if m.chunkHandler != nil {
 			webrtcConn.SetChunkHandler(m.chunkHandler)
 		}
@@ -571,7 +577,12 @@ func (m *WebRTCConnectionManager) AcceptPendingConnection(deviceID string) error
 		return fmt.Errorf("aktif bağlantı bulunamadı: %s", deviceID[:8])
 	}
 
-	return conn.AcceptConnection()
+	err := conn.AcceptConnection()
+	if err == nil && m.onConnectionEstablished != nil {
+		// Bağlantı kabul edildi, established event tetikle
+		m.onConnectionEstablished(conn)
+	}
+	return err
 }
 
 // RejectPendingConnection pending connection'ı reddeder
@@ -1351,6 +1362,11 @@ func (c *WebRTCConnection) SetOnTransferCancel(callback func(peerID, fileID stri
 // SetOnFileDelete callback'i ayarlar
 func (c *WebRTCConnection) SetOnFileDelete(callback func(peerID, fileID string)) {
 	c.onFileDelete = callback
+}
+
+// SetOnConnectionAccepted callback'i ayarlar
+func (c *WebRTCConnection) SetOnConnectionAccepted(callback func(deviceID string)) {
+	c.onConnectionAccepted = callback
 }
 
 // GetWebRTCPeer WebRTC peer'ı döner
