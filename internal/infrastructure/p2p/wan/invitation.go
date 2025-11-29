@@ -97,6 +97,17 @@ func (s *InvitationService) GenerateInvitationCode(
 	// Padding (=) karakterleri kopyalama sırasında sorun olabiliyor
 	code := base64.RawURLEncoding.EncodeToString(encrypted)
 
+	// Debug: Code'un başını ve sonunu logla
+	start := code
+	if len(start) > 10 {
+		start = start[:10]
+	}
+	end := code
+	if len(end) > 10 {
+		end = end[len(end)-10:]
+	}
+	log.Printf("🔍 Generated Code Start: %s... End: ...%s (Length: %d)", start, end, len(code))
+
 	return code, nil
 }
 

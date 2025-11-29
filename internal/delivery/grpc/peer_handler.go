@@ -750,12 +750,19 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 					sdpAnswer = answer.SDP
 					log.Printf("✅ SDP answer oluşturuldu: %d bytes", len(sdpAnswer))
 					
+					// Public IP al
+					publicIP, err := wanTransport.GetPublicIP(ctx)
+					if err != nil {
+						log.Printf("⚠️ Public IP alınamadı: %v", err)
+						publicIP = "" // Boş bırak, ICE candidates kullanılacak
+					}
+
 					// RESPONSE CODE OLUŞTUR
 					// Bu code'u karşı tarafa göndererek bağlantıyı tamamlayabilirler
 					respCode, respErr := invitationService.GenerateInvitationCode(
 						deviceID,
 						h.container.GetDeviceName(),
-						invitationData.PublicIP, // Karşı tarafın IP'si (veya kendi IP'miz?) - Kendi IP'miz olmalı
+						publicIP, // Kendi Public IP'miz
 						"", // gRPC address yok
 						"unknown", // NAT type
 						[]wan.ICECandidate{}, // ICE candidates (SDP içinde var zaten)
