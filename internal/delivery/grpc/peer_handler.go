@@ -714,6 +714,20 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 			}, nil
 		}
 		
+		// Peer'ı discovery service'e ekle (UI'da görünmesi için)
+		err = discoveryService.AddPeerWithGRPC(
+			invitationData.DeviceID,
+			invitationData.DeviceName,
+			invitationData.PublicIP,
+			invitationData.GRPCAddress,
+			invitationData.ICECandidates,
+		)
+		if err != nil {
+			log.Printf("⚠️ Peer discovery'ye eklenemedi: %v", err)
+		} else {
+			log.Printf("✅ Peer discovery service'e eklendi (Response Code ile): %s", invitationData.DeviceName)
+		}
+
 		return &pb.Status{
 			Success: true,
 			Message: "Bağlantı başarıyla kuruldu (Response Code ile)",
