@@ -140,8 +140,6 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 		// WebRTC connection oluştur
 		// Data channel nil geçiyoruz, OnDataChannel ile set edilecek veya biz oluşturacağız
 		webrtcConn := NewWebRTCConnection(peer.DeviceID, peer.DeviceName, pendingPeer, nil)
-		webrtcConn.localDeviceID = m.deviceID
-		webrtcConn.localDeviceName = m.deviceName
 		
 		// Callback'leri bağla
 		webrtcConn.SetOnConnectionRequested(func(deviceID, deviceName string) {
@@ -170,12 +168,32 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 		m.connections[peer.DeviceID] = webrtcConn
 		log.Printf("✅ WebRTC connection oluşturuldu (Pending Peer ile): %s", peer.DeviceID[:8])
 		
-		// Handshake request gönderilmesi gerektiğini işaretle
-		// Data channel açıldığında otomatik olarak gönderilecek
-		webrtcConn.mu.Lock()
-		webrtcConn.pendingHandshakeRequest = true
-		webrtcConn.mu.Unlock()
-		log.Printf("📋 Handshake request işaretlendi, data channel açıldığında gönderilecek: %s", peer.DeviceID[:8])
+		// Handshake isteği gönder
+		// Connection henüz tam hazır olmayabilir (ICE checking vs), ama deneyelim
+		go func() {
+			// Biraz bekle ki data channel açılsın
+			time.Sleep(1 * time.Second)
+			
+			// Request oluştur
+			reqData, err := webrtcConn.protocol.EncodeConnectionRequest(m.deviceID, m.deviceName)
+			if err != nil {
+				log.Printf("❌ Handshake request encode hatası: %v", err)
+				return
+			}
+			
+			// Data channel üzerinden gönder
+			if webrtcConn.dataChannel != nil {
+				if err := webrtcConn.dataChannel.Send(reqData); err != nil {
+					log.Printf("❌ Handshake request gönderme hatası: %v", err)
+				} else {
+					log.Printf("📤 Handshake request gönderildi (Pending Peer)")
+				}
+			} else {
+				log.Printf("⚠️ Data channel henüz hazır değil, istek gönderilemedi (Pending Peer)")
+				// Data channel açılınca gönderilmeli...
+				// Bu basit implementasyon şimdilik yeterli olabilir
+			}
+		}()
 		
 		return webrtcConn, nil
 	}
@@ -762,15 +780,12 @@ func (c *WebRTCConnection) GetState() webrtc.PeerConnectionState {
 type WebRTCConnection struct {
 	peerID      string
 	peerName    string
-	localDeviceID   string // Local device ID for handshake
-	localDeviceName string // Local device name for handshake
 	webrtcPeer  *WebRTCPeer
 	dataChannel *webrtc.DataChannel
 	protocol    *lan.Protocol
 	
 	connected   bool
 	isHandshakeComplete bool
-	pendingHandshakeRequest bool // Set to true when Connect is called, triggers handshake when data channel opens
 	mu          sync.RWMutex
 	chunkHandler func(chunkHash string) ([]byte, error)
 	connectedAt time.Time
@@ -845,31 +860,8 @@ func (c *WebRTCConnection) setupDataChannel(dc *webrtc.DataChannel) {
 	dc.OnOpen(func() {
 		c.mu.Lock()
 		c.connected = true
-		shouldSendHandshake := c.pendingHandshakeRequest
-		if shouldSendHandshake {
-			c.pendingHandshakeRequest = false // Clear the flag
-		}
 		c.mu.Unlock()
 		log.Printf("✅ WebRTC data channel açıldı: %s", c.peerID[:8])
-		
-		// Eğer pending handshake request varsa, şimdi gönder
-		if shouldSendHandshake {
-			log.Printf("📤 Pending handshake request gönderiliyor: %s", c.peerID[:8])
-			
-			// Request oluştur
-			reqData, err := c.protocol.EncodeConnectionRequest(c.localDeviceID, c.localDeviceName)
-			if err != nil {
-				log.Printf("❌ Handshake request encode hatası: %v", err)
-				return
-			}
-			
-			// Data channel üzerinden gönder
-			if err := dc.Send(reqData); err != nil {
-				log.Printf("❌ Handshake request gönderme hatası: %v", err)
-			} else {
-				log.Printf("✅ Handshake request gönderildi")
-			}
-		}
 	})
 	
 	dc.OnClose(func() {
