@@ -741,34 +741,12 @@ func (m *WebRTCConnectionManager) HandleAnswer(deviceID string, answerSDP string
 		}
 	}
 	
-	webrtcConn := NewWebRTCConnection(deviceID, "Unknown Device", matchedPeer, dc)
+	// WebRTCConnection oluşturma! Sadece pending peer olarak ekle.
+	// Kullanıcı "Connect" dediğinde bu peer kullanılacak.
+	// NOT: matchedPeer zaten pendingInvitations'dan alındı, şimdi pendingPeers'a taşıyoruz
+	m.AddPendingPeer(deviceID, matchedPeer)
 	
-	// Callback'leri bağla
-	webrtcConn.SetOnConnectionRequested(func(deviceID, deviceName string) {
-		m.AddPendingConnection(deviceID, deviceName, "")
-	})
-	if m.chunkHandler != nil {
-		webrtcConn.SetChunkHandler(m.chunkHandler)
-	}
-	if m.onChunkReceived != nil {
-		webrtcConn.SetOnChunkReceived(m.onChunkReceived)
-	}
-	if m.onTransferCancel != nil {
-		webrtcConn.SetOnTransferCancel(m.onTransferCancel)
-	}
-	if m.onFileDelete != nil {
-		webrtcConn.SetOnFileDelete(m.onFileDelete)
-	}
-	
-	// Connection'ı kaydet
-	m.connections[deviceID] = webrtcConn
-	
-	log.Printf("✅ WebRTC connection kuruldu (Answer ile): %s (Handshake bekleniyor)", deviceID[:8])
-	
-	// Callback çağırMA - Handshake tamamlanınca çağrılacak
-	// if m.onConnectionEstablished != nil {
-	// 	m.onConnectionEstablished(webrtcConn)
-	// }
+	log.Printf("✅ Pending peer eklendi (Connect bekleniyor): %s", deviceID[:8])
 	
 	return nil
 }
