@@ -139,76 +139,96 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 		}
 	}
 
-	// SDP exchange yap (gRPC üzerinden)
-	grpcAddress, ok := peer.Metadata["grpc_address"]
-	if !ok || grpcAddress == "" {
-		log.Printf("⚠️ gRPC adresi bulunamadı, SDP exchange yapılamıyor: %s", peer.DeviceID[:8])
-		// Connection'ı map'e ekle (SDP exchange olmadan)
-		m.connections[peer.DeviceID] = webrtcConn
-		log.Printf("✅ WebRTC connection oluşturuldu (SDP exchange bekleniyor): %s", peer.DeviceID[:8])
+	// SDP exchange yap (invitation code içinden veya gRPC üzerinden)
+	// Önce invitation code'dan SDP answer'ı kontrol et
+	sdpAnswer, hasAnswer := peer.Metadata["sdp_answer"]
+	if hasAnswer && sdpAnswer != "" {
+		// Invitation code içinden SDP answer alındı
+		log.Printf("📋 SDP answer invitation code'dan alındı: %s (SDP uzunluk: %d)", peer.DeviceID[:8], len(sdpAnswer))
+		
+		answerDesc := webrtc.SessionDescription{
+			Type: webrtc.SDPTypeAnswer,
+			SDP:  sdpAnswer,
+		}
+
+		if err := webrtcPeer.SetRemoteDescription(answerDesc); err != nil {
+			log.Printf("⚠️ Remote description set edilemedi: %v", err)
+		} else {
+			log.Printf("✅ SDP answer invitation code'dan set edildi: %s", peer.DeviceID[:8])
+		}
 	} else {
-		// gRPC client oluştur ve SDP exchange yap
-		log.Printf("📡 gRPC üzerinden SDP exchange başlatılıyor: %s -> %s", peer.DeviceID[:8], grpcAddress)
-		
-		// gRPC connection oluştur
-		log.Printf("🔌 gRPC client oluşturuluyor: %s", grpcAddress)
-		grpcConn, err := grpc.NewClient(grpcAddress, 
-			grpc.WithTransportCredentials(insecure.NewCredentials()),
-		)
-		if err != nil {
-			log.Printf("❌ gRPC client oluşturulamadı: %v (connection devam edecek)", err)
+		// gRPC üzerinden SDP exchange yap (geriye uyumluluk için)
+		grpcAddress, ok := peer.Metadata["grpc_address"]
+		if !ok || grpcAddress == "" {
+			log.Printf("⚠️ gRPC adresi ve SDP answer bulunamadı, SDP exchange yapılamıyor: %s", peer.DeviceID[:8])
+			log.Printf("   ℹ️ Invitation code içinde SDP answer olmalı veya gRPC adresi verilmeli")
+			// Connection'ı map'e ekle (SDP exchange olmadan)
 			m.connections[peer.DeviceID] = webrtcConn
-			return webrtcConn, nil
-		}
-		defer grpcConn.Close()
-		log.Printf("✅ gRPC client bağlantısı kuruldu: %s", grpcAddress)
+			log.Printf("✅ WebRTC connection oluşturuldu (SDP exchange bekleniyor): %s", peer.DeviceID[:8])
+		} else {
+			// gRPC client oluştur ve SDP exchange yap (geriye uyumluluk)
+			log.Printf("📡 gRPC üzerinden SDP exchange başlatılıyor (geriye uyumluluk): %s -> %s", peer.DeviceID[:8], grpcAddress)
+			
+			// gRPC connection oluştur
+			log.Printf("🔌 gRPC client oluşturuluyor: %s", grpcAddress)
+			grpcConn, err := grpc.NewClient(grpcAddress, 
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+			)
+			if err != nil {
+				log.Printf("❌ gRPC client oluşturulamadı: %v (connection devam edecek)", err)
+				m.connections[peer.DeviceID] = webrtcConn
+				return webrtcConn, nil
+			}
+			defer grpcConn.Close()
+			log.Printf("✅ gRPC client bağlantısı kuruldu: %s", grpcAddress)
 
-		// Peer service client oluştur
-		peerClient := pb.NewPeerServiceClient(grpcConn)
+			// Peer service client oluştur
+			peerClient := pb.NewPeerServiceClient(grpcConn)
 
-		// Offer'ı gönder
-		exchangeReq := &pb.ExchangeSDPRequest{
-			PeerId:  m.deviceID, // Kendi device ID'mizi gönderiyoruz
-			SdpType: "offer",
-			Sdp:     offer.SDP, // SDP string
-		}
-
-		log.Printf("📤 SDP offer gönderiliyor: %s -> %s (SDP uzunluk: %d)", 
-			peer.DeviceID[:8], grpcAddress, len(exchangeReq.Sdp))
-		
-		// Timeout ekle (30 saniye)
-		exchangeCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-		defer cancel()
-		
-		log.Printf("⏳ ExchangeSDP RPC çağrısı başlatılıyor (timeout: 30s)...")
-		exchangeResp, err := peerClient.ExchangeSDP(exchangeCtx, exchangeReq)
-		if err != nil {
-			log.Printf("❌ SDP exchange hatası: %v (connection devam edecek)", err)
-			log.Printf("   Hata detayı: %T - %s", err, err.Error())
-			m.connections[peer.DeviceID] = webrtcConn
-			return webrtcConn, nil
-		}
-		
-		log.Printf("📥 SDP exchange yanıtı alındı: success=%v, type=%s, SDP uzunluk=%d", 
-			exchangeResp.Status.Success, exchangeResp.SdpType, len(exchangeResp.Sdp))
-
-		if !exchangeResp.Status.Success {
-			log.Printf("⚠️ SDP exchange başarısız: %s (connection devam edecek)", exchangeResp.Status.Message)
-			m.connections[peer.DeviceID] = webrtcConn
-			return webrtcConn, nil
-		}
-
-		if exchangeResp.SdpType == "answer" && exchangeResp.Sdp != "" {
-			// Answer alındı, remote description set et
-			answerDesc := webrtc.SessionDescription{
-				Type: webrtc.SDPTypeAnswer,
-				SDP:  exchangeResp.Sdp,
+			// Offer'ı gönder
+			exchangeReq := &pb.ExchangeSDPRequest{
+				PeerId:  m.deviceID, // Kendi device ID'mizi gönderiyoruz
+				SdpType: "offer",
+				Sdp:     offer.SDP, // SDP string
 			}
 
-			if err := webrtcPeer.SetRemoteDescription(answerDesc); err != nil {
-				log.Printf("⚠️ Remote description set edilemedi: %v", err)
-			} else {
-				log.Printf("✅ SDP answer alındı ve set edildi: %s", peer.DeviceID[:8])
+			log.Printf("📤 SDP offer gönderiliyor: %s -> %s (SDP uzunluk: %d)", 
+				peer.DeviceID[:8], grpcAddress, len(exchangeReq.Sdp))
+			
+			// Timeout ekle (30 saniye)
+			exchangeCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+			defer cancel()
+			
+			log.Printf("⏳ ExchangeSDP RPC çağrısı başlatılıyor (timeout: 30s)...")
+			exchangeResp, err := peerClient.ExchangeSDP(exchangeCtx, exchangeReq)
+			if err != nil {
+				log.Printf("❌ SDP exchange hatası: %v (connection devam edecek)", err)
+				log.Printf("   Hata detayı: %T - %s", err, err.Error())
+				m.connections[peer.DeviceID] = webrtcConn
+				return webrtcConn, nil
+			}
+			
+			log.Printf("📥 SDP exchange yanıtı alındı: success=%v, type=%s, SDP uzunluk=%d", 
+				exchangeResp.Status.Success, exchangeResp.SdpType, len(exchangeResp.Sdp))
+
+			if !exchangeResp.Status.Success {
+				log.Printf("⚠️ SDP exchange başarısız: %s (connection devam edecek)", exchangeResp.Status.Message)
+				m.connections[peer.DeviceID] = webrtcConn
+				return webrtcConn, nil
+			}
+
+			if exchangeResp.SdpType == "answer" && exchangeResp.Sdp != "" {
+				// Answer alındı, remote description set et
+				answerDesc := webrtc.SessionDescription{
+					Type: webrtc.SDPTypeAnswer,
+					SDP:  exchangeResp.Sdp,
+				}
+
+				if err := webrtcPeer.SetRemoteDescription(answerDesc); err != nil {
+					log.Printf("⚠️ Remote description set edilemedi: %v", err)
+				} else {
+					log.Printf("✅ SDP answer gRPC'den alındı ve set edildi: %s", peer.DeviceID[:8])
+				}
 			}
 		}
 	}

@@ -462,15 +462,43 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 	}
 	expiryDuration := time.Duration(expiryHours) * time.Hour
 
+	// SDP offer oluştur (invitation code içinde taşınacak)
+	var sdpOffer string
+	// Template WebRTC peer connection oluştur (SDP offer için)
+	webrtcConfig := wan.CreateWebRTCConfiguration(
+		cfg.Network.STUNServers,
+		cfg.Network.TURNServers,
+		cfg.Network.WebRTCPortRange,
+	)
+	
+	// WebRTC peer oluştur
+	webrtcPeer, peerErr := wan.NewWebRTCPeer(webrtcConfig)
+	if peerErr == nil {
+		// SDP offer oluştur
+		offer, offerErr := webrtcPeer.CreateOffer(ctx)
+		if offerErr == nil {
+			sdpOffer = offer.SDP
+			log.Printf("✅ SDP offer oluşturuldu (invitation code içinde): %d bytes", len(sdpOffer))
+		} else {
+			log.Printf("⚠️ SDP offer oluşturulamadı: %v (invitation code SDP olmadan devam edecek)", offerErr)
+		}
+		// Template connection'ı kapat
+		webrtcPeer.Close()
+	} else {
+		log.Printf("⚠️ WebRTC peer oluşturulamadı: %v (invitation code SDP olmadan devam edecek)", peerErr)
+	}
+
 	// Invitation code oluştur
 	code, err := invitationService.GenerateInvitationCode(
 		deviceID,
 		deviceName,
 		publicIP,
-		grpcAddress, // gRPC server adresi eklendi
+		grpcAddress, // gRPC server adresi (opsiyonel, geriye uyumluluk için)
 		natType,
 		iceCandidates,
 		expiryDuration,
+		sdpOffer,  // SDP offer
+		"",        // SDP answer (henüz yok)
 	)
 	if err != nil {
 		return &pb.CreateInvitationResponse{
@@ -601,17 +629,77 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 	log.Printf("📥 AddPeerByInvitation çağrıldı - DeviceID: %s, DeviceName: %s, PublicIP: %s, GRPCAddress: %s", 
 		invitationData.DeviceID[:8], invitationData.DeviceName, invitationData.PublicIP, invitationData.GRPCAddress)
 
-	// Peer'ı ekle (gRPC address ile)
+	// SDP offer varsa answer oluştur
+	var sdpAnswer string
+	if invitationData.SDPOffer != "" {
+		log.Printf("📋 SDP offer bulundu, answer oluşturuluyor... (SDP uzunluk: %d)", len(invitationData.SDPOffer))
+		
+		// WebRTC configuration oluştur
+		cfg := h.container.Config()
+		webrtcConfig := wan.CreateWebRTCConfiguration(
+			cfg.Network.STUNServers,
+			cfg.Network.TURNServers,
+			cfg.Network.WebRTCPortRange,
+		)
+		
+		// WebRTC peer oluştur
+		webrtcPeer, err := wan.NewWebRTCPeer(webrtcConfig)
+		if err == nil {
+			// Remote offer set et
+			offerDesc := webrtc.SessionDescription{
+				Type: webrtc.SDPTypeOffer,
+				SDP:  invitationData.SDPOffer,
+			}
+			
+			if err := webrtcPeer.SetRemoteDescription(offerDesc); err == nil {
+				// Answer oluştur
+				answer, err := webrtcPeer.CreateAnswer(ctx)
+				if err == nil {
+					sdpAnswer = answer.SDP
+					log.Printf("✅ SDP answer oluşturuldu: %d bytes", len(sdpAnswer))
+				} else {
+					log.Printf("⚠️ SDP answer oluşturulamadı: %v", err)
+				}
+			} else {
+				log.Printf("⚠️ Remote description set edilemedi: %v", err)
+			}
+			
+			// Template connection'ı kapat
+			webrtcPeer.Close()
+		} else {
+			log.Printf("⚠️ WebRTC peer oluşturulamadı: %v", err)
+		}
+	} else {
+		log.Printf("ℹ️ SDP offer bulunamadı (invitation code SDP içermiyor)")
+	}
+
+	// Peer'ı ekle (gRPC address ile - geriye uyumluluk için, ama artık gerekli değil)
 	err = discoveryService.AddPeerWithGRPC(
 		invitationData.DeviceID,
 		invitationData.DeviceName,
 		invitationData.PublicIP,
-		invitationData.GRPCAddress, // gRPC address direkt ekleniyor
+		invitationData.GRPCAddress, // gRPC address (opsiyonel, geriye uyumluluk için)
 		invitationData.ICECandidates,
 	)
 	
+	// SDP answer'ı metadata'ya ekle (Connect çağrıldığında kullanılacak)
+	if sdpAnswer != "" {
+		// Peer'ı bul (yeni eklendi)
+		allPeers := discoveryService.GetDiscoveredPeers()
+		for _, p := range allPeers {
+			if p.DeviceID == invitationData.DeviceID {
+				if p.Metadata == nil {
+					p.Metadata = make(map[string]string)
+				}
+				p.Metadata["sdp_answer"] = sdpAnswer
+				log.Printf("✅ SDP answer metadata'ya eklendi: %s", invitationData.DeviceID[:8])
+				break
+			}
+		}
+	}
+	
 	if invitationData.GRPCAddress != "" {
-		log.Printf("✅ gRPC address metadata'ya eklendi: %s", invitationData.GRPCAddress)
+		log.Printf("✅ gRPC address metadata'ya eklendi: %s (geriye uyumluluk için)", invitationData.GRPCAddress)
 	}
 	if err != nil {
 		log.Printf("❌ Peer eklenemedi: %v", err)

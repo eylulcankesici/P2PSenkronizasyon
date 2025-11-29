@@ -17,9 +17,11 @@ type InvitationData struct {
 	DeviceID      string         `json:"device_id"`
 	DeviceName    string         `json:"device_name"`
 	PublicIP      string         `json:"public_ip"`
-	GRPCAddress   string         `json:"grpc_address"`   // gRPC server adresi (public IP:port)
+	GRPCAddress   string         `json:"grpc_address"`   // gRPC server adresi (public IP:port) - opsiyonel, SDP exchange için gerekli değil
 	NATType       string         `json:"nat_type"`
 	ICECandidates []ICECandidate `json:"ice_candidates"`
+	SDPOffer      string         `json:"sdp_offer,omitempty"`  // SDP offer (opsiyonel)
+	SDPAnswer     string         `json:"sdp_answer,omitempty"`  // SDP answer (opsiyonel)
 	CreatedAt     time.Time      `json:"created_at"`
 	ExpiresAt     time.Time      `json:"expires_at"`
 	Version       string         `json:"version"`
@@ -55,6 +57,8 @@ func (s *InvitationService) GenerateInvitationCode(
 	deviceID, deviceName, publicIP, grpcAddress, natType string,
 	iceCandidates []ICECandidate,
 	expiryDuration time.Duration,
+	sdpOffer string,  // SDP offer (opsiyonel)
+	sdpAnswer string, // SDP answer (opsiyonel)
 ) (string, error) {
 	// 1. Invitation data oluştur
 	now := time.Now()
@@ -62,9 +66,11 @@ func (s *InvitationService) GenerateInvitationCode(
 		DeviceID:      deviceID,
 		DeviceName:    deviceName,
 		PublicIP:      publicIP,
-		GRPCAddress:   grpcAddress, // gRPC server adresi (public IP:port)
+		GRPCAddress:   grpcAddress, // gRPC server adresi (public IP:port) - opsiyonel
 		NATType:       natType,
 		ICECandidates: iceCandidates,
+		SDPOffer:      sdpOffer,  // SDP offer (opsiyonel)
+		SDPAnswer:     sdpAnswer, // SDP answer (opsiyonel)
 		CreatedAt:     now,
 		ExpiresAt:     now.Add(expiryDuration),
 		Version:       "1.0",
