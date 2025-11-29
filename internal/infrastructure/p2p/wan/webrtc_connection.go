@@ -744,7 +744,8 @@ func (m *WebRTCConnectionManager) HandleAnswer(deviceID string, answerSDP string
 	// WebRTCConnection oluşturma! Sadece pending peer olarak ekle.
 	// Kullanıcı "Connect" dediğinde bu peer kullanılacak.
 	// NOT: matchedPeer zaten pendingInvitations'dan alındı, şimdi pendingPeers'a taşıyoruz
-	m.AddPendingPeer(deviceID, matchedPeer)
+	// m.AddPendingPeer(deviceID, matchedPeer) // DEADLOCK: m.mu zaten kilitli!
+	m.pendingPeers[deviceID] = matchedPeer
 	
 	log.Printf("✅ Pending peer eklendi (Connect bekleniyor): %s", deviceID[:8])
 	
