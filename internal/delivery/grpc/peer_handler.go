@@ -773,6 +773,8 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 
 					// RESPONSE CODE OLUŞTUR
 					// Bu code'u karşı tarafa göndererek bağlantıyı tamamlayabilirler
+					// RESPONSE CODE OLUŞTUR
+					// Bu code'u karşı tarafa göndererek bağlantıyı tamamlayabilirler
 					respCode, respErr := invitationService.GenerateInvitationCode(
 						deviceID,
 						h.container.GetDeviceName(),
@@ -788,18 +790,24 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 					if respErr == nil {
 						log.Printf("\n\n")
 						log.Printf("🔵 🔵 🔵 RESPONSE CODE (Bunu arkadaşına gönder) 🔵 🔵 🔵")
-						log.Printf("⚠️ LÜTFEN KODUN TAMAMINI KOPYALADIĞINIZDAN EMİN OLUN (Satır atlamalarına dikkat edin)")
+						log.Printf("⚠️ LÜTFEN KODUN TAMAMINI KOPYALADIĞINIZDAN EMİN OLUN")
+						log.Printf("⚠️ Tüm satırları birlikte kopyalayın!")
 						log.Printf("=== START CODE ===")
-						log.Printf("%s", respCode)
+						
+						// Kodu 80 karakterlik satırlara böl (terminal copy-paste için)
+						chunkSize := 80
+						for i := 0; i < len(respCode); i += chunkSize {
+							end := i + chunkSize
+							if end > len(respCode) {
+								end = len(respCode)
+							}
+							log.Printf("%s", respCode[i:end])
+						}
+						
 						log.Printf("=== END CODE ===")
+						log.Printf("⚠️ TOPLAM UZUNLUK: %d karakter", len(respCode))
 						log.Printf("\n")
-						log.Printf("🔵 Link: aether://invite?code=%s", respCode)
 					}
-					
-					// Connection'ı kaydet (kapatma!)
-					// Data channel'ı al (Answerer tarafı)
-					// NOT: Genellikle Offerer data channel açar, ama Answerer da açabilir veya bekleyebilir
-					// Pion'da OnDataChannel callback'i zaten ayarlı
 					
 					// WebRTCConnection oluşturma! Sadece pending peer olarak ekle.
 					// Kullanıcı "Connect" dediğinde bu peer kullanılacak.
