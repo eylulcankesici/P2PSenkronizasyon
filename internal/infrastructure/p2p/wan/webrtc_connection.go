@@ -126,7 +126,7 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 	}
 
 	// Pending peer var mı kontrol et (AddPeerByInvitation ile eklenen)
-	if pendingPeer := m.getPendingPeerLocked(peer.DeviceID); pendingPeer != nil {
+	if pendingPeer := m.GetPendingPeer(peer.DeviceID); pendingPeer != nil {
 		log.Printf("🔌 Pending peer bulundu, mevcut WebRTC session kullanılıyor: %s", peer.DeviceID[:8])
 		
 		// Data channel oluştur (eğer yoksa)
@@ -144,12 +144,6 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 		// Callback'leri bağla
 		webrtcConn.SetOnConnectionRequested(func(deviceID, deviceName string) {
 			m.AddPendingConnection(deviceID, deviceName, "")
-		})
-		webrtcConn.SetOnConnectionAccepted(func(deviceID string) {
-			// Handshake tamamlandı, bağlantı kuruldu
-			if m.onConnectionEstablished != nil {
-				m.onConnectionEstablished(webrtcConn)
-			}
 		})
 		if m.chunkHandler != nil {
 			webrtcConn.SetChunkHandler(m.chunkHandler)
@@ -501,20 +495,15 @@ func (m *WebRTCConnectionManager) AddPendingPeer(deviceID string, peer *WebRTCPe
 	m.pendingPeers[deviceID] = peer
 }
 
-// getPendingPeerLocked gets and removes a pending peer (internal, assumes m.mu is locked)
-func (m *WebRTCConnectionManager) getPendingPeerLocked(deviceID string) *WebRTCPeer {
+// GetPendingPeer gets and removes a pending peer
+func (m *WebRTCConnectionManager) GetPendingPeer(deviceID string) *WebRTCPeer {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	if peer, ok := m.pendingPeers[deviceID]; ok {
 		delete(m.pendingPeers, deviceID)
 		return peer
 	}
 	return nil
-}
-
-// GetPendingPeer gets and removes a pending peer
-func (m *WebRTCConnectionManager) GetPendingPeer(deviceID string) *WebRTCPeer {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return m.getPendingPeerLocked(deviceID)
 }
 
 // GetPendingConnections bekleyen bağlantı isteklerini döner
@@ -582,12 +571,7 @@ func (m *WebRTCConnectionManager) AcceptPendingConnection(deviceID string) error
 		return fmt.Errorf("aktif bağlantı bulunamadı: %s", deviceID[:8])
 	}
 
-	err := conn.AcceptConnection()
-	if err == nil && m.onConnectionEstablished != nil {
-		// Bağlantı kabul edildi, established event tetikle
-		m.onConnectionEstablished(conn)
-	}
-	return err
+	return conn.AcceptConnection()
 }
 
 // RejectPendingConnection pending connection'ı reddeder
@@ -1367,11 +1351,6 @@ func (c *WebRTCConnection) SetOnTransferCancel(callback func(peerID, fileID stri
 // SetOnFileDelete callback'i ayarlar
 func (c *WebRTCConnection) SetOnFileDelete(callback func(peerID, fileID string)) {
 	c.onFileDelete = callback
-}
-
-// SetOnConnectionAccepted callback'i ayarlar
-func (c *WebRTCConnection) SetOnConnectionAccepted(callback func(deviceID string)) {
-	c.onConnectionAccepted = callback
 }
 
 // GetWebRTCPeer WebRTC peer'ı döner
