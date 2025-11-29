@@ -119,20 +119,8 @@ func (s *InvitationService) ParseInvitationCode(code string) (*InvitationData, e
 		}
 	}
 	
-	// Base64 karakterlerini kontrol et ve geçersiz karakterleri temizle
-	// Base64 URL-safe: A-Z, a-z, 0-9, -, _
-	// Base64 standart: A-Z, a-z, 0-9, +, /, = (padding)
-	var cleanedCode strings.Builder
-	for _, r := range code {
-		if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') ||
-			r == '-' || r == '_' || r == '+' || r == '/' || r == '=' {
-			cleanedCode.WriteRune(r)
-		}
-	}
-	code = cleanedCode.String()
-	
 	if len(code) == 0 {
-		return nil, fmt.Errorf("invitation code temizlendikten sonra boş kaldı")
+		return nil, fmt.Errorf("invitation code boş")
 	}
 	
 	// 1. Base64 decode (URL-safe encoding kullanılıyor)

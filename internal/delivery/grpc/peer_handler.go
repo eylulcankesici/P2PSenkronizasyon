@@ -646,6 +646,21 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 	// Invitation service oluştur
 	invitationService := wan.NewInvitationService(deviceID, nil)
 
+	// SELF-TEST: Generate and parse a dummy code to verify encryption/decryption
+	dummyCode, err := invitationService.GenerateInvitationCode(
+		deviceID, "SelfTest", "1.2.3.4", "", "unknown", nil, time.Hour, "", "",
+	)
+	if err == nil {
+		_, err := invitationService.ParseInvitationCode(dummyCode)
+		if err != nil {
+			log.Printf("❌ SELF-TEST FAILED: Generated code could not be parsed: %v", err)
+		} else {
+			log.Printf("✅ SELF-TEST PASSED: Encryption/Decryption works locally")
+		}
+	} else {
+		log.Printf("❌ SELF-TEST FAILED: Could not generate code: %v", err)
+	}
+
 	// Invitation code parse et (önce temizle)
 	invitationCode := strings.TrimSpace(req.InvitationCode)
 	log.Printf("🔍 AddPeerByInvitation: Invitation code parse ediliyor... (uzunluk: %d)", len(invitationCode))
