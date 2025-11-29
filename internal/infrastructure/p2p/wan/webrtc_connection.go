@@ -677,8 +677,29 @@ func NewWebRTCConnection(peerID, peerName string, webrtcPeer *WebRTCPeer, dataCh
 	}
 	
 	// Data channel callback'lerini ayarla
+	// Data channel callback'lerini ayarla
 	if dataChannel != nil {
 		conn.setupDataChannel(dataChannel)
+	}
+
+	// Peer connection state change callback'ini ayarla
+	webrtcPeer.SetOnConnectionStateChange(func(state webrtc.PeerConnectionState) {
+		conn.mu.Lock()
+		conn.connected = (state == webrtc.PeerConnectionStateConnected)
+		conn.mu.Unlock()
+		
+		if state == webrtc.PeerConnectionStateConnected {
+			log.Printf("✅ WebRTC connection state connected: %s", peerID[:8])
+		} else if state == webrtc.PeerConnectionStateFailed || state == webrtc.PeerConnectionStateClosed {
+			log.Printf("🔌 WebRTC connection state disconnected: %s (%s)", peerID[:8], state.String())
+		}
+	})
+	
+	// Eğer zaten bağlıysa state'i güncelle
+	if webrtcPeer.IsConnected() {
+		conn.mu.Lock()
+		conn.connected = true
+		conn.mu.Unlock()
 	}
 	
 	return conn
