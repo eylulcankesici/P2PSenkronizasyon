@@ -530,24 +530,6 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 		if offerErr == nil {
 			sdpOffer = offer.SDP
 			log.Printf("✅ SDP offer oluşturuldu (invitation code içinde): %d bytes", len(sdpOffer))
-			
-			// SDP Offer Optimization: Remove unnecessary candidates to reduce code size
-			if publicIP != "" {
-				var filteredLines []string
-				lines := strings.Split(sdpOffer, "\r\n")
-				for _, line := range lines {
-					if strings.HasPrefix(line, "a=candidate") {
-						// Keep only srflx (public) candidates or host candidates matching public IP
-						if strings.Contains(line, "typ srflx") || strings.Contains(line, publicIP) {
-							filteredLines = append(filteredLines, line)
-						}
-					} else {
-						filteredLines = append(filteredLines, line)
-					}
-				}
-				sdpOffer = strings.Join(filteredLines, "\r\n")
-				log.Printf("✅ SDP offer optimize edildi: %d bytes -> %d bytes", len(offer.SDP), len(sdpOffer))
-			}
 		} else {
 			log.Printf("⚠️ SDP offer oluşturulamadı: %v (invitation code SDP olmadan devam edecek)", offerErr)
 		}
@@ -795,24 +777,6 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 					if err != nil {
 						log.Printf("⚠️ Public IP alınamadı: %v", err)
 						publicIP = "" // Boş bırak, ICE candidates kullanılacak
-					}
-
-					// SDP Answer Optimization: Remove unnecessary candidates to reduce code size
-					if publicIP != "" {
-						var filteredLines []string
-						lines := strings.Split(sdpAnswer, "\r\n")
-						for _, line := range lines {
-							if strings.HasPrefix(line, "a=candidate") {
-								// Keep only srflx (public) candidates or host candidates matching public IP
-								if strings.Contains(line, "typ srflx") || strings.Contains(line, publicIP) {
-									filteredLines = append(filteredLines, line)
-								}
-							} else {
-								filteredLines = append(filteredLines, line)
-							}
-						}
-						sdpAnswer = strings.Join(filteredLines, "\r\n")
-						log.Printf("✅ SDP answer optimize edildi: %d bytes -> %d bytes", len(answer.SDP), len(sdpAnswer))
 					}
 
 					// RESPONSE CODE OLUŞTUR
