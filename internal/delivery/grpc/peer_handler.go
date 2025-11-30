@@ -821,7 +821,7 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 					// Bu code'u karşı tarafa göndererek bağlantıyı tamamlayabilirler
 					respCode, respErr := invitationService.GenerateInvitationCode(
 						deviceID,
-						"", // DeviceName boş (ConnectionRequest ile güncellenecek)
+						h.container.GetDeviceName(),
 						publicIP, // Kendi Public IP'miz
 						"", // gRPC address yok
 						"", // NAT type boş (yer kazanmak için)
