@@ -9,6 +9,7 @@ import (
 
 	"github.com/aether/sync/internal/config"
 	"github.com/aether/sync/internal/domain/transport"
+	"github.com/aether/sync/internal/infrastructure/p2p/signaling"
 )
 
 // WANTransport WAN üzerinden P2P transport
@@ -24,7 +25,9 @@ type WANTransport struct {
 	turnClient  TURNClient
 	iceAgent    ICEAgent
 	discovery   *WANDiscoveryService
+
 	connMgr     *WebRTCConnectionManager
+	signaling   *signaling.SignalingClient
 
 	// Config
 	wanConfig config.NetworkConfig
@@ -420,4 +423,22 @@ func (t *WANTransport) SetOnConnectionRequested(callback func(deviceID, deviceNa
 	if t.connMgr != nil {
 		t.connMgr.SetOnConnectionRequestedCallback(callback)
 	}
+}
+// StartSignaling signaling başlatır
+func (t *WANTransport) StartSignaling(serverURL, roomID string) (*signaling.SignalingClient, error) {
+	client := signaling.NewSignalingClient(serverURL)
+	if err := client.Connect(); err != nil {
+		return nil, fmt.Errorf("signaling bağlantı hatası: %w", err)
+	}
+
+	if err := client.JoinRoom(roomID); err != nil {
+		client.Close()
+		return nil, fmt.Errorf("oda katılma hatası: %w", err)
+	}
+
+	t.mu.Lock()
+	t.signaling = client
+	t.mu.Unlock()
+
+	return client, nil
 }

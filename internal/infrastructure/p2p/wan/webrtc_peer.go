@@ -27,7 +27,9 @@ type WebRTCPeer struct {
 	// Callbacks
 	onConnectionStateChange func(webrtc.PeerConnectionState)
 	onDataChannel           func(*webrtc.DataChannel)
+
 	onICEConnectionState    func(webrtc.ICEConnectionState)
+	onICECandidate          func(*webrtc.ICECandidate)
 }
 
 // NewWebRTCPeer yeni WebRTC peer oluşturur
@@ -96,11 +98,16 @@ func NewWebRTCPeer(config webrtc.Configuration) (*WebRTCPeer, error) {
 	})
 
 	// ICE candidate callback (Logging only)
+	// ICE candidate callback
 	peerConnection.OnICECandidate(func(c *webrtc.ICECandidate) {
 		if c == nil {
 			return
 		}
 		log.Printf("🧊 ICE Candidate found: %s", c.String())
+		
+		if peer.onICECandidate != nil {
+			peer.onICECandidate(c)
+		}
 	})
 
 	// Data channel callback (incoming)
@@ -301,6 +308,11 @@ func (p *WebRTCPeer) SetOnICEConnectionState(callback func(webrtc.ICEConnectionS
 	p.onICEConnectionState = callback
 }
 
+// SetOnICECandidate ICE candidate callback'ini ayarlar
+func (p *WebRTCPeer) SetOnICECandidate(callback func(*webrtc.ICECandidate)) {
+	p.onICECandidate = callback
+}
+
 // CreateWebRTCConfiguration WebRTC configuration oluşturur
 func CreateWebRTCConfiguration(stunServers []string, turnServers []config.TURNServerConfig, portRange config.PortRange) webrtc.Configuration {
 	var iceservers []webrtc.ICEServer
@@ -371,3 +383,46 @@ func DecodeSDP(data []byte) (webrtc.SessionDescription, error) {
 	}, nil
 }
 
+
+// CreateOfferAsync SDP offer oluşturur (ICE gathering beklemez)
+func (p *WebRTCPeer) CreateOfferAsync() (webrtc.SessionDescription, error) {
+	offer, err := p.peerConnection.CreateOffer(nil)
+	if err != nil {
+		return webrtc.SessionDescription{}, fmt.Errorf("offer oluşturulamadı: %w", err)
+	}
+
+	if err := p.peerConnection.SetLocalDescription(offer); err != nil {
+		return webrtc.SessionDescription{}, fmt.Errorf("local description set edilemedi: %w", err)
+	}
+
+	return offer, nil
+}
+
+// CreateAnswerAsync SDP answer oluşturur (ICE gathering beklemez)
+func (p *WebRTCPeer) CreateAnswerAsync() (webrtc.SessionDescription, error) {
+	answer, err := p.peerConnection.CreateAnswer(nil)
+	if err != nil {
+		return webrtc.SessionDescription{}, fmt.Errorf("answer oluşturulamadı: %w", err)
+	}
+
+	if err := p.peerConnection.SetLocalDescription(answer); err != nil {
+		return webrtc.SessionDescription{}, fmt.Errorf("local description set edilemedi: %w", err)
+	}
+
+	return answer, nil
+}
+
+// AddICECandidateFromJSON remote ICE candidate ekler (JSON string)
+func (p *WebRTCPeer) AddICECandidateFromJSON(candidateJSON string) error {
+	var candidate webrtc.ICECandidateInit
+	if err := json.Unmarshal([]byte(candidateJSON), &candidate); err != nil {
+		return fmt.Errorf("candidate parse edilemedi: %w", err)
+	}
+
+	if err := p.peerConnection.AddICECandidate(candidate); err != nil {
+		return fmt.Errorf("candidate eklenemedi: %w", err)
+	}
+	
+	log.Printf("🧊 Remote candidate eklendi: %s", candidate.Candidate)
+	return nil
+}

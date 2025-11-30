@@ -2,23 +2,25 @@ package grpc
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
+	"math/rand"
+	"os"
 	"time"
 
 	"github.com/pion/webrtc/v3"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	pb "github.com/aether/sync/api/proto"
 	"github.com/aether/sync/internal/container"
 	"github.com/aether/sync/internal/domain/entity"
 	"github.com/aether/sync/internal/domain/transport"
 	"github.com/aether/sync/internal/infrastructure/p2p/lan"
+
 	"github.com/aether/sync/internal/infrastructure/p2p/wan"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// PeerHandler PeerService implementasyonu
 type PeerHandler struct {
 	pb.UnimplementedPeerServiceServer
 	container *container.Container
@@ -452,64 +454,33 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 		}, nil
 	}
 
-	// Device bilgilerini al
-	deviceID, err := h.container.GetDeviceID()
+
+
+
+	// 6 haneli Room ID oluştur
+	rand.Seed(time.Now().UnixNano())
+	roomID := fmt.Sprintf("%06d", rand.Intn(1000000))
+	
+	log.Printf("🚀 Signaling başlatılıyor (Room: %s)...", roomID)
+
+	// Signaling başlat
+	signalingURL := os.Getenv("SIGNALING_URL")
+	if signalingURL == "" {
+		signalingURL = "ws://localhost:8080/ws"
+	}
+	signalingClient, err := wanTransport.StartSignaling(signalingURL, roomID)
 	if err != nil {
 		return &pb.CreateInvitationResponse{
 			Status: &pb.Status{
 				Success: false,
-				Message: fmt.Sprintf("Device ID alınamadı: %v", err),
+				Message: fmt.Sprintf("Signaling başlatılamadı: %v", err),
 				Code:    500,
 			},
 		}, nil
 	}
-	deviceName := h.container.GetDeviceName()
 
-	// Public IP al
-	publicIP, err := wanTransport.GetPublicIP(ctx)
-	if err != nil {
-		log.Printf("⚠️ Public IP alınamadı: %v (devam ediliyor)", err)
-		publicIP = "" // Devam et, public IP olmadan da code oluşturulabilir
-	}
-
-	// NAT type al
-	natType, err := wanTransport.GetNATType(ctx)
-	if err != nil {
-		log.Printf("⚠️ NAT type alınamadı: %v (devam ediliyor)", err)
-		natType = "unknown"
-	}
-
-	// ICE candidates al
-	iceCandidates, err := wanTransport.GetICECandidates()
-	if err != nil {
-		log.Printf("⚠️ ICE candidates alınamadı: %v (devam ediliyor)", err)
-		iceCandidates = []wan.ICECandidate{}
-	}
-
-	// gRPC server adresi oluştur (public IP + port)
+	// WebRTC config oluştur
 	cfg := h.container.Config()
-	grpcAddress := ""
-	if publicIP != "" {
-		grpcAddress = fmt.Sprintf("%s:%d", publicIP, cfg.GRPC.Port)
-	} else {
-		// Public IP yoksa, localhost kullan (sınırlı kullanım)
-		grpcAddress = fmt.Sprintf("%s:%d", cfg.GRPC.Host, cfg.GRPC.Port)
-		log.Printf("⚠️ Public IP olmadığı için gRPC adresi: %s (sınırlı kullanım)", grpcAddress)
-	}
-
-	// Invitation service oluştur
-	invitationService := wan.NewInvitationService(deviceID, nil) // Key deviceID'den türetilecek
-
-	// Expiry duration (varsayılan: 24 saat)
-	expiryHours := req.ExpiryHours
-	if expiryHours <= 0 {
-		expiryHours = 24
-	}
-	expiryDuration := time.Duration(expiryHours) * time.Hour
-
-	// SDP offer oluştur (invitation code içinde taşınacak)
-	var sdpOffer string
-	// Template WebRTC peer connection oluştur (SDP offer için)
 	webrtcConfig := wan.CreateWebRTCConfiguration(
 		cfg.Network.STUNServers,
 		cfg.Network.TURNServers,
@@ -518,396 +489,91 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 	
 	// WebRTC peer oluştur
 	webrtcPeer, peerErr := wan.NewWebRTCPeer(webrtcConfig)
-	if peerErr == nil {
-		// Data channel oluştur (Offer oluşturan taraf olarak)
-		_, dcErr := webrtcPeer.CreateDataChannel("aether-chunks", true)
-		if dcErr != nil {
-			log.Printf("⚠️ Data channel oluşturulamadı: %v", dcErr)
-		}
-
-		// SDP offer oluştur
-		offer, offerErr := webrtcPeer.CreateOffer(ctx)
-		if offerErr == nil {
-			sdpOffer = offer.SDP
-			log.Printf("✅ SDP offer oluşturuldu (invitation code içinde): %d bytes", len(sdpOffer))
-		} else {
-			log.Printf("⚠️ SDP offer oluşturulamadı: %v (invitation code SDP olmadan devam edecek)", offerErr)
-		}
-		
-		// Peer connection'ı kapatma! Pending olarak kaydet
-		// webrtcPeer.Close()
-	} else {
-		log.Printf("⚠️ WebRTC peer oluşturulamadı: %v (invitation code SDP olmadan devam edecek)", peerErr)
-	}
-
-	// Invitation code oluştur
-	code, err := invitationService.GenerateInvitationCode(
-		deviceID,
-		deviceName,
-		publicIP,
-		grpcAddress, // gRPC server adresi (opsiyonel, geriye uyumluluk için)
-		natType,
-		nil, // ICE Candidates SDP içinde zaten var, kod boyutunu küçültmek için buraya nil geçiyoruz
-		expiryDuration,
-		sdpOffer,  // SDP offer
-		"",        // SDP answer (henüz yok)
-	)
-	if err != nil {
+	if peerErr != nil {
 		return &pb.CreateInvitationResponse{
 			Status: &pb.Status{
 				Success: false,
-				Message: fmt.Sprintf("Invitation code oluşturulamadı: %v", err),
+				Message: fmt.Sprintf("WebRTC peer oluşturulamadı: %v", peerErr),
 				Code:    500,
 			},
 		}, nil
 	}
 
-	// Invitation link oluştur
-	link := invitationService.GenerateInvitationLink(code)
+	// Data channel oluştur (Offer oluşturan taraf olarak)
+	webrtcPeer.CreateDataChannel("aether-chunks", true)
 
-	// Expiry timestamp
-	expiresAt := time.Now().Add(expiryDuration).Unix()
-
-	// Invitation code'u discovery service'e kaydet (karşılıklı ekleme için)
-	discoveryService := wanTransport.GetDiscoveryService()
-	if discoveryService != nil {
-		invitationData := &wan.InvitationData{
-			DeviceID:      deviceID,
-			DeviceName:    deviceName,
-			PublicIP:      publicIP,
-			GRPCAddress:   grpcAddress,
-			NATType:       natType,
-			ICECandidates: iceCandidates,
-			CreatedAt:     time.Now(),
-			ExpiresAt:     time.Now().Add(expiryDuration),
-			Version:       "1.0",
+	// Signaling callback'leri
+	signalingClient.OnAnswer = func(sdp string) {
+		log.Printf("📩 Answer alındı, set ediliyor...")
+		desc := webrtc.SessionDescription{Type: webrtc.SDPTypeAnswer, SDP: sdp}
+		if err := webrtcPeer.SetRemoteDescription(desc); err != nil {
+			log.Printf("❌ Remote description hatası: %v", err)
 		}
-		discoveryService.SaveInvitationCode(code, invitationData)
-		log.Printf("💾 Invitation code discovery service'e kaydedildi (karşılıklı ekleme için)")
 	}
-
-	// Pending invitation'ı kaydet (Answer gelince eşleşecek)
-	if webrtcPeer != nil && sdpOffer != "" {
-		wanTransport.GetWebRTCConnectionManager().RegisterInvitation(code, webrtcPeer)
+	
+	signalingClient.OnCandidate = func(candidate string) {
+		log.Printf("📩 Candidate alındı, ekleniyor...")
+		webrtcPeer.AddICECandidateFromJSON(candidate)
 	}
+	
+	// WebRTC callback'leri - Candidate bulunduğunda gönder
+	webrtcPeer.SetOnICECandidate(func(c *webrtc.ICECandidate) {
+		if c != nil {
+			bytes, _ := json.Marshal(c.ToJSON())
+			signalingClient.SendCandidate(string(bytes))
+		}
+	})
+	
+	// Offer oluştur (Async - ICE gathering bekleme)
+	offer, offerErr := webrtcPeer.CreateOfferAsync()
+	if offerErr != nil {
+		return &pb.CreateInvitationResponse{
+			Status: &pb.Status{
+				Success: false,
+				Message: fmt.Sprintf("Offer oluşturulamadı: %v", offerErr),
+				Code:    500,
+			},
+		}, nil
+	}
+	
+	// Offer gönder
+	if err := signalingClient.SendOffer(offer.SDP); err != nil {
+		return &pb.CreateInvitationResponse{
+			Status: &pb.Status{
+				Success: false,
+				Message: fmt.Sprintf("Offer gönderilemedi: %v", err),
+				Code:    500,
+			},
+		}, nil
+	}
+	
+	// Register pending invitation (Room ID ile)
+	// Bu sayede HandleAnswer (eski yöntem) yerine signaling akışı çalışacak
+	// Ama WebRTCConnectionManager'a yine de peer'ı kaydetmemiz lazım ki referansı kaybolmasın
+	wanTransport.GetWebRTCConnectionManager().RegisterInvitation(roomID, webrtcPeer)
 
 	log.Printf("\n\n")
-	log.Printf("🔵 🔵 🔵 INVITATION CODE (Bunu arkadaşına gönder) 🔵 🔵 🔵")
-	log.Printf("⚠️ LÜTFEN KODUN TAMAMINI KOPYALADIĞINIZDAN EMİN OLUN")
+	log.Printf("🔵 🔵 🔵 ROOM ID (Bunu arkadaşına gönder) 🔵 🔵 🔵")
 	log.Printf("=== START CODE ===")
-	log.Printf("%s", code)
+	log.Printf("%s", roomID)
 	log.Printf("=== END CODE ===")
 	log.Printf("\n")
 
-	log.Printf("✅ Invitation code oluşturuldu: %s... (expires in %d hours)", code[:20], expiryHours)
-
 	return &pb.CreateInvitationResponse{
+		InvitationCode: roomID,
 		Status: &pb.Status{
 			Success: true,
-			Message: "Invitation code başarıyla oluşturuldu",
+			Message: "Invitation code oluşturuldu",
 			Code:    200,
 		},
-		InvitationCode: code,
-		InvitationLink: link,
-		QrCodeImage:    "", // TODO: QR code image oluştur (opsiyonel)
-		ExpiresAt:      expiresAt,
 	}, nil
 }
-
-// AddPeerByInvitation invitation code ile peer ekler (WAN için)
-func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerByInvitationRequest) (*pb.Status, error) {
-	log.Printf("🔵 AddPeerByInvitation FONKSİYONU ÇAĞRILDI - InvitationCode: %s", req.InvitationCode)
-	
-	if req.InvitationCode == "" {
-		log.Printf("❌ AddPeerByInvitation: Invitation code boş")
-		return &pb.Status{
-			Success: false,
-			Message: "Invitation code boş olamaz",
-			Code:    400,
-		}, nil
-	}
-
-	// WAN transport kontrolü
-	wanTransport := h.container.WANTransport()
-	if wanTransport == nil {
-		log.Printf("❌ AddPeerByInvitation: WAN transport aktif değil")
-		return &pb.Status{
-			Success: false,
-			Message: "WAN transport aktif değil",
-			Code:    400,
-		}, nil
-	}
-	log.Printf("✅ AddPeerByInvitation: WAN transport bulundu")
-
-	// Device ID al (invitation service için)
-	deviceID, err := h.container.GetDeviceID()
-	if err != nil {
-		log.Printf("❌ AddPeerByInvitation: Device ID alınamadı: %v", err)
-		return &pb.Status{
-			Success: false,
-			Message: fmt.Sprintf("Device ID alınamadı: %v", err),
-			Code:    500,
-		}, nil
-	}
-	log.Printf("✅ AddPeerByInvitation: Device ID alındı: %s", deviceID[:8])
-
-	// Invitation service oluştur
-	invitationService := wan.NewInvitationService(deviceID, nil)
-
-	// SELF-TEST: Generate and parse a dummy code to verify encryption/decryption
-	dummyCode, err := invitationService.GenerateInvitationCode(
-		deviceID, "SelfTest", "1.2.3.4", "", "unknown", nil, time.Hour, "", "",
-	)
-	if err == nil {
-		_, err := invitationService.ParseInvitationCode(dummyCode)
-		if err != nil {
-			log.Printf("❌ SELF-TEST FAILED: Generated code could not be parsed: %v", err)
-		} else {
-			log.Printf("✅ SELF-TEST PASSED: Encryption/Decryption works locally")
-		}
-	} else {
-		log.Printf("❌ SELF-TEST FAILED: Could not generate code: %v", err)
-	}
-
-	// Invitation code parse et (önce temizle)
-	invitationCode := strings.TrimSpace(req.InvitationCode)
-	log.Printf("🔍 AddPeerByInvitation: Invitation code parse ediliyor... (uzunluk: %d)", len(invitationCode))
-	invitationData, err := invitationService.ParseInvitationCode(invitationCode)
-	if err != nil {
-		log.Printf("❌ AddPeerByInvitation: Invitation code parse edilemedi: %v", err)
-		return &pb.Status{
-			Success: false,
-			Message: fmt.Sprintf("Invitation code parse edilemedi: %v", err),
-			Code:    400,
-		}, nil
-	}
-	log.Printf("✅ AddPeerByInvitation: Invitation code parse edildi - DeviceID: %s, DeviceName: %s", 
-		invitationData.DeviceID[:8], invitationData.DeviceName)
-
-	// Kendi device ID'si ile eşleşirse hata
-	if invitationData.DeviceID == deviceID {
-		log.Printf("❌ AddPeerByInvitation: Kendi invitation code'u kullanılamaz")
-		return &pb.Status{
-			Success: false,
-			Message: "Kendi invitation code'unuzu kullanamazsınız",
-			Code:    400,
-		}, nil
-	}
-
-	// Discovery service al
-	discoveryService := wanTransport.GetDiscoveryService()
-	if discoveryService == nil {
-		log.Printf("❌ AddPeerByInvitation: Discovery service bulunamadı")
-		return &pb.Status{
-			Success: false,
-			Message: "Discovery service bulunamadı",
-			Code:    500,
-		}, nil
-	}
-	log.Printf("✅ AddPeerByInvitation: Discovery service bulundu")
-
-	log.Printf("📥 AddPeerByInvitation çağrıldı - DeviceID: %s, DeviceName: %s, PublicIP: %s, GRPCAddress: %s", 
-		invitationData.DeviceID[:8], invitationData.DeviceName, invitationData.PublicIP, invitationData.GRPCAddress)
-
-	// SDP answer varsa (Response Code), işlemi tamamla
-	if invitationData.SDPAnswer != "" {
-		log.Printf("📩 RESPONSE CODE ALINDI! Answer işleniyor... (DeviceID: %s)", invitationData.DeviceID[:8])
-		err := wanTransport.GetWebRTCConnectionManager().HandleAnswer(invitationData.DeviceID, invitationData.DeviceName, invitationData.SDPAnswer, invitationData.ICECandidates)
-		if err != nil {
-			log.Printf("❌ Answer işlenemedi: %v", err)
-			return &pb.Status{
-				Success: false,
-				Message: fmt.Sprintf("Answer işlenemedi: %v", err),
-				Code:    500,
-			}, nil
-		}
-		
-		// Peer'ı discovery service'e ekle (UI'da görünmesi için)
-		err = discoveryService.AddPeerWithGRPC(
-			invitationData.DeviceID,
-			invitationData.DeviceName,
-			invitationData.PublicIP,
-			invitationData.GRPCAddress,
-			invitationData.ICECandidates,
-		)
-		if err != nil {
-			log.Printf("⚠️ Peer discovery'ye eklenemedi: %v", err)
-		} else {
-			log.Printf("✅ Peer discovery service'e eklendi (Response Code ile): %s", invitationData.DeviceName)
-		}
-
-		return &pb.Status{
-			Success: true,
-			Message: "Bağlantı başarıyla kuruldu (Response Code ile)",
-			Code:    200,
-		}, nil
-	}
-
-	// SDP offer varsa answer oluştur
-	var sdpAnswer string
-	if invitationData.SDPOffer != "" {
-		log.Printf("📋 SDP offer bulundu, answer oluşturuluyor... (SDP uzunluk: %d)", len(invitationData.SDPOffer))
-		
-		// WebRTC configuration oluştur
-		cfg := h.container.Config()
-		webrtcConfig := wan.CreateWebRTCConfiguration(
-			cfg.Network.STUNServers,
-			cfg.Network.TURNServers,
-			cfg.Network.WebRTCPortRange,
-		)
-		
-		// WebRTC peer oluştur
-		webrtcPeer, err := wan.NewWebRTCPeer(webrtcConfig)
-		if err == nil {
-			// Remote offer set et
-			offerDesc := webrtc.SessionDescription{
-				Type: webrtc.SDPTypeOffer,
-				SDP:  invitationData.SDPOffer,
-			}
-			
-			if err := webrtcPeer.SetRemoteDescription(offerDesc); err == nil {
-				// Answer oluştur
-				answer, err := webrtcPeer.CreateAnswer(ctx)
-				if err == nil {
-					sdpAnswer = answer.SDP
-					log.Printf("✅ SDP answer oluşturuldu: %d bytes", len(sdpAnswer))
-					
-					// Public IP al
-					publicIP, err := wanTransport.GetPublicIP(ctx)
-					if err != nil {
-						log.Printf("⚠️ Public IP alınamadı: %v", err)
-						publicIP = "" // Boş bırak, ICE candidates kullanılacak
-					}
-
-					// RESPONSE CODE OLUŞTUR
-					// Bu code'u karşı tarafa göndererek bağlantıyı tamamlayabilirler
-					// RESPONSE CODE OLUŞTUR
-					// Bu code'u karşı tarafa göndererek bağlantıyı tamamlayabilirler
-					respCode, respErr := invitationService.GenerateInvitationCode(
-						deviceID,
-						h.container.GetDeviceName(),
-						publicIP, // Kendi Public IP'miz
-						"", // gRPC address yok
-						"", // NAT type boş (yer kazanmak için)
-						nil, // ICE candidates (SDP içinde var zaten)
-						24*time.Hour,
-						"", // Offer yok
-						sdpAnswer, // Answer VAR
-					)
-					
-					if respErr == nil {
-						log.Printf("\n\n")
-						log.Printf("🔵 🔵 🔵 RESPONSE CODE (Bunu arkadaşına gönder) 🔵 🔵 🔵")
-						log.Printf("⚠️ LÜTFEN KODUN TAMAMINI KOPYALADIĞINIZDAN EMİN OLUN")
-						log.Printf("=== START CODE ===")
-						log.Printf("%s", respCode)
-						log.Printf("=== END CODE ===")
-						log.Printf("\n")
-						log.Printf("🔵 Link: aether://invite?code=%s", respCode)
-					}
-					
-					// Data channel handler'ı ekle (Answerer tarafı için)
-					// Data channel açıldığında WebRTCConnection oluştur ve kaydet
-					webrtcPeer.SetOnDataChannel(func(dc *webrtc.DataChannel) {
-						log.Printf("✅ WebRTC data channel açıldı (Answerer): %s", dc.Label())
-						
-						// WebRTCConnection oluştur
-						conn := wan.NewWebRTCConnection(invitationData.DeviceID, invitationData.DeviceName, webrtcPeer, dc)
-						
-						// Connection'ı kaydet (Callback'ler RegisterConnection içinde bağlanacak)
-						wanTransport.GetWebRTCConnectionManager().RegisterConnection(invitationData.DeviceID, conn)
-						
-						log.Printf("✅ WebRTC connection otomatik oluşturuldu (Data Channel ile): %s", invitationData.DeviceID[:8])
-					})
-
-					// Pending peer olarak ekle (Connect butonu için)
-					wanTransport.GetWebRTCConnectionManager().AddPendingPeer(invitationData.DeviceID, webrtcPeer)
-					log.Printf("✅ Pending peer eklendi (Connect bekleniyor): %s", invitationData.DeviceID[:8])
-					
-				} else {
-					log.Printf("⚠️ SDP answer oluşturulamadı: %v", err)
-					webrtcPeer.Close()
-				}
-			} else {
-				log.Printf("⚠️ Remote description set edilemedi: %v", err)
-				webrtcPeer.Close()
-			}
-			
-			// webrtcPeer.Close() // KAPATMA!
-		} else {
-			log.Printf("⚠️ WebRTC peer oluşturulamadı: %v", err)
-		}
-	} else {
-		log.Printf("ℹ️ SDP offer bulunamadı (invitation code SDP içermiyor)")
-	}
-
-	// Peer'ı ekle (gRPC address ile - geriye uyumluluk için, ama artık gerekli değil)
-	err = discoveryService.AddPeerWithGRPC(
-		invitationData.DeviceID,
-		invitationData.DeviceName,
-		invitationData.PublicIP,
-		invitationData.GRPCAddress, // gRPC address (opsiyonel, geriye uyumluluk için)
-		invitationData.ICECandidates,
-	)
-	if err != nil {
-		log.Printf("❌ AddPeerWithGRPC hatası: %v", err)
-	} else {
-		log.Printf("✅ WAN peer discovery service'e eklendi: %s", invitationData.DeviceName)
-	}
-	
-	// SDP answer'ı metadata'ya ekle (Connect çağrıldığında kullanılacak)
-	if sdpAnswer != "" {
-		// Peer'ı bul (yeni eklendi)
-		allPeers := discoveryService.GetDiscoveredPeers()
-		for _, p := range allPeers {
-			if p.DeviceID == invitationData.DeviceID {
-				if p.Metadata == nil {
-					p.Metadata = make(map[string]string)
-				}
-				p.Metadata["sdp_answer"] = sdpAnswer
-				log.Printf("✅ SDP answer metadata'ya eklendi: %s", invitationData.DeviceID[:8])
-				break
-			}
-		}
-	}
-	
-	if invitationData.GRPCAddress != "" {
-		log.Printf("✅ gRPC address metadata'ya eklendi: %s (geriye uyumluluk için)", invitationData.GRPCAddress)
-	}
-	if err != nil {
-		log.Printf("❌ Peer eklenemedi: %v", err)
-		return &pb.Status{
-			Success: false,
-			Message: fmt.Sprintf("Peer eklenemedi: %v", err),
-			Code:    500,
-		}, nil
-	}
-
-	// Peer'ın gerçekten eklendiğini doğrula
-	allPeers := discoveryService.GetDiscoveredPeers()
-	log.Printf("✅ Peer invitation code ile eklendi: %s (%s)", invitationData.DeviceName, invitationData.DeviceID[:8])
-	log.Printf("📊 WAN Discovery Service'te toplam peer sayısı: %d", len(allPeers))
-	for _, p := range allPeers {
-		log.Printf("  - %s (%s)", p.DeviceName, p.DeviceID[:8])
-	}
-
-	// NOT: Otomatik bağlantı yapılmıyor - kullanıcı manuel olarak bağlanacak
-	log.Printf("ℹ️ Peer eklendi, otomatik bağlantı yapılmadı (kullanıcı manuel olarak bağlanabilir)")
-
-	return &pb.Status{
-		Success: true,
-		Message: fmt.Sprintf("Peer başarıyla eklendi: %s", invitationData.DeviceName),
-		Code:    200,
-	}, nil
-}
-
 // AddWANPeer manuel olarak WAN peer ekler (invitation code olmadan)
 func (h *PeerHandler) AddWANPeer(ctx context.Context, req *pb.AddWANPeerRequest) (*pb.Status, error) {
 	log.Printf("🔵 AddWANPeer FONKSİYONU ÇAĞRILDI - PeerID: %s, PeerName: %s, PublicIP: %s", 
 		req.PeerId[:8], req.PeerName, req.PublicIp)
 	
 	if req.PeerId == "" {
-		log.Printf("❌ AddWANPeer: Peer ID boş")
 		return &pb.Status{
 			Success: false,
 			Message: "Peer ID boş olamaz",
@@ -935,11 +601,6 @@ func (h *PeerHandler) AddWANPeer(ctx context.Context, req *pb.AddWANPeerRequest)
 		}, nil
 	}
 
-	// ICE candidates parse et (eğer varsa)
-	iceCandidates := []wan.ICECandidate{}
-	// TODO: ICE candidates'ı string array'den parse et
-	// Şimdilik boş bırakıyoruz, public IP varsa onu kullanır
-
 	// Peer name (eğer yoksa peer ID'nin ilk kısmını kullan)
 	peerName := req.PeerName
 	if peerName == "" {
@@ -951,7 +612,7 @@ func (h *PeerHandler) AddWANPeer(ctx context.Context, req *pb.AddWANPeerRequest)
 		req.PeerId,
 		peerName,
 		req.PublicIp,
-		iceCandidates,
+		[]wan.ICECandidate{}, // Boş ICE candidates
 	)
 	if err != nil {
 		return &pb.Status{
@@ -1064,9 +725,6 @@ func (h *PeerHandler) ExchangeSDP(ctx context.Context, req *pb.ExchangeSDPReques
 		}, nil
 	}
 
-	// NOT: req.PeerId aslında gönderen peer'ın ID'si (bize bağlanan peer)
-	// ExchangeSDP'de peer'ı bulmak yerine, gelen offer'a göre connection oluşturmalıyız
-
 	// Connection'ı al veya oluştur
 	conn, exists := connMgr.GetConnection(req.PeerId)
 	if !exists {
@@ -1120,8 +778,6 @@ func (h *PeerHandler) ExchangeSDP(ctx context.Context, req *pb.ExchangeSDPReques
 		log.Printf("🔔 WAN bağlantı isteği oluşturuldu: %s (%s)", deviceName, req.PeerId[:8])
 		
 		// Hemen answer döndürme, pending connection olarak işaretle
-		// NOT: Şimdilik answer oluşturup döndürüyoruz, ama aslında kullanıcı onayı beklemeliyiz
-		// Geçici olarak answer oluşturup döndürüyoruz (geriye uyumluluk için)
 		sdpDesc := webrtc.SessionDescription{
 			Type: webrtc.SDPTypeOffer,
 			SDP:  req.Sdp,
