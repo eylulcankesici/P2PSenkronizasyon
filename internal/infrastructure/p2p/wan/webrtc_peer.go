@@ -161,7 +161,7 @@ func (p *WebRTCPeer) CreateOffer(ctx context.Context) (webrtc.SessionDescription
 	}
 
 	// ICE gathering tamamlanmasını bekle
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 
 	// Gather complete event'ini bekle
