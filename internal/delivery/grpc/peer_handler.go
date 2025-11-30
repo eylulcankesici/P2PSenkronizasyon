@@ -730,7 +730,7 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 	// SDP answer varsa (Response Code), işlemi tamamla
 	if invitationData.SDPAnswer != "" {
 		log.Printf("📩 RESPONSE CODE ALINDI! Answer işleniyor... (DeviceID: %s)", invitationData.DeviceID[:8])
-		err := wanTransport.GetWebRTCConnectionManager().HandleAnswer(invitationData.DeviceID, invitationData.SDPAnswer, invitationData.ICECandidates)
+		err := wanTransport.GetWebRTCConnectionManager().HandleAnswer(invitationData.DeviceID, invitationData.DeviceName, invitationData.SDPAnswer, invitationData.ICECandidates)
 		if err != nil {
 			log.Printf("❌ Answer işlenemedi: %v", err)
 			return &pb.Status{

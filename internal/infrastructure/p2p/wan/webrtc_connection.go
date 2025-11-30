@@ -685,21 +685,12 @@ func (m *WebRTCConnectionManager) RegisterConnection(deviceID string, conn *WebR
 	
 	m.connections[deviceID] = conn
 	log.Printf("✅ WebRTC connection kaydedildi: %s (Handshake bekleniyor)", deviceID[:8])
-	
-	// Callback çağırMA - Handshake tamamlanınca çağrılacak
-	// if m.onConnectionEstablished != nil {
-	// 	m.onConnectionEstablished(conn)
-	// }
 }
 
-// HandleAnswer pending invitation için answer'ı işler
-func (m *WebRTCConnectionManager) HandleAnswer(deviceID string, answerSDP string, iceCandidates []ICECandidate) error {
+// HandleAnswer SDP answer'ı işler
+func (m *WebRTCConnectionManager) HandleAnswer(deviceID, deviceName, answerSDP string, iceCandidates []ICECandidate) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
-	// Pending invitation'lardan birini bul (basitçe ilkini al veya hepsiyle dene)
-	// Gerçek senaryoda code ile eşleştirmek daha iyi olurdu ama burada code elimizde yok
-	// Bu yüzden en son eklenen veya herhangi bir açık invitation'ı kullanacağız
 	
 	if len(m.pendingInvitations) == 0 {
 		return fmt.Errorf("bekleyen invitation bulunamadı")
@@ -753,12 +744,39 @@ func (m *WebRTCConnectionManager) HandleAnswer(deviceID string, answerSDP string
 		}
 	}
 	
-	// Data channel oluştur (eğer yoksa)
-	// NOT: CreateInvitation'da data channel oluşturulmamış olabilir
-	// Ancak genellikle Offer oluşturan taraf Data Channel oluşturur
+	// Data channel handler'ı ekle (Answerer tarafı için)
+	matchedPeer.SetOnDataChannel(func(dc *webrtc.DataChannel) {
+		log.Printf("✅ WebRTC data channel açıldı (Answerer): %s", dc.Label())
+		
+		// WebRTCConnection oluştur
+		conn := NewWebRTCConnection(deviceID, deviceName, matchedPeer, dc)
+		
+		// Callback'leri bağla
+		conn.SetOnConnectionRequested(func(deviceID, deviceName string) {
+			m.AddPendingConnection(deviceID, deviceName, "")
+		})
+		if m.chunkHandler != nil {
+			conn.SetChunkHandler(m.chunkHandler)
+		}
+		if m.onChunkReceived != nil {
+			conn.SetOnChunkReceived(m.onChunkReceived)
+		}
+		if m.onTransferCancel != nil {
+			conn.SetOnTransferCancel(m.onTransferCancel)
+		}
+		if m.onFileDelete != nil {
+			conn.SetOnFileDelete(m.onFileDelete)
+		}
+		
+		// Connection'ı kaydet
+		m.mu.Lock()
+		m.connections[deviceID] = conn
+		m.mu.Unlock()
+		
+		log.Printf("✅ WebRTC connection otomatik oluşturuldu (Data Channel ile): %s", deviceID[:8])
+	})
 	
-	// Connection oluştur
-	// Data channel'ı peer'dan al (WebRTCPeer struct'ına dataChannel alanı eklenmişti)
+	// Data channel oluştur (eğer yoksa - Offerer tarafı için)
 	dc := matchedPeer.GetDataChannel()
 	if dc == nil {
 		// Data channel yoksa oluştur
@@ -771,8 +789,6 @@ func (m *WebRTCConnectionManager) HandleAnswer(deviceID string, answerSDP string
 	
 	// WebRTCConnection oluşturma! Sadece pending peer olarak ekle.
 	// Kullanıcı "Connect" dediğinde bu peer kullanılacak.
-	// NOT: matchedPeer zaten pendingInvitations'dan alındı, şimdi pendingPeers'a taşıyoruz
-	// m.AddPendingPeer(deviceID, matchedPeer) // DEADLOCK: m.mu zaten kilitli!
 	m.pendingPeers[deviceID] = matchedPeer
 	
 	log.Printf("✅ Pending peer eklendi (Connect bekleniyor): %s", deviceID[:8])
