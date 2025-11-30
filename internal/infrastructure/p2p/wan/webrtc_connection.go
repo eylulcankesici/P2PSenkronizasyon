@@ -169,20 +169,34 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 		// Handshake isteği gönder
 		// Connection henüz tam hazır olmayabilir (ICE checking vs), ama deneyelim
 		go func() {
-			// Data channel açılana kadar bekle (max 15 saniye)
-			log.Printf("⏳ Data channel bekleniyor (max 15s)...")
+			// Data channel açılana kadar bekle (max 30 saniye)
+			log.Printf("⏳ Data channel bekleniyor (max 30s)...")
 			
-			timeout := time.After(15 * time.Second)
+			timeout := time.After(30 * time.Second)
 			ticker := time.NewTicker(500 * time.Millisecond)
 			defer ticker.Stop()
 			
+			tickCount := 0
 			for {
 				select {
 				case <-timeout:
 					log.Printf("⚠️ Data channel timeout, istek gönderilemedi (Pending Peer)")
 					return
 				case <-ticker.C:
+					tickCount++
 					dc := webrtcConn.GetDataChannel()
+					
+					// Log status every 3 seconds
+					if tickCount % 6 == 0 {
+						iceState := webrtcConn.GetICEConnectionState()
+						connState := webrtcConn.GetState()
+						dcState := "nil"
+						if dc != nil {
+							dcState = dc.ReadyState().String()
+						}
+						log.Printf("⏳ Waiting for DataChannel... ICE: %s, Conn: %s, DC: %s", iceState, connState, dcState)
+					}
+
 					if dc != nil && dc.ReadyState() == webrtc.DataChannelStateOpen {
 						// Request oluştur
 						reqData, err := webrtcConn.protocol.EncodeConnectionRequest(m.deviceID, m.deviceName)
@@ -779,6 +793,14 @@ func (c *WebRTCConnection) GetState() webrtc.PeerConnectionState {
 		return webrtc.PeerConnectionStateClosed
 	}
 	return c.webrtcPeer.GetConnectionState()
+}
+
+// GetICEConnectionState ICE connection state döner
+func (c *WebRTCConnection) GetICEConnectionState() webrtc.ICEConnectionState {
+	if c.webrtcPeer == nil {
+		return webrtc.ICEConnectionStateClosed
+	}
+	return c.webrtcPeer.GetICEConnectionState()
 }
 
 // WebRTCConnection WebRTC data channel connection implementasyonu

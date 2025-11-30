@@ -227,6 +227,11 @@ func (p *WebRTCPeer) GetConnectionState() webrtc.PeerConnectionState {
 	return p.peerConnection.ConnectionState()
 }
 
+// GetICEConnectionState ICE connection state döner
+func (p *WebRTCPeer) GetICEConnectionState() webrtc.ICEConnectionState {
+	return p.peerConnection.ICEConnectionState()
+}
+
 // Close peer connection'ı kapatır
 func (p *WebRTCPeer) Close() error {
 	p.mu.Lock()
