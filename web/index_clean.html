@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aether | Decentralized Synchronization</title>
+    <meta name="description" content="Secure, fast, and decentralized peer-to-peer file synchronization.">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom Config for Tailwind -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    },
+                    colors: {
+                        aether: {
+                            bg: '#030712', // Very dark blue/black
+                            light: '#f8fafc', // Slate 50
+                            card: '#111827',
+                            cardLight: '#ffffff',
+                            primary: '#6366f1', // Indigo 500
+                            secondary: '#8b5cf6', // Violet 500
+                            accent: '#06b6d4', // Cyan 500
+                        }
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                        'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
+                        'gradient-text': 'gradientText 8s ease infinite',
+                        'spin-slow': 'spin 12s linear infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        glow: {
+                            'from': { boxShadow: '0 0 10px #6366f1, 0 0 20px #6366f1' },
+                            'to': { boxShadow: '0 0 20px #8b5cf6, 0 0 30px #8b5cf6' },
+                        },
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        gradientText: {
+                            '0%, 100%': { 'background-size': '200% 200%', 'background-position': 'left center' },
+                            '50%': { 'background-size': '200% 200%', 'background-position': 'right center' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #6366f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #8b5cf6;
+        }
+
+        /* Drawer Transition */
+        .drawer-open {
+            transform: translateX(0) !important;
+        }
+
+        .overlay-open {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-aether-light dark:bg-aether-bg text-gray-900 dark:text-white overflow-x-hidden antialiased selection:bg-aether-primary selection:text-white transition-colors duration-300">
+
+    <!-- Background Effects (Dark Mode Only) -->
+    <div class="fixed inset-0 z-0 pointer-events-none opacity-0 dark:opacity-100 transition-opacity duration-500">
+        <div
+            class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-aether-primary/20 rounded-full blur-[120px] animate-pulse-slow">
+        </div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-aether-secondary/20 rounded-full blur-[120px] animate-pulse-slow"
+            style="animation-delay: 2s;"></div>
+    </div>
+
+    <!-- Background Effects (Light Mode) -->
+    <div class="fixed inset-0 z-0 pointer-events-none dark:opacity-0 transition-opacity duration-500">
+        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-aether-primary/5 rounded-full blur-[120px]">
+            <section id="hero" class="min-h-screen flex items-center justify-center py-20 px-6 lg:px-12">
+                <div class="max-w-6xl w-full grid lg:grid-cols-2 gap-12 items-center">
+                    <div class="space-y-8 text-center lg:text-left">
+                        <div
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-gray-200 dark:border-white/10 backdrop-blur-sm">
+                            <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                            <span
+                                class="text-xs font-medium text-gray-500 dark:text-gray-300 tracking-wide uppercase">v1.0
+                                Stable Release</span>
+                        </div>
+
+                        <h1
+                            class="font-display text-5xl lg:text-7xl font-bold leading-tight text-gray-900 dark:text-white">
+                            <span data-i18n="hero_title_1">Sync Without</span> <br>
+                            <span data-i18n="hero_title_2"
+                                class="text-transparent bg-clip-text bg-gradient-to-r from-aether-primary via-aether-secondary to-aether-accent animate-gradient-text">Boundaries</span>
+                        </h1>
+
+                        <p data-i18n="hero_desc"
+                            class="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+                            Experience true peer-to-peer synchronization. No central servers, no data limits, just pure,
+                            encrypted speed between your devices.
+                        </p>
+
+                        <div class="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
+                            <a href="Aether.exe" download
+                                class="group relative px-8 py-4 rounded-full bg-gradient-to-r from-aether-primary to-aether-secondary text-white font-semibold shadow-lg shadow-aether-primary/25 hover:shadow-aether-primary/50 transition-all duration-300 overflow-hidden">
+                                <div
+                                    class="absolute inset-0 bg-white/20 group-hover:translate-x-full transition-transform duration-500 ease-out -skew-x-12 -translate-x-full">
+                                </div>
+                                <span class="relative flex items-center gap-2">
+                                    <i class="fa-brands fa-windows text-lg"></i>
+                                    <span data-i18n="hero_download">Download for Windows</span>
+                                </span>
+                            </a>
+                            <a href="https://github.com/eylulcankesici/P2PSenkronizasyon" target="_blank"
+                                class="px-8 py-4 rounded-full bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white font-medium transition-all duration-300 flex items-center gap-2 text-sm">
+                                <i class="fa-brands fa-github text-lg"></i>
+                                <span data-i18n="hero_github">GitHub Repo</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Hero Visual -->
+                    <div class="relative lg:h-[600px] flex items-center justify-center">
+                        <div class="relative w-full max-w-md aspect-square">
+                            <div
+                                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-gradient-to-br from-aether-primary to-aether-secondary rounded-full blur-2xl opacity-50 animate-pulse-slow">
+                            </div>
+                            <div
+                                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-white dark:bg-aether-card border border-gray-200 dark:border-white/10 rounded-2xl flex items-center justify-center z-20 shadow-2xl animate-float">
+                                <i class="fa-solid fa-cube text-4xl text-aether-primary dark:text-white"></i>
+                            </div>
+                            <div class="absolute inset-0 animate-spin-slow">
+                                <div
+                                    class="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-16 bg-white dark:bg-aether-card border border-gray-200 dark:border-white/10 rounded-xl flex items-center justify-center shadow-xl transform -translate-y-1/2">
+                                    <i class="fa-solid fa-laptop text-aether-accent text-xl"></i>
+                                </div>
+                                <div
+                                    class="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-16 bg-white dark:bg-aether-card border border-gray-200 dark:border-white/10 rounded-xl flex items-center justify-center shadow-xl transform translate-y-1/2">
+                                    <i class="fa-solid fa-mobile-screen text-aether-secondary text-xl"></i>
+                                </div>
+                                <div
+                                    class="absolute top-1/2 left-0 -translate-y-1/2 w-16 h-16 bg-white dark:bg-aether-card border border-gray-200 dark:border-white/10 rounded-xl flex items-center justify-center shadow-xl transform -translate-x-1/2">
+                                    <i class="fa-solid fa-server text-aether-primary text-xl"></i>
+                                </div>
+                                <div
+                                    class="absolute top-1/2 right-0 -translate-y-1/2 w-16 h-16 bg-white dark:bg-aether-card border border-gray-200 dark:border-white/10 rounded-xl flex items-center justify-center shadow-xl transform translate-x-1/2">
+                                    <i class="fa-solid fa-cloud text-green-400 text-xl"></i>
+                                </div>
+                            </div>
+                            <svg class="absolute inset-0 w-full h-full pointer-events-none z-10 opacity-30 animate-spin-slow"
+                                style="animation-direction: reverse;">
+                                <circle cx="50%" cy="50%" r="35%" fill="none" stroke="currentColor" stroke-width="1"
+                                    stroke-dasharray="8 8" class="text-gray-400 dark:text-white/20" />
+                                <circle cx="50%" cy="50%" r="50%" fill="none" stroke="currentColor" stroke-width="1"
+                                    class="text-gray-300 dark:text-white/10" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Features Section -->
+            <section id="features" class="py-24 px-6 lg:px-12 bg-gray-50 dark:bg-white/5">
+                <div class="max-w-6xl mx-auto">
+                    <div class="text-center mb-16">
+                        <h2 data-i18n="features_title"
+                            class="font-display text-3xl md:text-4xl font-bold mb-4 text-gray-900 dark:text-white">Why
+                            Choose Aether?</h2>
+                        <p data-i18n="features_desc" class="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">Built
+                            for
+                            privacy, speed, and reliability.</p>
+                    </div>
+                    <div class="grid md:grid-cols-3 gap-8">
+                        <div
+                            class="p-8 rounded-3xl bg-white dark:bg-aether-card border border-gray-200 dark:border-white/5 hover:border-aether-primary/30 transition-all duration-300 group shadow-sm">
+                            <div
+                                class="w-14 h-14 rounded-2xl bg-gradient-to-br from-aether-primary to-aether-secondary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-bolt text-2xl text-white"></i>
+                            </div>
+                            <h3 data-i18n="feat_1_title"
+                                class="font-display text-xl font-bold mb-3 text-gray-900 dark:text-white">Lightning Fast
+                            </h3>
+                            <p data-i18n="feat_1_desc" class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                                Direct peer-to-peer connections mean your data takes the shortest path.</p>
+                        </div>
+                        <div
+                            class="p-8 rounded-3xl bg-white dark:bg-aether-card border border-gray-200 dark:border-white/5 hover:border-aether-secondary/30 transition-all duration-300 group shadow-sm">
+                            <div
+                                class="w-14 h-14 rounded-2xl bg-gradient-to-br from-aether-primary to-aether-secondary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-shield-halved text-2xl text-white"></i>
+                            </div>
+                            <h3 data-i18n="feat_2_title"
+                                class="font-display text-xl font-bold mb-3 text-gray-900 dark:text-white">End-to-End
+                                Encrypted</h3>
+                            <p data-i18n="feat_2_desc" class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                                Your
+                                data is encrypted before it leaves your device.</p>
+                        </div>
+                        <div
+                            class="p-8 rounded-3xl bg-white dark:bg-aether-card border border-gray-200 dark:border-white/5 hover:border-aether-accent/30 transition-all duration-300 group shadow-sm">
+                            <div
+                                class="w-14 h-14 rounded-2xl bg-gradient-to-br from-aether-primary to-aether-secondary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-network-wired text-2xl text-white"></i>
+                            </div>
+                            <h3 data-i18n="feat_3_title"
+                                class="font-display text-xl font-bold mb-3 text-gray-900 dark:text-white">Decentralized
+                            </h3>
+                            <p data-i18n="feat_3_desc" class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                                No
+                                central authority. Works even without internet.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- P2P Logic Section -->
+            <section id="p2p" class="py-24 px-6 lg:px-12">
+                <div class="max-w-6xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
+                    <div>
+                        <div
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-aether-primary/10 text-aether-primary text-xs font-bold uppercase tracking-wider mb-6">
+                            <i class="fa-solid fa-circle-nodes"></i>
+                            <span data-i18n="nav_p2p">P2P Logic</span>
+                        </div>
+                        <h2 data-i18n="p2p_title"
+                            class="font-display text-3xl md:text-5xl font-bold mb-6 text-gray-900 dark:text-white">What
+                            is
+                            Peer-to-Peer?</h2>
+                        <p data-i18n="p2p_desc" class="text-lg text-gray-600 dark:text-gray-400 leading-relaxed mb-8">
+                            In a traditional model, you upload files to a server (cloud), and then download them. In
+                            P2P,
+                            devices connect directly. It's faster, private, and has no middleman.
+                        </p>
+                        <div class="grid grid-cols-2 gap-6">
+                            <div
+                                class="p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                                <i class="fa-solid fa-server text-2xl text-gray-400 mb-3"></i>
+                                <h4 class="font-bold text-gray-900 dark:text-white mb-1">Traditional</h4>
+                                <p class="text-xs text-gray-500">Client <-> Server <-> Client</p>
+                            </div>
+                            <div class="p-4 rounded-2xl bg-aether-primary/10 border border-aether-primary/20">
+                                <i class="fa-solid fa-handshake text-2xl text-aether-primary mb-3"></i>
+                                <h4 class="font-bold text-gray-900 dark:text-white mb-1">Aether P2P</h4>
+                                <p class="text-xs text-gray-500">Client <-> Client</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <div
+                            class="absolute inset-0 bg-gradient-to-tr from-aether-primary/20 to-aether-accent/20 blur-3xl rounded-full">
+                        </div>
+                        <div
+                            class="relative bg-white dark:bg-aether-card border border-gray-200 dark:border-white/10 rounded-3xl p-8 shadow-2xl flex items-center justify-center aspect-video">
+                            <div class="flex items-center gap-8">
+                                <div class="text-center">
+                                    <i class="fa-solid fa-laptop text-4xl text-gray-700 dark:text-white mb-2"></i>
+                                    <p class="text-xs font-mono text-gray-500">Peer A</p>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <div
+                                        class="w-32 h-1 bg-gradient-to-r from-aether-primary to-aether-secondary rounded-full animate-pulse">
+                                    </div>
+                                    <span class="text-[10px] uppercase font-bold text-aether-primary">Direct Link</span>
+                                </div>
+                                <div class="text-center">
+                                    <i class="fa-solid fa-desktop text-4xl text-gray-700 dark:text-white mb-2"></i>
+                                    <p class="text-xs font-mono text-gray-500">Peer B</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Security Section -->
+            <section id="security" class="py-24 px-6 lg:px-12 bg-gray-50 dark:bg-white/5">
+                <div class="max-w-6xl mx-auto">
+                    <div class="text-center mb-16">
+                        <h2 data-i18n="sec_main_title"
+                            class="font-display text-3xl md:text-4xl font-bold mb-4 text-gray-900 dark:text-white">
+                            Uncompromising Security</h2>
+                        <p data-i18n="sec_main_desc" class="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">Your
+                            data is
+                            your property. We don't see it, we don't store it.</p>
+                    </div>
+                    <div class="grid md:grid-cols-3 gap-8">
+                        <div
+                            class="bg-white dark:bg-aether-card p-8 rounded-3xl border border-gray-200 dark:border-white/10">
+                            <i class="fa-solid fa-lock text-3xl text-green-500 mb-4"></i>
+                            <h4 data-i18n="sec_1_title" class="font-bold text-xl mb-2 text-gray-900 dark:text-white">
+                                AES-256
+                                Encryption</h4>
+                            <p data-i18n="sec_1_desc" class="text-sm text-gray-500">Military-grade protection.</p>
+                        </div>
+                        <div
+                            class="bg-white dark:bg-aether-card p-8 rounded-3xl border border-gray-200 dark:border-white/10">
+                            <i class="fa-solid fa-key text-3xl text-blue-500 mb-4"></i>
+                            <h4 data-i18n="sec_2_title" class="font-bold text-xl mb-2 text-gray-900 dark:text-white">
+                                Private
+                                Keys</h4>
+                            <p data-i18n="sec_2_desc" class="text-sm text-gray-500">Keys never leave your device.</p>
+                        </div>
+                        <div
+                            class="bg-white dark:bg-aether-card p-8 rounded-3xl border border-gray-200 dark:border-white/10">
+                            <i class="fa-solid fa-user-shield text-3xl text-purple-500 mb-4"></i>
+                            <h4 data-i18n="sec_3_title" class="font-bold text-xl mb-2 text-gray-900 dark:text-white">No
+                                Tracking</h4>
+                            <p data-i18n="sec_3_desc" class="text-sm text-gray-500">Zero knowledge architecture.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Contact Section -->
+            <section id="contact" class="py-24 px-6 lg:px-12">
+                <div
+                    class="max-w-4xl mx-auto bg-gradient-to-br from-aether-card to-black rounded-[3rem] p-12 text-center border border-white/10 relative overflow-hidden">
+                    <div
+                        class="absolute top-0 right-0 w-64 h-64 bg-aether-primary/20 blur-[100px] rounded-full pointer-events-none">
+                    </div>
+
+                    <h2 data-i18n="contact_title"
+                        class="font-display text-3xl md:text-5xl font-bold mb-6 text-white relative z-10">Get in Touch
+                    </h2>
+                    <p data-i18n="contact_desc" class="text-gray-400 mb-10 max-w-xl mx-auto relative z-10">Have
+                        questions or
+                        want to contribute? Reach out to us.</p>
+
+                    <div class="flex flex-col sm:flex-row justify-center gap-6 relative z-10">
+                        <a href="mailto:contact@aether.com"
+                            class="flex items-center gap-3 px-8 py-4 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 transition-all text-white">
+                            <i class="fa-solid fa-envelope"></i>
+                            <span>contact@aether.com</span>
+                        </a>
+                        <a href="#"
+                            class="flex items-center gap-3 px-8 py-4 rounded-2xl bg-[#5865F2] hover:bg-[#4752C4] transition-all text-white">
+                            <i class="fa-brands fa-discord"></i>
+                            <span>Join Discord</span>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Footer -->
+            <footer
+                class="py-12 px-6 lg:px-12 border-t border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/20">
+                <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+                    <p class="text-gray-500 text-sm">© 2025 Aether Project. Open Source.</p>
+
+                    <!-- Core Team -->
+                    <div class="flex items-center gap-4">
+                        <div class="flex flex-col items-center group">
+                            <div
+                                class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white text-xs font-bold mb-1">
+                                EK</div>
+                            <span class="text-[10px] text-gray-500">Eylül Can<br>Kesici</span>
+                        </div>
+                        <div class="flex flex-col items-center group">
+                            <div
+                                class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-400 flex items-center justify-center text-white text-xs font-bold mb-1">
+                                SD</div>
+                            <span class="text-[10px] text-gray-500">Sude<br>Demir</span>
+                        </div>
+                        <div class="flex flex-col items-center group">
+                            <div
+                                class="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-yellow-400 flex items-center justify-center text-white text-xs font-bold mb-1">
+                                YE</div>
+                            <span class="text-[10px] text-gray-500">Yiğit<br>Erdoğan</span>
+                        </div>
+                    </div>
+                    htmlElement.classList.add('dark');
+                    } else {
+                    htmlElement.classList.remove('dark');
+                    }
+
+                    themeToggleBtn.addEventListener('click', () => {
+                    htmlElement.classList.toggle('dark');
+                    localStorage.setItem('theme', htmlElement.classList.contains('dark') ? 'dark' : 'light');
+                    });
+
+                    // Translations
+                    const translations = {
+                    en: {
+                    nav_features: "Features",
+                    nav_security: "Security",
+                    nav_p2p: "P2P Logic",
+                    nav_contact: "Contact",
+                    hero_title_1: "Sync Without",
+                    hero_title_2: "Boundaries",
+                    hero_desc: "Experience true peer-to-peer synchronization. No central servers, no data limits, just
+                    pure, encrypted speed between your devices.",
+                    hero_download: "Download for Windows",
+                    hero_github: "GitHub Repo",
+                    features_title: "Why Choose Aether?",
+                    features_desc: "Built for privacy, speed, and reliability.",
+                    feat_1_title: "Lightning Fast",
+                    feat_1_desc: "Direct peer-to-peer connections mean your data takes the shortest path.",
+                    feat_2_title: "End-to-End Encrypted",
+                    feat_2_desc: "Your data is encrypted before it leaves your device.",
+                    feat_3_title: "Decentralized",
+                    feat_3_desc: "No central authority. Works even without internet.",
+                    p2p_title: "What is Peer-to-Peer?",
+                    p2p_desc: "In a traditional model, you upload files to a server (cloud), and then download them. In
+                    P2P, devices connect directly. It's faster, private, and has no middleman.",
+                    sec_main_title: "Uncompromising Security",
+                    sec_main_desc: "Your data is your property. We don't see it, we don't store it.",
+                    sec_1_title: "AES-256 Encryption",
+                    sec_1_desc: "Military-grade protection.",
+                    sec_2_title: "Private Keys",
+                    sec_2_desc: "Keys never leave your device.",
+                    sec_3_title: "No Tracking",
+                    sec_3_desc: "Zero knowledge architecture.",
+                    contact_title: "Get in Touch",
+                    contact_desc: "Have questions or want to contribute? Reach out to us."
+                    },
+                    tr: {
+                    nav_features: "Özellikler",
+                    nav_security: "Güvenlik",
+                    nav_p2p: "P2P Mantığı",
+                    nav_contact: "İletişim",
+                    hero_title_1: "Sınırsız",
+                    hero_title_2: "Senkronizasyon",
+                    hero_desc: "Gerçek eşler arası senkronizasyonu deneyimleyin. Merkezi sunucu yok, veri limiti yok.",
+                    hero_download: "Windows için İndir",
+                    hero_github: "GitHub Deposu",
+                    features_title: "Neden Aether?",
+                    features_desc: "Gizlilik, hız ve güvenilirlik için tasarlandı.",
+                    feat_1_title: "Işık Hızında",
+                    feat_1_desc: "Doğrudan eşler arası bağlantılar sayesinde verileriniz en kısa yoldan gider.",
+                    feat_2_title: "Uçtan Uca Şifreli",
+                    feat_2_desc: "Verileriniz cihazınızdan çıkmadan önce şifrelenir.",
+                    feat_3_title: "Merkeziyetsiz",
+                    feat_3_desc: "Merkezi otorite yok. İnternet olmadan da çalışır.",
+                    p2p_title: "Peer-to-Peer Nedir?",
+                    p2p_desc: "Geleneksel modelde dosyaları bir sunucuya (bulut) yüklersiniz. P2P'de cihazlar doğrudan
+                    bağlanır. Daha hızlı, gizli ve aracı yoktur.",
+                    sec_main_title: "Tavizsiz Güvenlik",
+                    sec_main_desc: "Verileriniz sizin mülkünüzdür. Biz görmüyoruz, saklamıyoruz.",
+                    sec_1_title: "AES-256 Şifreleme",
+                    sec_1_desc: "Askeri düzeyde koruma.",
+                    sec_2_title: "Özel Anahtarlar",
+                    sec_2_desc: "Anahtarlar asla cihazınızı terk etmez.",
+                    sec_3_title: "Takip Yok",
+                    sec_3_desc: "Sıfır bilgi mimarisi.",
+                    contact_title: "İletişime Geçin",
+                    contact_desc: "Sorularınız mı var veya katkıda bulunmak mı istiyorsunuz? Bize ulaşın."
+                    },
+                    de: {
+                    nav_features: "Funktionen",
+                    nav_security: "Sicherheit",
+                    nav_p2p: "P2P-Logik",
+                    nav_contact: "Kontakt",
+                    hero_title_1: "Sync Ohne",
+                    hero_title_2: "Grenzen",
+                    hero_desc: "Erleben Sie echte Peer-to-Peer-Synchronisation. Keine zentralen Server.",
+                    hero_download: "Für Windows herunterladen",
+                    hero_github: "GitHub Repo",
+                    features_title: "Warum Aether?",
+                    features_desc: "Gebaut für Privatsphäre, Geschwindigkeit und Zuverlässigkeit.",
+                    feat_1_title: "Blitzschnell",
+                    feat_1_desc: "Direkte Peer-to-Peer-Verbindungen bedeuten kürzeste Wege.",
+                    feat_2_title: "End-to-End Verschlüsselt",
+                    feat_2_desc: "Ihre Daten werden verschlüsselt, bevor sie Ihr Gerät verlassen.",
+                    feat_3_title: "Dezentralisiert",
+                    feat_3_desc: "Keine zentrale Autorität. Funktioniert auch offline.",
+                    p2p_title: "Was ist Peer-to-Peer?",
+                    p2p_desc: "Im traditionellen Modell laden Sie Dateien auf einen Server hoch. Bei P2P verbinden sich
+                    Geräte direkt. Schneller, privater, kein Mittelsmann.",
+                    sec_main_title: "Kompromisslose Sicherheit",
+                    sec_main_desc: "Ihre Daten sind Ihr Eigentum. Wir sehen sie nicht.",
+                    sec_1_title: "AES-256 Verschlüsselung",
+                    sec_1_desc: "Schutz auf Militärniveau.",
+                    sec_2_title: "Private Schlüssel",
+                    sec_2_desc: "Schlüssel verlassen niemals Ihr Gerät.",
+                    sec_3_title: "Kein Tracking",
+                    sec_3_desc: "Zero-Knowledge-Architektur.",
+                    contact_title: "Kontaktieren Sie uns",
+                    contact_desc: "Haben Sie Fragen? Kontaktieren Sie uns."
+                    },
+                    fr: {
+                    nav_features: "Fonctionnalités",
+                    nav_security: "Sécurité",
+                    nav_p2p: "Logique P2P",
+                    nav_contact: "Contact",
+                    hero_title_1: "Sync Sans",
+                    hero_title_2: "Limites",
+                    hero_desc: "Découvrez la véritable synchronisation peer-to-peer. Pas de serveurs centraux.",
+                    hero_download: "Télécharger pour Windows",
+                    hero_github: "Dépôt GitHub",
+                    features_title: "Pourquoi Aether ?",
+                    features_desc: "Conçu pour la confidentialité et la vitesse.",
+                    feat_1_title: "Éclair Rapide",
+                    feat_1_desc: "Les connexions directes signifient le chemin le plus court.",
+                    feat_2_title: "Chiffrement de bout en bout",
+                    feat_2_desc: "Vos données sont chiffrées avant de quitter votre appareil.",
+                    feat_3_title: "Décentralisé",
+                    feat_3_desc: "Pas d'autorité centrale. Fonctionne sans internet.",
+                    p2p_title: "Qu'est-ce que le Peer-to-Peer ?",
+                    p2p_desc: "Dans un modèle traditionnel, vous téléchargez vers un serveur. En P2P, les appareils se
+                    connectent directement. Plus rapide, privé, sans intermédiaire.",
+                    sec_main_title: "Sécurité sans compromis",
+                    sec_main_desc: "Vos données vous appartiennent.",
+                    sec_1_title: "Chiffrement AES-256",
+                    sec_1_desc: "Protection de niveau militaire.",
+                    sec_2_title: "Clés Privées",
+                    sec_2_desc: "Les clés ne quittent jamais votre appareil.",
+                    sec_3_title: "Pas de Suivi",
+                    sec_3_desc: "Architecture à connaissance nulle.",
+                    contact_title: "Contactez-nous",
+                    contact_desc: "Des questions ? Contactez-nous."
+                    },
+                    it: {
+                    nav_features: "Funzionalità",
+                    nav_security: "Sicurezza",
+                    nav_p2p: "Logica P2P",
+                    nav_contact: "Contatto",
+                    hero_title_1: "Sync Senza",
+                    hero_title_2: "Confini",
+                    hero_desc: "Sperimenta la vera sincronizzazione peer-to-peer. Nessun server centrale.",
+                    hero_download: "Scarica per Windows",
+                    hero_github: "Repo GitHub",
+                    features_title: "Perché Aether?",
+                    features_desc: "Costruito per privacy e velocità.",
+                    feat_1_title: "Velocissimo",
+                    feat_1_desc: "Le connessioni dirette significano il percorso più breve.",
+                    feat_2_title: "Crittografia End-to-End",
+                    feat_2_desc: "I tuoi dati vengono crittografati prima di lasciare il dispositivo.",
+                    feat_3_title: "Decentralizzato",
+                    feat_3_desc: "Nessuna autorità centrale. Funziona senza internet.",
+                    p2p_title: "Cos'è il Peer-to-Peer?",
+                    p2p_desc: "Nel modello tradizionale, carichi su un server. Nel P2P, i dispositivi si connettono
+                    direttamente. Più veloce, privato, nessun intermediario.",
+                    sec_main_title: "Sicurezza senza compromessi",
+                    sec_main_desc: "I tuoi dati sono di tua proprietà.",
+                    sec_1_title: "Crittografia AES-256",
+                    sec_1_desc: "Protezione di livello militare.",
+                    sec_2_title: "Chiavi Private",
+                    sec_2_desc: "Le chiavi non lasciano mai il tuo dispositivo.",
+                    sec_3_title: "Nessun Tracciamento",
+                    sec_3_desc: "Architettura a conoscenza zero.",
+                    contact_title: "Contattaci",
+                    contact_desc: "Hai domande? Contattaci."
+                    }
+                    };
+
+                    function changeLanguage(lang) {
+                    document.getElementById('current-lang').textContent = lang.toUpperCase();
+                    document.querySelectorAll('[data-i18n]').forEach(element => {
+                    const key = element.getAttribute('data-i18n');
+                    if (translations[lang][key]) {
+                    element.textContent = translations[lang][key];
+                    }
+                    });
+                    }
+                    </script>
+
+</body>
+
+</html>
