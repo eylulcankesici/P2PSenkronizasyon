@@ -174,6 +174,9 @@ func (p *WebRTCPeer) CreateOffer(ctx context.Context) (webrtc.SessionDescription
 		offer = *p.peerConnection.LocalDescription()
 	case <-ctx.Done():
 		log.Printf("⚠️ ICE gathering timeout, mevcut offer kullanılıyor")
+		if desc := p.peerConnection.LocalDescription(); desc != nil {
+			offer = *desc
+		}
 	}
 
 	return offer, nil
@@ -203,6 +206,9 @@ func (p *WebRTCPeer) CreateAnswer(ctx context.Context) (webrtc.SessionDescriptio
 		answer = *p.peerConnection.LocalDescription()
 	case <-ctx.Done():
 		log.Printf("⚠️ ICE gathering timeout, mevcut answer kullanılıyor")
+		if desc := p.peerConnection.LocalDescription(); desc != nil {
+			answer = *desc
+		}
 	}
 
 	return answer, nil
