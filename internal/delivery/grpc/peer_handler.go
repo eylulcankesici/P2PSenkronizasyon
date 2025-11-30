@@ -821,10 +821,10 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 					// Bu code'u karşı tarafa göndererek bağlantıyı tamamlayabilirler
 					respCode, respErr := invitationService.GenerateInvitationCode(
 						deviceID,
-						h.container.GetDeviceName(),
+						"", // DeviceName boş (ConnectionRequest ile güncellenecek)
 						publicIP, // Kendi Public IP'miz
 						"", // gRPC address yok
-						"unknown", // NAT type
+						"", // NAT type boş (yer kazanmak için)
 						nil, // ICE candidates (SDP içinde var zaten)
 						24*time.Hour,
 						"", // Offer yok
