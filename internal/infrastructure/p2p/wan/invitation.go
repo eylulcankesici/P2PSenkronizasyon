@@ -127,6 +127,12 @@ func (s *InvitationService) GenerateInvitationCode(
 
 // ParseInvitationCode invitation code'u parse eder
 func (s *InvitationService) ParseInvitationCode(code string) (*InvitationData, error) {
+	// Marker'ları temizle (Kullanıcı yanlışlıkla kopyalarsa diye)
+	code = strings.ReplaceAll(code, "=== START CODE ===", "")
+	code = strings.ReplaceAll(code, "=== END CODE ===", "")
+	code = strings.ReplaceAll(code, "🔵 🔵 🔵 RESPONSE CODE (Bunu arkadaşına gönder) 🔵 🔵 🔵", "")
+	code = strings.ReplaceAll(code, "⚠️ LÜTFEN KODUN TAMAMINI KOPYALADIĞINIZDAN EMİN OLUN", "")
+
 	// 0. Code'u temizle (boşluklar, yeni satırlar, URL encoding karakterleri)
 	code = strings.TrimSpace(code)
 	code = strings.ReplaceAll(code, "\n", "")
@@ -149,21 +155,6 @@ func (s *InvitationService) ParseInvitationCode(code string) (*InvitationData, e
 			}
 		}
 	}
-	
-	if len(code) == 0 {
-		return nil, fmt.Errorf("invitation code boş")
-	}
-
-	// AGRESIF whitespace temizle - HER TÜRLÜ BOŞLUĞU SİL
-	// Unicode whitespace dahil tüm boşlukları temizle
-	code = strings.Map(func(r rune) rune {
-		// Sadece Base64 için geçerli karakterleri tut: A-Z, a-z, 0-9, +, /, -, _
-		if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '+' || r == '/' || r == '-' || r == '_' {
-			return r
-		}
-		// Diğer tüm karakterleri (boşluklar, özel karakterler) çıkar
-		return -1
-	}, code)
 	
 	// Debug: Code'un başını ve sonunu logla
 	start := code
