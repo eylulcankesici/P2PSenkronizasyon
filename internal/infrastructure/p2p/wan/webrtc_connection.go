@@ -169,27 +169,37 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 		// Handshake isteği gönder
 		// Connection henüz tam hazır olmayabilir (ICE checking vs), ama deneyelim
 		go func() {
-			// Biraz bekle ki data channel açılsın
-			time.Sleep(1 * time.Second)
+			// Data channel açılana kadar bekle (max 15 saniye)
+			log.Printf("⏳ Data channel bekleniyor (max 15s)...")
 			
-			// Request oluştur
-			reqData, err := webrtcConn.protocol.EncodeConnectionRequest(m.deviceID, m.deviceName)
-			if err != nil {
-				log.Printf("❌ Handshake request encode hatası: %v", err)
-				return
-			}
+			timeout := time.After(15 * time.Second)
+			ticker := time.NewTicker(500 * time.Millisecond)
+			defer ticker.Stop()
 			
-			// Data channel üzerinden gönder
-			if webrtcConn.dataChannel != nil {
-				if err := webrtcConn.dataChannel.Send(reqData); err != nil {
-					log.Printf("❌ Handshake request gönderme hatası: %v", err)
-				} else {
-					log.Printf("📤 Handshake request gönderildi (Pending Peer)")
+			for {
+				select {
+				case <-timeout:
+					log.Printf("⚠️ Data channel timeout, istek gönderilemedi (Pending Peer)")
+					return
+				case <-ticker.C:
+					dc := webrtcConn.GetDataChannel()
+					if dc != nil && dc.ReadyState() == webrtc.DataChannelStateOpen {
+						// Request oluştur
+						reqData, err := webrtcConn.protocol.EncodeConnectionRequest(m.deviceID, m.deviceName)
+						if err != nil {
+							log.Printf("❌ Handshake request encode hatası: %v", err)
+							return
+						}
+						
+						// Data channel üzerinden gönder
+						if err := dc.Send(reqData); err != nil {
+							log.Printf("❌ Handshake request gönderme hatası: %v", err)
+						} else {
+							log.Printf("📤 Handshake request gönderildi (Pending Peer)")
+						}
+						return
+					}
 				}
-			} else {
-				log.Printf("⚠️ Data channel henüz hazır değil, istek gönderilemedi (Pending Peer)")
-				// Data channel açılınca gönderilmeli...
-				// Bu basit implementasyon şimdilik yeterli olabilir
 			}
 		}()
 		
@@ -754,6 +764,13 @@ func (m *WebRTCConnectionManager) HandleAnswer(deviceID string, answerSDP string
 	log.Printf("✅ Pending peer eklendi (Connect bekleniyor): %s", deviceID[:8])
 	
 	return nil
+}
+
+// GetDataChannel data channel'ı döner
+func (c *WebRTCConnection) GetDataChannel() *webrtc.DataChannel {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.dataChannel
 }
 
 // GetState connection state döner
