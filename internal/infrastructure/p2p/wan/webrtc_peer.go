@@ -45,6 +45,12 @@ func NewWebRTCPeer(config webrtc.Configuration) (*WebRTCPeer, error) {
 	api := webrtc.NewAPI(webrtc.WithSettingEngine(settingEngine))
 
 	// Peer connection oluştur
+	// Log ICE servers configuration
+	log.Printf("🛠️ WebRTC Configuration: %d ICE servers", len(config.ICEServers))
+	for i, server := range config.ICEServers {
+		log.Printf("  [%d] URLs: %v, Username: %s", i, server.URLs, server.Username)
+	}
+
 	peerConnection, err := api.NewPeerConnection(config)
 	if err != nil {
 		return nil, fmt.Errorf("peer connection oluşturulamadı: %w", err)
@@ -82,6 +88,11 @@ func NewWebRTCPeer(config webrtc.Configuration) (*WebRTCPeer, error) {
 		if peer.onICEConnectionState != nil {
 			peer.onICEConnectionState(state)
 		}
+	})
+
+	// ICE gathering state callback
+	peerConnection.OnICEGatheringStateChange(func(state webrtc.ICEGathererState) {
+		log.Printf("🧊 ICE gathering state changed: %s", state.String())
 	})
 
 	// ICE candidate callback (Logging only)
