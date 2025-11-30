@@ -133,6 +133,10 @@ func (p *WebRTCPeer) CreateDataChannel(label string, ordered bool) (*webrtc.Data
 		log.Printf("❌ Data channel hatası (%s): %v", label, err)
 	})
 
+	p.mu.Lock()
+	p.dataChannel = dataChannel
+	p.mu.Unlock()
+
 	return dataChannel, nil
 }
 
