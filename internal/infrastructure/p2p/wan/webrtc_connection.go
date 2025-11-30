@@ -683,6 +683,19 @@ func (m *WebRTCConnectionManager) RegisterConnection(deviceID string, conn *WebR
 		m.AddPendingConnection(deviceID, deviceName, "")
 	})
 	
+	if m.chunkHandler != nil {
+		conn.SetChunkHandler(m.chunkHandler)
+	}
+	if m.onChunkReceived != nil {
+		conn.SetOnChunkReceived(m.onChunkReceived)
+	}
+	if m.onTransferCancel != nil {
+		conn.SetOnTransferCancel(m.onTransferCancel)
+	}
+	if m.onFileDelete != nil {
+		conn.SetOnFileDelete(m.onFileDelete)
+	}
+	
 	m.connections[deviceID] = conn
 	log.Printf("✅ WebRTC connection kaydedildi: %s (Handshake bekleniyor)", deviceID[:8])
 }

@@ -842,8 +842,21 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 						log.Printf("🔵 Link: aether://invite?code=%s", respCode)
 					}
 					
-					// WebRTCConnection oluşturma! Sadece pending peer olarak ekle.
-					// Kullanıcı "Connect" dediğinde bu peer kullanılacak.
+					// Data channel handler'ı ekle (Answerer tarafı için)
+					// Data channel açıldığında WebRTCConnection oluştur ve kaydet
+					webrtcPeer.SetOnDataChannel(func(dc *webrtc.DataChannel) {
+						log.Printf("✅ WebRTC data channel açıldı (Answerer): %s", dc.Label())
+						
+						// WebRTCConnection oluştur
+						conn := wan.NewWebRTCConnection(invitationData.DeviceID, invitationData.DeviceName, webrtcPeer, dc)
+						
+						// Connection'ı kaydet (Callback'ler RegisterConnection içinde bağlanacak)
+						wanTransport.GetWebRTCConnectionManager().RegisterConnection(invitationData.DeviceID, conn)
+						
+						log.Printf("✅ WebRTC connection otomatik oluşturuldu (Data Channel ile): %s", invitationData.DeviceID[:8])
+					})
+
+					// Pending peer olarak ekle (Connect butonu için)
 					wanTransport.GetWebRTCConnectionManager().AddPendingPeer(invitationData.DeviceID, webrtcPeer)
 					log.Printf("✅ Pending peer eklendi (Connect bekleniyor): %s", invitationData.DeviceID[:8])
 					
