@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -719,6 +720,15 @@ func (m *WebRTCConnectionManager) HandleAnswer(deviceID, deviceName, answerSDP s
 		answerDesc := webrtc.SessionDescription{
 			Type: webrtc.SDPTypeAnswer,
 			SDP:  answerSDP,
+		}
+		
+		// Debug: SDP içindeki candidate'leri logla
+		log.Printf("🔍 HandleAnswer: SDP Answer Candidates:")
+		lines := strings.Split(answerSDP, "\r\n")
+		for _, line := range lines {
+			if strings.HasPrefix(line, "a=candidate") {
+				log.Printf("  %s", line)
+			}
 		}
 		
 		if err := peer.SetRemoteDescription(answerDesc); err == nil {

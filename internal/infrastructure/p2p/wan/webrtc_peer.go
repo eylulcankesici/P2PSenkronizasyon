@@ -84,6 +84,14 @@ func NewWebRTCPeer(config webrtc.Configuration) (*WebRTCPeer, error) {
 		}
 	})
 
+	// ICE candidate callback (Logging only)
+	peerConnection.OnICECandidate(func(c *webrtc.ICECandidate) {
+		if c == nil {
+			return
+		}
+		log.Printf("🧊 ICE Candidate found: %s", c.String())
+	})
+
 	// Data channel callback (incoming)
 	peerConnection.OnDataChannel(func(dc *webrtc.DataChannel) {
 		log.Printf("📨 Incoming data channel: %s (id: %d)", dc.Label(), dc.ID())
