@@ -659,7 +659,7 @@ func (m *WebRTCConnectionManager) RegisterInvitation(code string, peer *WebRTCPe
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.pendingInvitations[code] = peer
-	log.Printf("📝 Pending invitation kaydedildi (code: %s...)", code[:10])
+	log.Printf("📝 Pending invitation kaydedildi (code: %s)", code)
 	
 	// Timeout ekle (1 saat sonra temizle)
 	go func() {
@@ -668,7 +668,7 @@ func (m *WebRTCConnectionManager) RegisterInvitation(code string, peer *WebRTCPe
 		if p, exists := m.pendingInvitations[code]; exists {
 			p.Close()
 			delete(m.pendingInvitations, code)
-			log.Printf("⏰ Pending invitation zaman aşımı (code: %s...)", code[:10])
+			log.Printf("⏰ Pending invitation zaman aşımı (code: %s)", code)
 		}
 		m.mu.Unlock()
 	}()
@@ -732,7 +732,7 @@ func (m *WebRTCConnectionManager) HandleAnswer(deviceID, deviceName, answerSDP s
 		}
 		
 		if err := peer.SetRemoteDescription(answerDesc); err == nil {
-			log.Printf("✅ Answer başarıyla eşleşti (code: %s...)", code[:10])
+			log.Printf("✅ Answer başarıyla eşleşti (code: %s)", code)
 			matchedPeer = peer
 			matchedCode = code
 			break
