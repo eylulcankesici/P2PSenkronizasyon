@@ -24,9 +24,9 @@ class _CreateInvitationDialogState
     return AlertDialog(
       title: const Row(
         children: [
-          Icon(LucideIcons.link, size: 24),
+          Icon(LucideIcons.key, size: 24),
           SizedBox(width: 8),
-          Text('Invitation Link Oluştur'),
+          Text('Davet Kodu Oluştur'),
         ],
       ),
       content: SizedBox(
@@ -50,7 +50,7 @@ class _CreateInvitationDialogState
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Link Oluştur'),
+                    : const Text('Kod Oluştur'),
               ),
             ]
           : [
@@ -68,7 +68,7 @@ class _CreateInvitationDialogState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Bu link ile başka kullanıcılar sizinle bağlantı kurabilir.',
+          'Bu kod ile başka kullanıcılar sizinle bağlantı kurabilir.',
           style: TextStyle(fontSize: 14),
         ),
         const SizedBox(height: 24),
@@ -134,7 +134,7 @@ class _CreateInvitationDialogState
     return SingleChildScrollView(
         child: Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
           padding: const EdgeInsets.all(16),
@@ -149,64 +149,48 @@ class _CreateInvitationDialogState
               SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Invitation link başarıyla oluşturuldu!',
+                  'Davet kodu başarıyla oluşturuldu!',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
         const Text(
-          'Link\'i paylaşmak için:',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _copyLink(context, response.invitationLink),
-                icon: const Icon(LucideIcons.copy, size: 16),
-                label: const Text('Link\'i Kopyala'),
-              ),
-            ),
-            const SizedBox(width: 8),
-            OutlinedButton.icon(
-              onPressed: () => _copyLink(context, response.invitationCode),
-              icon: const Icon(LucideIcons.code, size: 16),
-              label: const Text('Kod'),
-            ),
-          ],
+          'Bu kodu arkadaşınla paylaş:',
+          style: TextStyle(fontSize: 16),
         ),
         const SizedBox(height: 16),
-        const Text(
-          'Link:',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           decoration: BoxDecoration(
-            color: colorScheme.surfaceVariant.withOpacity(0.4),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: colorScheme.outlineVariant),
+            color: colorScheme.primaryContainer.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: colorScheme.primary),
           ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 160),
-            child: SingleChildScrollView(
-              child: SelectableText(
-                response.invitationLink,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontFamily: 'monospace',
-                  color: colorScheme.onSurface,
-                ),
-              ),
+          child: SelectableText(
+            response.invitationCode,
+            style: theme.textTheme.displayMedium?.copyWith(
+              fontFamily: 'monospace',
+              fontWeight: FontWeight.bold,
+              color: colorScheme.primary,
+              letterSpacing: 4,
             ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: () => _copyLink(context, response.invitationCode),
+            icon: const Icon(LucideIcons.copy, size: 18),
+            label: const Text('Kodu Kopyala'),
           ),
         ),
         const SizedBox(height: 16),
         Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Icon(LucideIcons.clock, size: 16, color: Colors.grey),
             const SizedBox(width: 4),

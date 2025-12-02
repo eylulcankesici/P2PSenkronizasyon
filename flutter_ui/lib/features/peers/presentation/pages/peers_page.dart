@@ -346,8 +346,8 @@ class _PeersPageState extends ConsumerState<PeersPage>
                           builder: (context) => const CreateInvitationDialog(),
                         );
                       },
-                      icon: const Icon(LucideIcons.link),
-                      label: const Text('Yeni Bağlantı Oluştur'),
+                      icon: const Icon(LucideIcons.key),
+                      label: const Text('Davet Kodu Oluştur'),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -360,8 +360,8 @@ class _PeersPageState extends ConsumerState<PeersPage>
                               const AddPeerByInvitationDialog(),
                         );
                       },
-                      icon: const Icon(LucideIcons.link),
-                      label: const Text('Invitation Link Gir'),
+                      icon: const Icon(LucideIcons.key),
+                      label: const Text('Davet Kodu Gir'),
                     ),
                   ),
                 ],

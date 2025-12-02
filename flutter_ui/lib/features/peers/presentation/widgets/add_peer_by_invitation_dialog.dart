@@ -24,11 +24,12 @@ class _AddPeerByInvitationDialogState extends ConsumerState<AddPeerByInvitationD
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+
       title: const Row(
         children: [
-          Icon(LucideIcons.link, size: 24),
+          Icon(LucideIcons.key, size: 24),
           SizedBox(width: 8),
-          Text('Invitation Link Gir'),
+          Text('Davet Kodu Gir'),
         ],
       ),
       content: SizedBox(
@@ -38,19 +39,23 @@ class _AddPeerByInvitationDialogState extends ConsumerState<AddPeerByInvitationD
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Aşağıdaki alana invitation link\'i veya invitation code\'u yapıştırın:',
+              'Arkadaşınızdan aldığınız 6 haneli davet kodunu girin:',
               style: TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _textController,
               decoration: const InputDecoration(
-                labelText: 'Invitation Link veya Code',
-                hintText: 'aether://invite?code=... veya invitation code',
+                labelText: 'Davet Kodu',
+                hintText: '123456',
                 border: OutlineInputBorder(),
-                prefixIcon: Icon(LucideIcons.link),
+                prefixIcon: Icon(LucideIcons.key),
               ),
-              maxLines: 3,
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(6),
+              ],
               enabled: !_isLoading,
             ),
             const SizedBox(height: 16),
@@ -68,7 +73,7 @@ class _AddPeerByInvitationDialogState extends ConsumerState<AddPeerByInvitationD
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'İpucu: Link\'i kopyalayıp buraya yapıştırabilirsiniz. Link otomatik olarak parse edilecektir.',
+                      'İpucu: Davet kodu 6 haneli bir sayıdır. Kodu girdikten sonra Bağlan butonuna tıklayın.',
                       style: TextStyle(fontSize: 12),
                     ),
                   ),
@@ -99,82 +104,26 @@ class _AddPeerByInvitationDialogState extends ConsumerState<AddPeerByInvitationD
 
   Future<void> _addPeer() async {
     final text = _textController.text.trim();
-    if (text.isEmpty) {
+    if (text.isEmpty || text.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Lütfen invitation link veya code girin'),
+          content: Text('Lütfen 6 haneli davet kodunu girin'),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
 
-    // Link'ten code'u çıkar (aether://invite?code=... formatından)
-    String invitationCode = text.trim();
-    
-    // Boşlukları ve yeni satırları temizle
-    invitationCode = invitationCode.replaceAll(RegExp(r'\s+'), '');
-    
-    // URL formatından code'u çıkar
-    if (text.contains('aether://invite?code=') || text.contains('code=')) {
-      try {
-        // Önce URL parse et
-        final uri = Uri.tryParse(text);
-        if (uri != null && uri.queryParameters.containsKey('code')) {
-          // Query parameter'dan al
-          invitationCode = uri.queryParameters['code']!;
-        } else {
-          // Manuel parse (aether://invite?code=... formatından)
-          final codeIndex = text.indexOf('code=');
-          if (codeIndex != -1) {
-            invitationCode = text.substring(codeIndex + 5);
-            // Fragment veya başka parametreler varsa kes
-            final fragmentIndex = invitationCode.indexOf('#');
-            if (fragmentIndex != -1) {
-              invitationCode = invitationCode.substring(0, fragmentIndex);
-            }
-            final paramIndex = invitationCode.indexOf('&');
-            if (paramIndex != -1) {
-              invitationCode = invitationCode.substring(0, paramIndex);
-            }
-          }
-        }
-        
-        // URL decode et (sadece bir kez, çünkü backend de temizleyecek)
-        // Eğer zaten decode edilmişse, tekrar decode etmeye çalışmayalım
-        try {
-          final decoded = Uri.decodeComponent(invitationCode);
-          // Eğer decode sonrası farklıysa ve geçerli base64 karakterler içeriyorsa kullan
-          if (decoded != invitationCode && 
-              RegExp(r'^[A-Za-z0-9\-_+/=]+$').hasMatch(decoded)) {
-            invitationCode = decoded;
-          }
-        } catch (e) {
-          // URL decode başarısız olursa, orijinal string'i kullan
-          print('URL decode hatası: $e');
-        }
-      } catch (e) {
-        // URL parse başarısız olursa, orijinal string'i kullan
-        print('URL parse hatası: $e');
-      }
-    }
-    
-    // Son temizlik: boşluklar, yeni satırlar ve geçersiz karakterler
-    invitationCode = invitationCode.trim().replaceAll(RegExp(r'\s+'), '');
-    
-    // Base64 karakterlerini kontrol et (sadece geçerli karakterler)
-    invitationCode = invitationCode.replaceAll(RegExp(r'[^A-Za-z0-9\-_+/=]'), '');
-
     setState(() => _isLoading = true);
 
     try {
-      await ref.read(peerNotifierProvider.notifier).addPeerByInvitation(invitationCode);
+      await ref.read(peerNotifierProvider.notifier).addPeerByInvitation(text);
 
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Peer başarıyla eklendi!'),
+            content: Text('Bağlantı isteği gönderildi!'),
             backgroundColor: Colors.green,
           ),
         );
