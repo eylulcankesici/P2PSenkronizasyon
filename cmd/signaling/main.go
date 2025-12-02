@@ -89,7 +89,7 @@ func handleMessage(client *Client, msg Message) {
 	switch msg.Type {
 	case "join":
 		joinRoom(client, msg.RoomID)
-	case "offer", "answer", "candidate":
+	case "offer", "answer", "candidate", "ready":
 		broadcastToRoom(client, msg)
 	default:
 		log.Printf("⚠️ Bilinmeyen mesaj tipi: %s", msg.Type)
