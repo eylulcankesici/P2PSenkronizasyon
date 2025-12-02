@@ -86,10 +86,9 @@ func (c *SignalingClient) Close() error {
 
 func (c *SignalingClient) send(msgType MessageType, payload interface{}, roomID string) error {
 	c.mu.Lock()
-	conn := c.conn
-	c.mu.Unlock()
+	defer c.mu.Unlock()
 
-	if conn == nil {
+	if c.conn == nil {
 		return fmt.Errorf("bağlantı yok")
 	}
 
@@ -104,7 +103,7 @@ func (c *SignalingClient) send(msgType MessageType, payload interface{}, roomID 
 		RoomID:  roomID,
 	}
 
-	return conn.WriteJSON(msg)
+	return c.conn.WriteJSON(msg)
 }
 
 func (c *SignalingClient) listen() {
