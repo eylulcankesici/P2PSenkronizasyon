@@ -858,15 +858,13 @@ func (h *PeerHandler) ExchangeSDP(ctx context.Context, req *pb.ExchangeSDPReques
 }
 
 // AddPeerByInvitation davet kodu ile peer ekler (WAN için)
-func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerByInvitationRequest) (*pb.AddPeerByInvitationResponse, error) {
+func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerByInvitationRequest) (*pb.Status, error) {
 	invitationCode := req.InvitationCode
 	if invitationCode == "" {
-		return &pb.AddPeerByInvitationResponse{
-			Status: &pb.Status{
-				Success: false,
-				Message: "Davet kodu boş olamaz",
-				Code:    400,
-			},
+		return &pb.Status{
+			Success: false,
+			Message: "Davet kodu boş olamaz",
+			Code:    400,
 		}, nil
 	}
 
@@ -875,12 +873,10 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 	// WAN transport kontrolü
 	wanTransport := h.container.WANTransport()
 	if wanTransport == nil {
-		return &pb.AddPeerByInvitationResponse{
-			Status: &pb.Status{
-				Success: false,
-				Message: "WAN transport aktif değil",
-				Code:    400,
-			},
+		return &pb.Status{
+			Success: false,
+			Message: "WAN transport aktif değil",
+			Code:    400,
 		}, nil
 	}
 
@@ -893,12 +889,10 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 	// Signaling client başlat ve odaya katıl
 	signalingClient, err := wanTransport.StartSignaling(signalingURL, invitationCode)
 	if err != nil {
-		return &pb.AddPeerByInvitationResponse{
-			Status: &pb.Status{
-				Success: false,
-				Message: fmt.Sprintf("Signaling başlatılamadı: %v", err),
-				Code:    500,
-			},
+		return &pb.Status{
+			Success: false,
+			Message: fmt.Sprintf("Signaling başlatılamadı: %v", err),
+			Code:    500,
 		}, nil
 	}
 
@@ -913,12 +907,10 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 	// WebRTC peer oluştur
 	webrtcPeer, peerErr := wan.NewWebRTCPeer(webrtcConfig)
 	if peerErr != nil {
-		return &pb.AddPeerByInvitationResponse{
-			Status: &pb.Status{
-				Success: false,
-				Message: fmt.Sprintf("WebRTC peer oluşturulamadı: %v", peerErr),
-				Code:    500,
-			},
+		return &pb.Status{
+			Success: false,
+			Message: fmt.Sprintf("WebRTC peer oluşturulamadı: %v", peerErr),
+			Code:    500,
 		}, nil
 	}
 
@@ -973,11 +965,9 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 	// Invitation'ı kaydet (Referans tutmak için)
 	wanTransport.GetWebRTCConnectionManager().RegisterInvitation(invitationCode, webrtcPeer)
 
-	return &pb.AddPeerByInvitationResponse{
-		Status: &pb.Status{
-			Success: true,
-			Message: "Davet koduna bağlanılıyor...",
-			Code:    200,
-		},
+	return &pb.Status{
+		Success: true,
+		Message: "Davet koduna bağlanılıyor...",
+		Code:    200,
 	}, nil
 }
