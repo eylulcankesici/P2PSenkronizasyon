@@ -11,6 +11,7 @@ const (
 	MsgAnswer    MessageType = "answer"
 	MsgCandidate MessageType = "candidate"
 	MsgError     MessageType = "error"
+	MsgReady     MessageType = "ready"
 )
 
 // Message signaling mesajı

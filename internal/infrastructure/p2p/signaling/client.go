@@ -18,6 +18,7 @@ type SignalingClient struct {
 	OnOffer     func(sdp string)
 	OnAnswer    func(sdp string)
 	OnCandidate func(candidate string)
+	OnReady     func()
 	OnError     func(err error)
 }
 
@@ -65,6 +66,11 @@ func (c *SignalingClient) SendAnswer(sdp string) error {
 // SendCandidate ICE candidate gönderir
 func (c *SignalingClient) SendCandidate(candidate string) error {
 	return c.send(MsgCandidate, CandidatePayload{Candidate: candidate}, "")
+}
+
+// SendReady ready mesajı gönderir
+func (c *SignalingClient) SendReady() error {
+	return c.send(MsgReady, nil, "")
 }
 
 // Close bağlantıyı kapatır
@@ -135,6 +141,10 @@ func (c *SignalingClient) handleMessage(msg Message) {
 		var payload CandidatePayload
 		if err := json.Unmarshal(msg.Payload, &payload); err == nil && c.OnCandidate != nil {
 			c.OnCandidate(payload.Candidate)
+		}
+	case MsgReady:
+		if c.OnReady != nil {
+			c.OnReady()
 		}
 	case MsgError:
 		var errorMsg string

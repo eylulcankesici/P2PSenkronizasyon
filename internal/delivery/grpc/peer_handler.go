@@ -515,6 +515,25 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 		log.Printf("📩 Candidate alındı, ekleniyor...")
 		webrtcPeer.AddICECandidateFromJSON(candidate)
 	}
+
+	// Peer katıldığında Offer gönder
+	signalingClient.OnReady = func() {
+		log.Printf("👤 Peer odaya katıldı, Offer gönderiliyor...")
+		
+		// Offer oluştur (Async - ICE gathering bekleme)
+		offer, offerErr := webrtcPeer.CreateOfferAsync()
+		if offerErr != nil {
+			log.Printf("❌ Offer oluşturulamadı: %v", offerErr)
+			return
+		}
+		
+		// Offer gönder
+		if err := signalingClient.SendOffer(offer.SDP); err != nil {
+			log.Printf("❌ Offer gönderilemedi: %v", err)
+			return
+		}
+		log.Printf("📤 Offer gönderildi")
+	}
 	
 	// WebRTC callback'leri - Candidate bulunduğunda gönder
 	webrtcPeer.SetOnICECandidate(func(c *webrtc.ICECandidate) {
@@ -524,32 +543,7 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 		}
 	})
 	
-	// Offer oluştur (Async - ICE gathering bekleme)
-	offer, offerErr := webrtcPeer.CreateOfferAsync()
-	if offerErr != nil {
-		return &pb.CreateInvitationResponse{
-			Status: &pb.Status{
-				Success: false,
-				Message: fmt.Sprintf("Offer oluşturulamadı: %v", offerErr),
-				Code:    500,
-			},
-		}, nil
-	}
-	
-	// Offer gönder
-	if err := signalingClient.SendOffer(offer.SDP); err != nil {
-		return &pb.CreateInvitationResponse{
-			Status: &pb.Status{
-				Success: false,
-				Message: fmt.Sprintf("Offer gönderilemedi: %v", err),
-				Code:    500,
-			},
-		}, nil
-	}
-	
 	// Register pending invitation (Room ID ile)
-	// Bu sayede HandleAnswer (eski yöntem) yerine signaling akışı çalışacak
-	// Ama WebRTCConnectionManager'a yine de peer'ı kaydetmemiz lazım ki referansı kaybolmasın
 	wanTransport.GetWebRTCConnectionManager().RegisterInvitation(roomID, webrtcPeer)
 
 	log.Printf("\n\n")
@@ -558,12 +552,13 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 	log.Printf("%s", roomID)
 	log.Printf("=== END CODE ===")
 	log.Printf("\n")
+	log.Printf("⏳ Peer bekleniyor...")
 
 	return &pb.CreateInvitationResponse{
 		InvitationCode: roomID,
 		Status: &pb.Status{
 			Success: true,
-			Message: "Invitation code oluşturuldu",
+			Message: "Invitation code oluşturuldu, peer bekleniyor...",
 			Code:    200,
 		},
 	}, nil
@@ -964,6 +959,13 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 	
 	// Invitation'ı kaydet (Referans tutmak için)
 	wanTransport.GetWebRTCConnectionManager().RegisterInvitation(invitationCode, webrtcPeer)
+
+	// Ready mesajı gönder (Sender'a "ben geldim" de)
+	if err := signalingClient.SendReady(); err != nil {
+		log.Printf("⚠️ Ready mesajı gönderilemedi: %v", err)
+	} else {
+		log.Printf("📤 Ready mesajı gönderildi")
+	}
 
 	return &pb.Status{
 		Success: true,
