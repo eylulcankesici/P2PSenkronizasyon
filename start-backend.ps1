@@ -9,7 +9,7 @@ $portInUse = Get-NetTCPConnection -LocalPort 50051 -ErrorAction SilentlyContinue
 # AYARLAR
 # ==========================================
 # Buraya ngrok adresinizi yazın (wss://.../ws formatında)
-$SignalingUrl = wss://hyperrationally-artistic-elane.ngrok-free.dev/ws  
+$SignalingUrl = "wss://hyperrationally-artistic-elane.ngrok-free.dev/ws"
 
 # Eğer environment variable zaten ayarlı değilse, buradaki değeri kullan
 if (-not $env:SIGNALING_URL) {
