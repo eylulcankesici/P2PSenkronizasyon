@@ -699,6 +699,11 @@ func (m *WebRTCConnectionManager) RegisterConnection(deviceID string, conn *WebR
 	
 	m.connections[deviceID] = conn
 	log.Printf("✅ WebRTC connection kaydedildi: %s (Handshake bekleniyor)", deviceID[:8])
+	
+	// Callback çağır
+	if m.onConnectionEstablished != nil {
+		m.onConnectionEstablished(conn)
+	}
 }
 
 // HandleAnswer SDP answer'ı işler
@@ -797,6 +802,11 @@ func (m *WebRTCConnectionManager) HandleAnswer(deviceID, deviceName, answerSDP s
 		m.mu.Unlock()
 		
 		log.Printf("✅ WebRTC connection otomatik oluşturuldu (Data Channel ile): %s", deviceID[:8])
+		
+		// Callback çağır
+		if m.onConnectionEstablished != nil {
+			m.onConnectionEstablished(conn)
+		}
 	})
 	
 	// Data channel oluştur (eğer yoksa - Offerer tarafı için)

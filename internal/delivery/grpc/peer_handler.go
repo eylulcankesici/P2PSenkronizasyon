@@ -952,9 +952,33 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 	webrtcPeer.SetOnDataChannel(func(dc *webrtc.DataChannel) {
 		log.Printf("✅ Data Channel açıldı (Joiner): %s", dc.Label())
 		
+		// Geçici olarak invitation code'u device ID olarak kullan
+		// Handshake sırasında gerçek ID ile güncellenecek
+		tempDeviceID := invitationCode
+		
+		// WebRTC connection oluştur
+		conn := wan.NewWebRTCConnection(tempDeviceID, "Unknown Peer", webrtcPeer, dc)
+		
 		// Connection manager'a kaydet
-		// Not: PeerID henüz bilinmiyor olabilir, handshake ile öğrenilecek
-		// Ancak WebRTC connection kurulduktan sonra handshake otomatik başlar
+		wanTransport.GetWebRTCConnectionManager().RegisterConnection(tempDeviceID, conn)
+		
+		// Handshake başlat (Joiner olarak biz de kimliğimizi gönderelim)
+		go func() {
+			// Biraz bekle ki karşı taraf hazır olsun
+			time.Sleep(500 * time.Millisecond)
+			
+			reqData, err := conn.GetProtocol().EncodeConnectionRequest(
+				h.container.GetDeviceID(),
+				h.container.GetDeviceName(),
+			)
+			if err == nil {
+				if err := dc.Send(reqData); err != nil {
+					log.Printf("❌ Handshake request gönderilemedi: %v", err)
+				} else {
+					log.Printf("📤 Handshake request gönderildi (Joiner)")
+				}
+			}
+		}()
 	})
 	
 	// Invitation'ı kaydet (Referans tutmak için)
