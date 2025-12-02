@@ -856,3 +856,128 @@ func (h *PeerHandler) ExchangeSDP(ctx context.Context, req *pb.ExchangeSDPReques
 		},
 	}, nil
 }
+
+// AddPeerByInvitation davet kodu ile peer ekler (WAN için)
+func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerByInvitationRequest) (*pb.AddPeerByInvitationResponse, error) {
+	invitationCode := req.InvitationCode
+	if invitationCode == "" {
+		return &pb.AddPeerByInvitationResponse{
+			Status: &pb.Status{
+				Success: false,
+				Message: "Davet kodu boş olamaz",
+				Code:    400,
+			},
+		}, nil
+	}
+
+	log.Printf("🚀 Davet kodu ile bağlanılıyor: %s", invitationCode)
+
+	// WAN transport kontrolü
+	wanTransport := h.container.WANTransport()
+	if wanTransport == nil {
+		return &pb.AddPeerByInvitationResponse{
+			Status: &pb.Status{
+				Success: false,
+				Message: "WAN transport aktif değil",
+				Code:    400,
+			},
+		}, nil
+	}
+
+	// Signaling başlat (Joiner olarak)
+	signalingURL := os.Getenv("SIGNALING_URL")
+	if signalingURL == "" {
+		signalingURL = "ws://localhost:8080/ws"
+	}
+	
+	// Signaling client başlat ve odaya katıl
+	signalingClient, err := wanTransport.StartSignaling(signalingURL, invitationCode)
+	if err != nil {
+		return &pb.AddPeerByInvitationResponse{
+			Status: &pb.Status{
+				Success: false,
+				Message: fmt.Sprintf("Signaling başlatılamadı: %v", err),
+				Code:    500,
+			},
+		}, nil
+	}
+
+	// WebRTC config oluştur
+	cfg := h.container.Config()
+	webrtcConfig := wan.CreateWebRTCConfiguration(
+		cfg.Network.STUNServers,
+		cfg.Network.TURNServers,
+		cfg.Network.WebRTCPortRange,
+	)
+	
+	// WebRTC peer oluştur
+	webrtcPeer, peerErr := wan.NewWebRTCPeer(webrtcConfig)
+	if peerErr != nil {
+		return &pb.AddPeerByInvitationResponse{
+			Status: &pb.Status{
+				Success: false,
+				Message: fmt.Sprintf("WebRTC peer oluşturulamadı: %v", peerErr),
+				Code:    500,
+			},
+		}, nil
+	}
+
+	// Signaling callback'leri
+	signalingClient.OnOffer = func(sdp string) {
+		log.Printf("📩 Offer alındı, answer oluşturuluyor...")
+		
+		// Remote description set et
+		desc := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: sdp}
+		if err := webrtcPeer.SetRemoteDescription(desc); err != nil {
+			log.Printf("❌ Remote description hatası: %v", err)
+			return
+		}
+		
+		// Answer oluştur
+		answer, err := webrtcPeer.CreateAnswer(ctx)
+		if err != nil {
+			log.Printf("❌ Answer oluşturma hatası: %v", err)
+			return
+		}
+		
+		// Answer gönder
+		if err := signalingClient.SendAnswer(answer.SDP); err != nil {
+			log.Printf("❌ Answer gönderme hatası: %v", err)
+			return
+		}
+		log.Printf("📤 Answer gönderildi")
+	}
+	
+	signalingClient.OnCandidate = func(candidate string) {
+		log.Printf("📩 Candidate alındı, ekleniyor...")
+		webrtcPeer.AddICECandidateFromJSON(candidate)
+	}
+	
+	// WebRTC callback'leri - Candidate bulunduğunda gönder
+	webrtcPeer.SetOnICECandidate(func(c *webrtc.ICECandidate) {
+		if c != nil {
+			bytes, _ := json.Marshal(c.ToJSON())
+			signalingClient.SendCandidate(string(bytes))
+		}
+	})
+	
+	// Data Channel handler (Joiner tarafı için)
+	webrtcPeer.SetOnDataChannel(func(dc *webrtc.DataChannel) {
+		log.Printf("✅ Data Channel açıldı (Joiner): %s", dc.Label())
+		
+		// Connection manager'a kaydet
+		// Not: PeerID henüz bilinmiyor olabilir, handshake ile öğrenilecek
+		// Ancak WebRTC connection kurulduktan sonra handshake otomatik başlar
+	})
+	
+	// Invitation'ı kaydet (Referans tutmak için)
+	wanTransport.GetWebRTCConnectionManager().RegisterInvitation(invitationCode, webrtcPeer)
+
+	return &pb.AddPeerByInvitationResponse{
+		Status: &pb.Status{
+			Success: true,
+			Message: "Davet koduna bağlanılıyor...",
+			Code:    200,
+		},
+	}, nil
+}
