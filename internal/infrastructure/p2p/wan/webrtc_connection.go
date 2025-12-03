@@ -698,7 +698,12 @@ func (m *WebRTCConnectionManager) RegisterConnection(deviceID string, conn *WebR
 	}
 	
 	m.connections[deviceID] = conn
-	log.Printf("✅ WebRTC connection kaydedildi: %s (Handshake bekleniyor)", deviceID[:8])
+	
+	shortID := deviceID
+	if len(deviceID) > 8 {
+		shortID = deviceID[:8]
+	}
+	log.Printf("✅ WebRTC connection kaydedildi: %s (Handshake bekleniyor)", shortID)
 	
 	// Callback çağır
 	if m.onConnectionEstablished != nil {
