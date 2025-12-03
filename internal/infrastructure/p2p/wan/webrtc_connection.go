@@ -929,7 +929,11 @@ func NewWebRTCConnection(peerID, peerName string, webrtcPeer *WebRTCPeer, dataCh
 			log.Printf("✅ Data channel alındı ve ayarlandı: %s", peerID[:8])
 		} else {
 			conn.mu.Unlock()
-			log.Printf("ℹ️ Ekstra data channel yoksayıldı: %s", peerID[:8])
+			shortID := peerID
+			if len(peerID) > 8 {
+				shortID = peerID[:8]
+			}
+			log.Printf("ℹ️ Ekstra data channel yoksayıldı: %s", shortID)
 		}
 	})
 	
@@ -942,18 +946,30 @@ func (c *WebRTCConnection) setupDataChannel(dc *webrtc.DataChannel) {
 		c.mu.Lock()
 		c.connected = true
 		c.mu.Unlock()
-		log.Printf("✅ WebRTC data channel açıldı: %s", c.peerID[:8])
+		shortID := c.peerID
+		if len(c.peerID) > 8 {
+			shortID = c.peerID[:8]
+		}
+		log.Printf("✅ WebRTC data channel açıldı: %s", shortID)
 	})
 	
 	dc.OnClose(func() {
 		c.mu.Lock()
 		c.connected = false
 		c.mu.Unlock()
-		log.Printf("🔌 WebRTC data channel kapandı: %s", c.peerID[:8])
+		shortID := c.peerID
+		if len(c.peerID) > 8 {
+			shortID = c.peerID[:8]
+		}
+		log.Printf("🔌 WebRTC data channel kapandı: %s", shortID)
 	})
 	
 	dc.OnError(func(err error) {
-		log.Printf("❌ WebRTC data channel hatası (%s): %v", c.peerID[:8], err)
+		shortID := c.peerID
+		if len(c.peerID) > 8 {
+			shortID = c.peerID[:8]
+		}
+		log.Printf("❌ WebRTC data channel hatası (%s): %v", shortID, err)
 	})
 	
 	dc.OnMessage(func(msg webrtc.DataChannelMessage) {
