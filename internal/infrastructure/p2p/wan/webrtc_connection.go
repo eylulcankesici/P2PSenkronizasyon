@@ -55,6 +55,7 @@ type WebRTCConnectionManager struct {
 	onChunkReceived  func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error
 	onTransferCancel func(peerID, fileID string)
 	onFileDelete     func(peerID, fileID string)
+	onPeerIDUpdated  func(oldID, newID string)
 }
 
 // PendingConnection WAN için bekleyen bağlantı isteği
@@ -517,6 +518,11 @@ func (m *WebRTCConnectionManager) SetOnConnectionRequestedCallback(callback func
 	m.onConnectionRequested = callback
 }
 
+// SetOnPeerIDUpdated peer ID updated callback'ini ayarlar
+func (m *WebRTCConnectionManager) SetOnPeerIDUpdated(callback func(oldID, newID string)) {
+	m.onPeerIDUpdated = callback
+}
+
 // AddPendingPeer adds a pending peer (waiting for Connect)
 func (m *WebRTCConnectionManager) AddPendingPeer(deviceID string, peer *WebRTCPeer) {
 	m.mu.Lock()
@@ -680,8 +686,45 @@ func (m *WebRTCConnectionManager) RegisterConnection(deviceID string, conn *WebR
 	defer m.mu.Unlock()
 	
 	// Callback'leri bağla
-	conn.SetOnConnectionRequested(func(deviceID, deviceName string) {
-		m.AddPendingConnection(deviceID, deviceName, "")
+	// Callback'leri bağla
+	conn.SetOnConnectionRequested(func(remoteDeviceID, remoteDeviceName string) {
+		// Connection map'i güncelle (Eski ID -> Yeni ID)
+		m.mu.Lock()
+		if _, exists := m.connections[deviceID]; exists {
+			delete(m.connections, deviceID)
+			m.connections[remoteDeviceID] = conn
+			log.Printf("🔄 Connection ID güncellendi: %s -> %s", deviceID, remoteDeviceID)
+		}
+		m.mu.Unlock()
+		
+		// Connection ID'sini güncelle
+		conn.SetPeerID(remoteDeviceID)
+		
+		// Callback çağır
+		if m.onPeerIDUpdated != nil {
+			m.onPeerIDUpdated(deviceID, remoteDeviceID)
+		}
+		
+		m.AddPendingConnection(remoteDeviceID, remoteDeviceName, "")
+	})
+	
+	conn.SetOnConnectionAccepted(func(remoteDeviceID string) {
+		// Connection map'i güncelle (Eski ID -> Yeni ID)
+		m.mu.Lock()
+		if _, exists := m.connections[deviceID]; exists {
+			delete(m.connections, deviceID)
+			m.connections[remoteDeviceID] = conn
+			log.Printf("🔄 Connection ID güncellendi (Accepted): %s -> %s", deviceID, remoteDeviceID)
+		}
+		m.mu.Unlock()
+		
+		// Connection ID'sini güncelle
+		conn.SetPeerID(remoteDeviceID)
+		
+		// Callback çağır
+		if m.onPeerIDUpdated != nil {
+			m.onPeerIDUpdated(deviceID, remoteDeviceID)
+		}
 	})
 	
 	if m.chunkHandler != nil {
@@ -1428,7 +1471,16 @@ func (c *WebRTCConnection) Close() error {
 
 // GetPeerID peer ID döner
 func (c *WebRTCConnection) GetPeerID() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	return c.peerID
+}
+
+// SetPeerID peer ID günceller
+func (c *WebRTCConnection) SetPeerID(id string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.peerID = id
 }
 
 // GetAddress adres döner

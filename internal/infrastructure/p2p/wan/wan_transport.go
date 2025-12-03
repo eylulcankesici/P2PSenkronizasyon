@@ -38,6 +38,7 @@ type WANTransport struct {
 	onConnectionEstablished func(transport.Connection)
 	onConnectionLost        func(string)
 	onConnectionRequested   func(deviceID, deviceName string)
+	onPeerIDUpdated         func(oldID, newID string)
 
 	// State
 	mu     sync.RWMutex
@@ -152,6 +153,12 @@ func (t *WANTransport) Start(ctx context.Context) error {
 	t.connMgr.SetOnConnectionLost(func(peerID string) {
 		if t.onConnectionLost != nil {
 			t.onConnectionLost(peerID)
+		}
+	})
+
+	t.connMgr.SetOnPeerIDUpdated(func(oldID, newID string) {
+		if t.onPeerIDUpdated != nil {
+			t.onPeerIDUpdated(oldID, newID)
 		}
 	})
 
@@ -412,24 +419,6 @@ func (t *WANTransport) GetICECandidates() ([]ICECandidate, error) {
 	return t.iceAgent.GetLocalCandidates()
 }
 
-// GetDiscoveryService discovery service'i döner (invitation için)
-func (t *WANTransport) GetDiscoveryService() *WANDiscoveryService {
-	return t.discovery
-}
-
-// SetOnConnectionRequested callback'i ayarlar
-func (t *WANTransport) SetOnConnectionRequested(callback func(deviceID, deviceName string)) {
-	t.onConnectionRequested = callback
-	if t.connMgr != nil {
-		t.connMgr.SetOnConnectionRequestedCallback(callback)
-	}
-}
-// StartSignaling signaling başlatır
-func (t *WANTransport) StartSignaling(serverURL, roomID string) (*signaling.SignalingClient, error) {
-	client := signaling.NewSignalingClient(serverURL)
-	if err := client.Connect(); err != nil {
-		return nil, fmt.Errorf("signaling bağlantı hatası: %w", err)
-	}
 
 	if err := client.JoinRoom(roomID); err != nil {
 		client.Close()

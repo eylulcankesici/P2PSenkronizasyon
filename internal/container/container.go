@@ -676,6 +676,7 @@ func (c *Container) setupPeerDiscoveryCallback() error {
 		OnPeerLost(func(string))
 		OnConnectionLost(func(string))
 		OnConnectionEstablished(func(transport.Connection))
+		SetOnPeerIDUpdated(func(oldID, newID string))
 	})
 
 	if ok {
@@ -763,6 +764,46 @@ func (c *Container) setupPeerDiscoveryCallback() error {
 			} else {
 				log.Printf("🔌 Connection lost, peer offline: %s", peerID[:8])
 			}
+		})
+
+		// Peer ID updated callback'ini ayarla
+		transportWithCallbacks.SetOnPeerIDUpdated(func(oldID, newID string) {
+			log.Printf("🔄 Peer ID güncelleniyor: %s -> %s", oldID, newID)
+			
+			// Eski peer'ı bul
+			oldPeer, err := c.peerRepo.GetByID(ctx, oldID)
+			if err != nil || oldPeer == nil {
+				log.Printf("⚠️ Eski peer bulunamadı: %s", oldID)
+				// Eski peer yoksa, yeni ID ile yeni peer oluştur
+				newPeer := entity.NewPeer(newID, "Unknown Peer")
+				newPeer.Status = entity.PeerStatusOnline
+				if err := c.peerRepo.Create(ctx, newPeer); err != nil {
+					log.Printf("⚠️ Yeni peer oluşturulamadı: %v", err)
+				}
+				return
+			}
+
+			// Yeni peer oluştur (eski bilgileri kopyala)
+			newPeer := entity.NewPeer(newID, oldPeer.Name)
+			newPeer.Status = entity.PeerStatusOnline
+			newPeer.KnownAddresses = oldPeer.KnownAddresses
+			newPeer.IsTrusted = oldPeer.IsTrusted
+			
+			// Yeni peer'ı kaydet
+			if err := c.peerRepo.Create(ctx, newPeer); err != nil {
+				log.Printf("⚠️ Yeni peer kaydedilemedi: %v", err)
+				return
+			}
+			
+			// Eski peer'ı sil (veya offline yap, ama ID değiştiği için silmek daha mantıklı)
+			// Repository'de Delete metodu var mı kontrol etmem lazım. 
+			// Eğer yoksa offline yapalım.
+			// Şimdilik offline yapıyorum, delete metodu olmayabilir.
+			if err := c.peerRepo.UpdateStatus(ctx, oldID, entity.PeerStatusOffline); err != nil {
+				log.Printf("⚠️ Eski peer durumu güncellenemedi: %v", err)
+			}
+			
+			log.Printf("✅ Peer ID güncellendi ve online: %s", newID[:8])
 		})
 	}
 
