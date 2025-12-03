@@ -675,6 +675,7 @@ func (c *Container) setupPeerDiscoveryCallback() error {
 		OnPeerDiscovered(func(*transport.DiscoveredPeer))
 		OnPeerLost(func(string))
 		OnConnectionLost(func(string))
+		OnConnectionEstablished(func(transport.Connection))
 	})
 
 	if ok {
@@ -712,7 +713,45 @@ func (c *Container) setupPeerDiscoveryCallback() error {
 			if err := c.peerRepo.UpdateStatus(ctx, deviceID, entity.PeerStatusOffline); err != nil {
 				log.Printf("⚠️ Peer durumu güncellenemedi: %v", err)
 			} else {
-				log.Printf("⏱️ Peer offline: %s", deviceID[:8])
+				shortID := deviceID
+				if len(deviceID) > 8 {
+					shortID = deviceID[:8]
+				}
+				log.Printf("⏱️ Peer offline: %s", shortID)
+			}
+		})
+
+		// Connection established callback'ini ayarla
+		transportWithCallbacks.OnConnectionEstablished(func(conn transport.Connection) {
+			peerID := conn.GetPeerID()
+			
+			// Peer'ı veritabanında bul veya oluştur
+			existingPeer, err := c.peerRepo.GetByID(ctx, peerID)
+			if err != nil || existingPeer == nil {
+				// Yeni peer oluştur (İsim bilinmiyor olabilir, varsayılan ata)
+				peer := entity.NewPeer(peerID, "Unknown Peer")
+				peer.Status = entity.PeerStatusOnline
+				
+				if err := c.peerRepo.Create(ctx, peer); err != nil {
+					log.Printf("⚠️ Peer veritabanına kaydedilemedi (Connection Established): %v", err)
+				} else {
+					shortID := peerID
+					if len(peerID) > 8 {
+						shortID = peerID[:8]
+					}
+					log.Printf("✅ Peer veritabanına kaydedildi (Connection Established): %s", shortID)
+				}
+			} else {
+				// Mevcut peer'ı güncelle
+				if err := c.peerRepo.UpdateStatus(ctx, peerID, entity.PeerStatusOnline); err != nil {
+					log.Printf("⚠️ Peer durumu güncellenemedi: %v", err)
+				} else {
+					shortID := peerID
+					if len(peerID) > 8 {
+						shortID = peerID[:8]
+					}
+					log.Printf("✅ Peer online: %s", shortID)
+				}
 			}
 		})
 
