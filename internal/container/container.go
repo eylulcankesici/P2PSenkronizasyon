@@ -783,16 +783,26 @@ func (c *Container) setupPeerDiscoveryCallback() error {
 				return
 			}
 
-			// Yeni peer oluştur (eski bilgileri kopyala)
-			newPeer := entity.NewPeer(newID, oldPeer.Name)
-			newPeer.Status = entity.PeerStatusOnline
-			newPeer.KnownAddresses = oldPeer.KnownAddresses
-			newPeer.IsTrusted = oldPeer.IsTrusted
-			
-			// Yeni peer'ı kaydet
-			if err := c.peerRepo.Create(ctx, newPeer); err != nil {
-				log.Printf("⚠️ Yeni peer kaydedilemedi: %v", err)
-				return
+			// Yeni peer var mı kontrol et
+			existingNewPeer, err := c.peerRepo.GetByID(ctx, newID)
+			if err == nil && existingNewPeer != nil {
+				// Varsa güncelle
+				log.Printf("ℹ️ Peer zaten var, güncelleniyor: %s", newID[:8])
+				if err := c.peerRepo.UpdateStatus(ctx, newID, entity.PeerStatusOnline); err != nil {
+					log.Printf("⚠️ Yeni peer status güncellenemedi: %v", err)
+				}
+				// TODO: Adresleri de güncellemek gerekebilir
+			} else {
+				// Yoksa oluştur
+				newPeer := entity.NewPeer(newID, oldPeer.Name)
+				newPeer.Status = entity.PeerStatusOnline
+				newPeer.KnownAddresses = oldPeer.KnownAddresses
+				newPeer.IsTrusted = oldPeer.IsTrusted
+				
+				if err := c.peerRepo.Create(ctx, newPeer); err != nil {
+					log.Printf("⚠️ Yeni peer kaydedilemedi: %v", err)
+					return
+				}
 			}
 			
 			// Eski peer'ı sil (veya offline yap, ama ID değiştiği için silmek daha mantıklı)

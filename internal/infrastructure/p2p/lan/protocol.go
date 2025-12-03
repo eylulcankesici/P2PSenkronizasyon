@@ -559,3 +559,36 @@ func (p *Protocol) DecodeFileDelete(data []byte) (string, error) {
 	return deleteMsg.FileID, nil
 }
 
+// DecodeConnectionRequestPayload connection request payload'ını parse eder
+func (p *Protocol) DecodeConnectionRequestPayload(payload []byte) (string, string, error) {
+	req := &connectionRequest{}
+	if err := json.Unmarshal(payload, req); err != nil {
+		return "", "", fmt.Errorf("JSON unmarshal hatası: %w", err)
+	}
+	
+	return req.DeviceID, req.DeviceName, nil
+}
+
+// DecodeConnectionAcceptPayload connection accept payload'ını parse eder
+func (p *Protocol) DecodeConnectionAcceptPayload(payload []byte) (string, error) {
+	resp := &connectionResponse{}
+	if err := json.Unmarshal(payload, resp); err != nil {
+		return "", fmt.Errorf("JSON unmarshal hatası: %w", err)
+	}
+	
+	if !resp.Accepted {
+		return "", fmt.Errorf("bağlantı reddedildi: %s", resp.Message)
+	}
+	
+	return resp.DeviceID, nil
+}
+
+// DecodeConnectionRejectPayload connection reject payload'ını parse eder
+func (p *Protocol) DecodeConnectionRejectPayload(payload []byte) (string, error) {
+	resp := &connectionResponse{}
+	if err := json.Unmarshal(payload, resp); err != nil {
+		return "", fmt.Errorf("JSON unmarshal hatası: %w", err)
+	}
+	
+	return resp.Message, nil
+}

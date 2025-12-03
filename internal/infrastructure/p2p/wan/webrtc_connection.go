@@ -1392,7 +1392,7 @@ func (c *WebRTCConnection) RejectConnection() error {
 
 // handleConnectionRequest connection request mesajını işler
 func (c *WebRTCConnection) handleConnectionRequest(payload []byte) {
-	deviceID, deviceName, err := c.protocol.DecodeConnectionRequest(payload)
+	deviceID, deviceName, err := c.protocol.DecodeConnectionRequestPayload(payload)
 	if err != nil {
 		log.Printf("⚠️ Connection request parse edilemedi: %v", err)
 		return
@@ -1407,7 +1407,7 @@ func (c *WebRTCConnection) handleConnectionRequest(payload []byte) {
 
 // handleConnectionAccept connection accept mesajını işler
 func (c *WebRTCConnection) handleConnectionAccept(payload []byte) {
-	deviceID, err := c.protocol.DecodeConnectionAccept(payload)
+	deviceID, err := c.protocol.DecodeConnectionAcceptPayload(payload)
 	if err != nil {
 		log.Printf("⚠️ Connection accept parse edilemedi: %v", err)
 		return
@@ -1426,7 +1426,7 @@ func (c *WebRTCConnection) handleConnectionAccept(payload []byte) {
 
 // handleConnectionReject connection reject mesajını işler
 func (c *WebRTCConnection) handleConnectionReject(payload []byte) {
-	deviceID, err := c.protocol.DecodeConnectionReject(payload)
+	deviceID, err := c.protocol.DecodeConnectionRejectPayload(payload)
 	if err != nil {
 		log.Printf("⚠️ Connection reject parse edilemedi: %v", err)
 		return
