@@ -967,9 +967,21 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 			// Biraz bekle ki karşı taraf hazır olsun
 			time.Sleep(500 * time.Millisecond)
 			
+			deviceID, err := h.container.GetDeviceID()
+			if err != nil {
+				log.Printf("❌ Device ID alınamadı: %v", err)
+				return
+			}
+			
+			deviceName, err := h.container.GetDeviceName()
+			if err != nil {
+				log.Printf("❌ Device Name alınamadı: %v", err)
+				return
+			}
+
 			reqData, err := conn.GetProtocol().EncodeConnectionRequest(
-				h.container.GetDeviceID(),
-				h.container.GetDeviceName(),
+				deviceID,
+				deviceName,
 			)
 			if err == nil {
 				if err := dc.Send(reqData); err != nil {
