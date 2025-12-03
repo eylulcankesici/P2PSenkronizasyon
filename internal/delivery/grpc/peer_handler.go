@@ -973,11 +973,7 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 				return
 			}
 			
-			deviceName, err := h.container.GetDeviceName()
-			if err != nil {
-				log.Printf("❌ Device Name alınamadı: %v", err)
-				return
-			}
+			deviceName := h.container.GetDeviceName()
 
 			reqData, err := conn.GetProtocol().EncodeConnectionRequest(
 				deviceID,
