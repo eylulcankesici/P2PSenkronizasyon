@@ -1436,6 +1436,11 @@ func (c *WebRTCConnection) handleConnectionReject(payload []byte) {
 	// Bağlantıyı kapatabiliriz veya kullanıcıya bildirebiliriz
 }
 
+// SetOnConnectionAccepted connection accepted callback'ini ayarlar
+func (c *WebRTCConnection) SetOnConnectionAccepted(callback func(deviceID string)) {
+	c.onConnectionAccepted = callback
+}
+
 // Close bağlantıyı kapatır
 func (c *WebRTCConnection) Close() error {
 	c.mu.Lock()

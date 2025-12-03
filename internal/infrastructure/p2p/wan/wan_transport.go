@@ -420,6 +420,13 @@ func (t *WANTransport) GetICECandidates() ([]ICECandidate, error) {
 }
 
 
+// StartSignaling signaling başlatır
+func (t *WANTransport) StartSignaling(serverURL, roomID string) (*signaling.SignalingClient, error) {
+	client := signaling.NewSignalingClient(serverURL)
+	if err := client.Connect(); err != nil {
+		return nil, fmt.Errorf("signaling bağlantı hatası: %w", err)
+	}
+
 	if err := client.JoinRoom(roomID); err != nil {
 		client.Close()
 		return nil, fmt.Errorf("oda katılma hatası: %w", err)

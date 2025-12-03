@@ -268,8 +268,7 @@ func (h *HybridTransportProvider) OnConnectionEstablished(callback func(transpor
 	}
 }
 
-	}
-}
+
 
 func (h *HybridTransportProvider) OnConnectionLost(callback func(string)) {
 	if h.lan != nil {
