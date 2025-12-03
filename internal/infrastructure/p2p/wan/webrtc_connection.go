@@ -905,9 +905,17 @@ func NewWebRTCConnection(peerID, peerName string, webrtcPeer *WebRTCPeer, dataCh
 		conn.mu.Unlock()
 		
 		if state == webrtc.PeerConnectionStateConnected {
-			log.Printf("✅ WebRTC connection state connected: %s", peerID[:8])
+			shortID := peerID
+			if len(peerID) > 8 {
+				shortID = peerID[:8]
+			}
+			log.Printf("✅ WebRTC connection state connected: %s", shortID)
 		} else if state == webrtc.PeerConnectionStateFailed || state == webrtc.PeerConnectionStateClosed {
-			log.Printf("🔌 WebRTC connection state disconnected: %s (%s)", peerID[:8], state.String())
+			shortID := peerID
+			if len(peerID) > 8 {
+				shortID = peerID[:8]
+			}
+			log.Printf("🔌 WebRTC connection state disconnected: %s (%s)", shortID, state.String())
 		}
 	})
 	
@@ -1404,7 +1412,11 @@ func (c *WebRTCConnection) Close() error {
 		}
 	}
 
-	log.Printf("🔌 WebRTC bağlantısı kapatıldı: %s", c.peerID[:8])
+	shortID := c.peerID
+	if len(c.peerID) > 8 {
+		shortID = c.peerID[:8]
+	}
+	log.Printf("🔌 WebRTC bağlantısı kapatıldı: %s", shortID)
 	return nil
 }
 
@@ -1415,7 +1427,11 @@ func (c *WebRTCConnection) GetPeerID() string {
 
 // GetAddress adres döner
 func (c *WebRTCConnection) GetAddress() string {
-	return "webrtc://" + c.peerID[:8]
+	shortID := c.peerID
+	if len(c.peerID) > 8 {
+		shortID = c.peerID[:8]
+	}
+	return "webrtc://" + shortID
 }
 
 // GetLatency latency döner
