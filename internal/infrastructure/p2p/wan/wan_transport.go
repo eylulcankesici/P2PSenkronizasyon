@@ -420,6 +420,11 @@ func (t *WANTransport) GetICECandidates() ([]ICECandidate, error) {
 }
 
 
+// SetOnPeerIDUpdated peer ID updated callback'ini ayarlar
+func (t *WANTransport) SetOnPeerIDUpdated(callback func(oldID, newID string)) {
+	t.onPeerIDUpdated = callback
+}
+
 // StartSignaling signaling başlatır
 func (t *WANTransport) StartSignaling(serverURL, roomID string) (*signaling.SignalingClient, error) {
 	client := signaling.NewSignalingClient(serverURL)
@@ -437,4 +442,9 @@ func (t *WANTransport) StartSignaling(serverURL, roomID string) (*signaling.Sign
 	t.mu.Unlock()
 
 	return client, nil
+}
+
+// GetDiscoveryService discovery service'i döner (invitation için)
+func (t *WANTransport) GetDiscoveryService() *WANDiscoveryService {
+	return t.discovery
 }

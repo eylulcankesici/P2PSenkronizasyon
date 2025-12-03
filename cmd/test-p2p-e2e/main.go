@@ -20,7 +20,10 @@ func main() {
 	fmt.Println()
 
 	// Config yükle
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal("❌ Config yüklenemedi:", err)
+	}
 
 	// Container oluştur
 	cont, err := container.NewContainer(cfg)

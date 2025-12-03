@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"time"
+
+	"path/filepath"
 
 	"github.com/aether/sync/internal/config"
 	"github.com/aether/sync/internal/infrastructure/database/sqlite"
@@ -17,12 +17,19 @@ func main() {
 	log.Println()
 
 	// Config yükle
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal("❌ Config yüklenemedi:", err)
+	}
 
 	// SQLite bağlantısı
-	conn, err := sqlite.NewConnection(cfg)
+	dbPath := filepath.Join(cfg.App.DataDir, "aether.db")
+	conn, err := sqlite.NewConnection(dbPath)
 	if err != nil {
-		log.Fatal("❌ SQLite bağlantısı kurulamadı:", err)
+		log.Fatal("❌ SQLite bağlantısı oluşturulamadı:", err)
+	}
+	if err := conn.Open(); err != nil {
+		log.Fatal("❌ SQLite bağlantısı açılamadı:", err)
 	}
 	defer conn.Close()
 
