@@ -1452,6 +1452,11 @@ func (c *WebRTCConnection) GetWebRTCPeer() *WebRTCPeer {
 	return c.webrtcPeer
 }
 
+// GetProtocol protocol handler'ı döner
+func (c *WebRTCConnection) GetProtocol() *lan.Protocol {
+	return c.protocol
+}
+
 // parseICECandidatesFromJSON JSON'dan ICE candidates parse eder
 func parseICECandidatesFromJSON(jsonStr string) []ICECandidate {
 	var candidates []ICECandidate
