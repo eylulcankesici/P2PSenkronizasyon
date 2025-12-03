@@ -500,7 +500,31 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 	}
 
 	// Data channel oluştur (Offer oluşturan taraf olarak)
-	webrtcPeer.CreateDataChannel("aether-chunks", true)
+	dc, err := webrtcPeer.CreateDataChannel("aether-chunks", true)
+	if err != nil {
+		log.Printf("❌ Data channel oluşturulamadı: %v", err)
+		return &pb.CreateInvitationResponse{
+			Status: &pb.Status{
+				Success: false,
+				Message: fmt.Sprintf("Data channel oluşturulamadı: %v", err),
+				Code:    500,
+			},
+		}, nil
+	}
+
+	// Data Channel açıldığında connection'ı kaydet
+	dc.OnOpen(func() {
+		log.Printf("✅ Data Channel açıldı (Offerer): %s", dc.Label())
+		
+		// Geçici olarak roomID'yi device ID olarak kullan
+		tempDeviceID := roomID
+		
+		// WebRTC connection oluştur
+		conn := wan.NewWebRTCConnection(tempDeviceID, "Unknown Peer", webrtcPeer, dc)
+		
+		// Connection manager'a kaydet
+		wanTransport.GetWebRTCConnectionManager().RegisterConnection(tempDeviceID, conn)
+	})
 
 	// Signaling callback'leri
 	signalingClient.OnAnswer = func(sdp string) {
