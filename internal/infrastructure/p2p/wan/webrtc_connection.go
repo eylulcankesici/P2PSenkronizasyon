@@ -950,7 +950,7 @@ func NewWebRTCConnection(peerID, peerName string, webrtcPeer *WebRTCPeer, dataCh
 
 // setupDataChannel data channel callback'lerini ayarlar
 func (c *WebRTCConnection) setupDataChannel(dc *webrtc.DataChannel) {
-	dc.OnOpen(func() {
+	onOpenLogic := func() {
 		c.mu.Lock()
 		c.connected = true
 		c.mu.Unlock()
@@ -959,7 +959,13 @@ func (c *WebRTCConnection) setupDataChannel(dc *webrtc.DataChannel) {
 			shortID = c.peerID[:8]
 		}
 		log.Printf("✅ WebRTC data channel açıldı: %s", shortID)
-	})
+	}
+
+	if dc.ReadyState() == webrtc.DataChannelStateOpen {
+		onOpenLogic()
+	} else {
+		dc.OnOpen(onOpenLogic)
+	}
 	
 	dc.OnClose(func() {
 		c.mu.Lock()
