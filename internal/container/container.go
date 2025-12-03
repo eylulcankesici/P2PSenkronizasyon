@@ -676,7 +676,7 @@ func (c *Container) setupPeerDiscoveryCallback() error {
 		OnPeerLost(func(string))
 		OnConnectionLost(func(string))
 		OnConnectionEstablished(func(transport.Connection))
-		SetOnPeerIDUpdated(func(oldID, newID string))
+		SetOnPeerIDUpdated(func(oldID, newID, newName string))
 	})
 
 	if ok {
@@ -767,8 +767,8 @@ func (c *Container) setupPeerDiscoveryCallback() error {
 		})
 
 		// Peer ID updated callback'ini ayarla
-		transportWithCallbacks.SetOnPeerIDUpdated(func(oldID, newID string) {
-			log.Printf("🔄 Peer ID güncelleniyor: %s -> %s", oldID, newID)
+		transportWithCallbacks.SetOnPeerIDUpdated(func(oldID, newID, newName string) {
+			log.Printf("🔄 Peer ID güncelleniyor: %s -> %s (%s)", oldID, newID, newName)
 			
 			// Eski peer'ı bul
 			oldPeer, err := c.peerRepo.GetByID(ctx, oldID)
@@ -791,10 +791,22 @@ func (c *Container) setupPeerDiscoveryCallback() error {
 				if err := c.peerRepo.UpdateStatus(ctx, newID, entity.PeerStatusOnline); err != nil {
 					log.Printf("⚠️ Yeni peer status güncellenemedi: %v", err)
 				}
-				// TODO: Adresleri de güncellemek gerekebilir
+				// İsmi güncelle (eğer yeni isim geldiyse)
+				if newName != "" && newName != existingNewPeer.Name {
+					existingNewPeer.Name = newName
+					if err := c.peerRepo.Update(ctx, existingNewPeer); err != nil {
+						log.Printf("⚠️ Peer ismi güncellenemedi: %v", err)
+					}
+				}
 			} else {
 				// Yoksa oluştur
-				newPeer := entity.NewPeer(newID, oldPeer.Name)
+				// Eğer newName boşsa, oldPeer.Name kullan (eğer varsa)
+				nameToUse := newName
+				if nameToUse == "" {
+					nameToUse = oldPeer.Name
+				}
+				
+				newPeer := entity.NewPeer(newID, nameToUse)
 				newPeer.Status = entity.PeerStatusOnline
 				newPeer.KnownAddresses = oldPeer.KnownAddresses
 				newPeer.IsTrusted = oldPeer.IsTrusted

@@ -287,7 +287,7 @@ func (h *HybridTransportProvider) OnConnectionLost(callback func(string)) {
 	}
 }
 
-func (h *HybridTransportProvider) SetOnPeerIDUpdated(callback func(oldID, newID string)) {
+func (h *HybridTransportProvider) SetOnPeerIDUpdated(callback func(oldID, newID, newName string)) {
 	if h.wan != nil {
 		h.wan.SetOnPeerIDUpdated(callback)
 	}

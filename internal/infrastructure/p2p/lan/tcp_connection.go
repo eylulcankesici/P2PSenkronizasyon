@@ -677,7 +677,7 @@ func (m *TCPConnectionManager) handleConnectionRequestInManager(tcpConn *TCPConn
 			if accepted {
 				// Accept gönder
 				tcpConn.sendMu.Lock()
-				response, err := tcpConn.protocol.EncodeConnectionAccept(m.deviceID)
+				response, err := tcpConn.protocol.EncodeConnectionAccept(m.deviceID, m.deviceName)
 				if err != nil {
 					log.Printf("⚠️ Connection accept encode hatası: %v", err)
 					tcpConn.sendMu.Unlock()

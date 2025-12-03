@@ -520,7 +520,7 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 		tempDeviceID := roomID
 		
 		// WebRTC connection oluştur
-		conn := wan.NewWebRTCConnection(tempDeviceID, "Unknown Peer", webrtcPeer, dc)
+		conn := wan.NewWebRTCConnection(tempDeviceID, "Unknown Peer", h.container.GetDeviceName(), webrtcPeer, dc)
 		
 		// Connection manager'a kaydet
 		wanTransport.GetWebRTCConnectionManager().RegisterConnection(tempDeviceID, conn)
@@ -981,7 +981,7 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 		tempDeviceID := invitationCode
 		
 		// WebRTC connection oluştur
-		conn := wan.NewWebRTCConnection(tempDeviceID, "Unknown Peer", webrtcPeer, dc)
+		conn := wan.NewWebRTCConnection(tempDeviceID, "Unknown Peer", h.container.GetDeviceName(), webrtcPeer, dc)
 		
 		// Connection manager'a kaydet
 		wanTransport.GetWebRTCConnectionManager().RegisterConnection(tempDeviceID, conn)

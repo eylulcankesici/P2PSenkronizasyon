@@ -38,7 +38,7 @@ type WANTransport struct {
 	onConnectionEstablished func(transport.Connection)
 	onConnectionLost        func(string)
 	onConnectionRequested   func(deviceID, deviceName string)
-	onPeerIDUpdated         func(oldID, newID string)
+	onPeerIDUpdated         func(oldID, newID, newName string)
 
 	// State
 	mu     sync.RWMutex
@@ -156,9 +156,9 @@ func (t *WANTransport) Start(ctx context.Context) error {
 		}
 	})
 
-	t.connMgr.SetOnPeerIDUpdated(func(oldID, newID string) {
+	t.connMgr.SetOnPeerIDUpdated(func(oldID, newID, newName string) {
 		if t.onPeerIDUpdated != nil {
-			t.onPeerIDUpdated(oldID, newID)
+			t.onPeerIDUpdated(oldID, newID, newName)
 		}
 	})
 
@@ -421,7 +421,7 @@ func (t *WANTransport) GetICECandidates() ([]ICECandidate, error) {
 
 
 // SetOnPeerIDUpdated peer ID updated callback'ini ayarlar
-func (t *WANTransport) SetOnPeerIDUpdated(callback func(oldID, newID string)) {
+func (t *WANTransport) SetOnPeerIDUpdated(callback func(oldID, newID, newName string)) {
 	t.onPeerIDUpdated = callback
 }
 
