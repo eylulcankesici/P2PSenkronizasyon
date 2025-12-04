@@ -305,39 +305,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                 Text(_formatDateTime(file.modTime.toDateTime(), lang)),
               ],
             ),
-            trailing: PopupMenuButton(
-              icon: const Icon(LucideIcons.moreVertical),
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  child: Row(
-                    children: [
-                      const Icon(LucideIcons.send, size: 16),
-                      const SizedBox(width: 8),
-                      const Text('Senkronize Et'), // TODO: Localize
-                    ],
-                  ),
-                  onTap: () {
-                    Future.delayed(const Duration(milliseconds: 100), () {
-                      _showSyncDialog(context, ref, file);
-                    });
-                  },
-                ),
-                PopupMenuItem(
-                  child: Row(
-                    children: [
-                      const Icon(LucideIcons.trash2, size: 16, color: Colors.red),
-                      const SizedBox(width: 8),
-                      Text(AppStrings.get('delete', ref.watch(languageProvider)), style: const TextStyle(color: Colors.red)),
-                    ],
-                  ),
-                  onTap: () {
-                    Future.delayed(const Duration(milliseconds: 100), () {
-                      _showDeleteFileDialog(context, ref, file);
-                    });
-                  },
-                ),
-              ],
-            ),
+
           ),
         );
       },
