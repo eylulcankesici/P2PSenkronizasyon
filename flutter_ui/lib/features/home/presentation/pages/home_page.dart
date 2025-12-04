@@ -179,6 +179,13 @@ class _HomePageState extends ConsumerState<HomePage> {
           _buildProfilePage(),
         ],
       ),
+      floatingActionButton: _selectedIndex == 0
+          ? FloatingActionButton(
+              onPressed: _showAddFolderDialog,
+              child: const Icon(LucideIcons.plus),
+              tooltip: AppStrings.get('add_folder', ref.watch(languageProvider)),
+            )
+          : null,
       bottomNavigationBar: NavigationBarTheme(
         data: NavigationBarThemeData(
           indicatorColor: _getIndicatorColor(_selectedIndex),
