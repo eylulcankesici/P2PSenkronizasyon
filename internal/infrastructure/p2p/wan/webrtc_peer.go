@@ -43,6 +43,10 @@ func NewWebRTCPeer(config webrtc.Configuration) (*WebRTCPeer, error) {
 	// KeepAlive: 2 saniye (default)
 	settingEngine.SetICETimeouts(3*time.Minute, 5*time.Minute, 2*time.Second)
 	
+	// SCTP buffer boyutunu artır (256KB chunk'ları gönderebilmek için)
+	// Default 1MB olabilir, biz 16MB yapalım
+	settingEngine.SetSCTPMaxReceiveBufferSize(16 * 1024 * 1024)
+	
 	// API oluştur
 	api := webrtc.NewAPI(webrtc.WithSettingEngine(settingEngine))
 
