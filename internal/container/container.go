@@ -81,6 +81,9 @@ type Container struct {
 
 	// Symlink manager (Desktop shortcut oluşturma)
 	symlinkManager *filesystem.SymlinkManager
+	
+	// Transfer completion ack channels
+	transferAckChans sync.Map // fileID -> chan struct{}
 }
 
 // NewContainer yeni bir container oluşturur
@@ -861,6 +864,33 @@ func (c *Container) initP2PTransport() error {
 	if c.config.Network.EnableWAN {
 		log.Println("🌐 WAN Transport başlatılıyor...")
 		tempWAN := wan.NewWANTransport(deviceID, deviceName, c.config.Network)
+		tempWAN.SetOnTransferFinish(func(peerID, fileID string) {
+			log.Printf("📥 Transfer finish alındı (WAN): peer=%s, file=%s", peerID[:8], fileID[:8])
+			// Transfer tamamlandı Ack gönder
+			if conn, exists := tempWAN.GetConnection(peerID); exists {
+				if webrtcConn, ok := conn.(interface {
+					SendTransferFinishAck(ctx context.Context, fileID string) error
+				}); ok {
+					go func() {
+						if err := webrtcConn.SendTransferFinishAck(context.Background(), fileID); err != nil {
+							log.Printf("⚠️ Ack gönderilemedi: %v", err)
+						}
+					}()
+				}
+			}
+		})
+
+		tempWAN.SetOnTransferFinishAck(func(peerID, fileID string) {
+			log.Printf("📥 Transfer finish Ack alındı (WAN): peer=%s, file=%s", peerID[:8], fileID[:8])
+			// Ack sinyalini gönder
+			if ch, ok := c.transferAckChans.Load(fileID); ok {
+				select {
+				case ch.(chan struct{}) <- struct{}{}:
+				default:
+				}
+			}
+		})
+
 		if err := tempWAN.Start(ctx); err != nil {
 			log.Printf("⚠️ WAN transport başlatılamadı: %v (yalnızca LAN ile devam ediliyor)", err)
 		} else {
@@ -1609,6 +1639,37 @@ func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID 
 			c.transferManager.FailTransfer(fileID, err)
 		}
 		return err
+	}
+
+	// Transfer bitti, Finish mesajı gönder ve Ack bekle (WAN için)
+	if c.config.Network.EnableWAN {
+		if conn, exists := c.transportProvider.GetConnection(peerID); exists {
+			if webrtcConn, ok := conn.(interface {
+				SendTransferFinish(ctx context.Context, fileID string) error
+			}); ok {
+				log.Printf("📤 Transfer finish gönderiliyor ve Ack bekleniyor: %s", fileID[:8])
+				
+				// Ack kanalı oluştur
+				ackCh := make(chan struct{}, 1)
+				c.transferAckChans.Store(fileID, ackCh)
+				defer c.transferAckChans.Delete(fileID)
+				
+				// Finish mesajı gönder
+				if err := webrtcConn.SendTransferFinish(ctx, fileID); err != nil {
+					log.Printf("⚠️ Transfer finish gönderilemedi: %v", err)
+				} else {
+					// Ack bekle (max 30 saniye)
+					select {
+					case <-ackCh:
+						log.Printf("✅ Transfer finish Ack alındı: %s", fileID[:8])
+					case <-time.After(30 * time.Second):
+						log.Printf("⚠️ Transfer finish Ack zaman aşımı: %s", fileID[:8])
+					case <-ctx.Done():
+						log.Printf("⚠️ Transfer finish Ack beklenirken context iptal edildi: %s", fileID[:8])
+					}
+				}
+			}
+		}
 	}
 
 	// Transfer durumunu tamamlandı olarak işaretle

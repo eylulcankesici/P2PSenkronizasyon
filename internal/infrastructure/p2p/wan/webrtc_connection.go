@@ -59,6 +59,8 @@ type WebRTCConnectionManager struct {
 	onTransferCancel func(peerID, fileID string)
 	onFileDelete     func(peerID, fileID string)
 	onPeerIDUpdated  func(oldID, newID, newName string)
+	onTransferFinish func(peerID, fileID string)
+	onTransferFinishAck func(peerID, fileID string)
 }
 
 // PendingConnection WAN için bekleyen bağlantı isteği
@@ -158,22 +160,6 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 			webrtcConn.SetChunkHandler(m.chunkHandler)
 		}
 		if m.onChunkReceived != nil {
-			webrtcConn.SetOnChunkReceived(m.onChunkReceived)
-		}
-		if m.onTransferCancel != nil {
-			webrtcConn.SetOnTransferCancel(m.onTransferCancel)
-		}
-		if m.onFileDelete != nil {
-			webrtcConn.SetOnFileDelete(m.onFileDelete)
-		}
-		
-		// Connection'ı kaydet
-		m.connections[peer.DeviceID] = webrtcConn
-		log.Printf("✅ WebRTC connection oluşturuldu (Pending Peer ile): %s", peer.DeviceID[:8])
-		
-		// Handshake isteği gönder
-		// Connection henüz tam hazır olmayabilir (ICE checking vs), ama deneyelim
-		go func() {
 			// Data channel açılana kadar bekle (max 30 saniye)
 			log.Printf("⏳ Data channel bekleniyor (max 30s)...")
 			
@@ -516,22 +502,6 @@ func (m *WebRTCConnectionManager) SetOnConnectionEstablished(callback func(conn 
 	m.onConnectionEstablished = callback
 }
 
-// SetOnConnectionRequestedCallback connection requested callback'ini ayarlar
-func (m *WebRTCConnectionManager) SetOnConnectionRequestedCallback(callback func(deviceID, deviceName string)) {
-	m.onConnectionRequested = callback
-}
-
-// SetOnPeerIDUpdated peer ID updated callback'ini ayarlar
-func (m *WebRTCConnectionManager) SetOnPeerIDUpdated(callback func(oldID, newID, newName string)) {
-	m.onPeerIDUpdated = callback
-}
-
-// AddPendingPeer adds a pending peer (waiting for Connect)
-func (m *WebRTCConnectionManager) AddPendingPeer(deviceID string, peer *WebRTCPeer) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.pendingPeers[deviceID] = peer
-}
 
 // GetPendingPeer gets and removes a pending peer
 func (m *WebRTCConnectionManager) GetPendingPeer(deviceID string) *WebRTCPeer {
@@ -736,21 +706,6 @@ func (m *WebRTCConnectionManager) RegisterConnection(deviceID string, conn *WebR
 		conn.SetOnChunkReceived(m.onChunkReceived)
 	}
 	if m.onTransferCancel != nil {
-		conn.SetOnTransferCancel(m.onTransferCancel)
-	}
-	if m.onFileDelete != nil {
-		conn.SetOnFileDelete(m.onFileDelete)
-	}
-	
-	m.connections[deviceID] = conn
-	
-	shortID := deviceID
-	if len(deviceID) > 8 {
-		shortID = deviceID[:8]
-	}
-	log.Printf("✅ WebRTC connection kaydedildi: %s (Handshake bekleniyor)", shortID)
-	
-	// Callback çağır
 	if m.onConnectionEstablished != nil {
 		m.onConnectionEstablished(conn)
 	}
@@ -923,6 +878,8 @@ type WebRTCConnection struct {
 	onFileDelete     func(peerID, fileID string)
 	onConnectionRequested func(deviceID, deviceName string)
 	onConnectionAccepted  func(deviceID, deviceName string)
+	onTransferFinish      func(peerID, fileID string)
+	onTransferFinishAck   func(peerID, fileID string)
 
 	// Fragmentation
 	fragmentBuffer map[string]*fragmentAssembler
@@ -1078,6 +1035,10 @@ func (c *WebRTCConnection) handleIncomingMessage(data []byte) {
 		c.handlePong(payload)
 	case lan.MessageTypeFragment:
 		c.handleFragment(payload)
+	case lan.MessageTypeTransferFinish:
+		c.handleTransferFinish(payload)
+	case lan.MessageTypeTransferFinishAck:
+		c.handleTransferFinishAck(payload)
 	case lan.MessageTypeConnectionRequest:
 		c.handleConnectionRequest(payload)
 	case lan.MessageTypeConnectionAccept:
@@ -1577,6 +1538,16 @@ func (c *WebRTCConnection) SetOnFileDelete(callback func(peerID, fileID string))
 	c.onFileDelete = callback
 }
 
+// SetOnTransferFinish callback'i ayarlar
+func (c *WebRTCConnection) SetOnTransferFinish(callback func(peerID, fileID string)) {
+	c.onTransferFinish = callback
+}
+
+// SetOnTransferFinishAck callback'i ayarlar
+func (c *WebRTCConnection) SetOnTransferFinishAck(callback func(peerID, fileID string)) {
+	c.onTransferFinishAck = callback
+}
+
 // GetWebRTCPeer WebRTC peer'ı döner
 func (c *WebRTCConnection) GetWebRTCPeer() *WebRTCPeer {
 	c.mu.RLock()
@@ -1753,6 +1724,78 @@ func (c *WebRTCConnection) sendFragmentedMessage(ctx context.Context, data []byt
 	}
 
 	return nil
+}
+
+	return nil
+}
+
+// SendTransferFinish transfer tamamlandı bildirimi gönderir
+func (c *WebRTCConnection) SendTransferFinish(ctx context.Context, fileID string) error {
+	payload := []byte(fileID)
+	frame, err := c.protocol.EncodeFrame(lan.MessageTypeTransferFinish, payload)
+	if err != nil {
+		return fmt.Errorf("transfer finish encode edilemedi: %w", err)
+	}
+	
+	// Data channel üzerinden gönder (fragmentation gerekebilir mi? fileID kısa olduğu için hayır)
+	c.mu.RLock()
+	dc := c.dataChannel
+	c.mu.RUnlock()
+	
+	if dc == nil {
+		return fmt.Errorf("data channel yok")
+	}
+	
+	if err := dc.Send(frame); err != nil {
+		return fmt.Errorf("transfer finish gönderilemedi: %w", err)
+	}
+	
+	log.Printf("📤 Transfer finish gönderildi: %s", fileID[:8])
+	return nil
+}
+
+// SendTransferFinishAck transfer tamamlandı onayı gönderir
+func (c *WebRTCConnection) SendTransferFinishAck(ctx context.Context, fileID string) error {
+	payload := []byte(fileID)
+	frame, err := c.protocol.EncodeFrame(lan.MessageTypeTransferFinishAck, payload)
+	if err != nil {
+		return fmt.Errorf("transfer finish ack encode edilemedi: %w", err)
+	}
+	
+	c.mu.RLock()
+	dc := c.dataChannel
+	c.mu.RUnlock()
+	
+	if dc == nil {
+		return fmt.Errorf("data channel yok")
+	}
+	
+	if err := dc.Send(frame); err != nil {
+		return fmt.Errorf("transfer finish ack gönderilemedi: %w", err)
+	}
+	
+	log.Printf("📤 Transfer finish ack gönderildi: %s", fileID[:8])
+	return nil
+}
+
+// handleTransferFinish transfer tamamlandı bildirimini işler
+func (c *WebRTCConnection) handleTransferFinish(payload []byte) {
+	fileID := string(payload)
+	log.Printf("📥 Transfer finish alındı: %s", fileID[:8])
+	
+	if c.onTransferFinish != nil {
+		c.onTransferFinish(c.peerID, fileID)
+	}
+}
+
+// handleTransferFinishAck transfer tamamlandı onayını işler
+func (c *WebRTCConnection) handleTransferFinishAck(payload []byte) {
+	fileID := string(payload)
+	log.Printf("📥 Transfer finish ack alındı: %s", fileID[:8])
+	
+	if c.onTransferFinishAck != nil {
+		c.onTransferFinishAck(c.peerID, fileID)
+	}
 }
 
 // getString map'ten string değer alır
