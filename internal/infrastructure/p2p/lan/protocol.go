@@ -37,6 +37,7 @@ const (
 	MessageTypeConnectionReject = 0x0009
 	MessageTypeTransferCancel   = 0x000A // Transfer iptal bildirimi
 	MessageTypeFileDelete      = 0x000B // Dosya silme bildirimi (peer-to-peer)
+	MessageTypeFragment        = 0x000C // WebRTC için parçalanmış mesaj
 	
 	// Frame sizes
 	HeaderSize = 16 // Magic(4) + Version(2) + Type(2) + Length(4) + CRC(4)

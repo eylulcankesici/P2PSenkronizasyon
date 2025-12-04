@@ -920,20 +920,32 @@ type WebRTCConnection struct {
 	onFileDelete     func(peerID, fileID string)
 	onConnectionRequested func(deviceID, deviceName string)
 	onConnectionAccepted  func(deviceID, deviceName string)
+
+	// Fragmentation
+	fragmentBuffer map[string]*fragmentAssembler
+	fragmentMu     sync.Mutex
+}
+
+type fragmentAssembler struct {
+	totalFragments int
+	receivedCount  int
+	data           [][]byte
+	lastUpdate     time.Time
 }
 
 // NewWebRTCConnection yeni WebRTC connection oluşturur
 func NewWebRTCConnection(peerID, peerName, localDeviceName string, webrtcPeer *WebRTCPeer, dataChannel *webrtc.DataChannel) *WebRTCConnection {
 	conn := &WebRTCConnection{
-		peerID:      peerID,
-		peerName:    peerName,
+		peerID:          peerID,
+		peerName:        peerName,
 		localDeviceName: localDeviceName,
-		webrtcPeer:  webrtcPeer,
-		dataChannel: dataChannel,
-		protocol:    lan.NewProtocol(),
-		connected:   false,
+		webrtcPeer:      webrtcPeer,
+		dataChannel:     dataChannel,
+		protocol:        lan.NewProtocol(),
+		connected:       false,
 		isHandshakeComplete: false,
-		connectedAt: time.Now(),
+		connectedAt:     time.Now(),
+		fragmentBuffer:  make(map[string]*fragmentAssembler),
 	}
 	
 	// Data channel callback'lerini ayarla
@@ -1061,6 +1073,8 @@ func (c *WebRTCConnection) handleIncomingMessage(data []byte) {
 		c.handlePing(payload)
 	case lan.MessageTypePong:
 		c.handlePong(payload)
+	case lan.MessageTypeFragment:
+		c.handleFragment(payload)
 	case lan.MessageTypeConnectionRequest:
 		c.handleConnectionRequest(payload)
 	case lan.MessageTypeConnectionAccept:
@@ -1199,8 +1213,15 @@ func (c *WebRTCConnection) SendChunkWithFileInfo(ctx context.Context, chunkHash 
 	}
 
 	// Data channel üzerinden gönder
-	if err := dc.Send(frame); err != nil {
-		return fmt.Errorf("chunk gönderilemedi: %w", err)
+	// Eğer mesaj boyutu 60KB'dan büyükse parçalayarak gönder
+	if len(frame) > 60*1024 {
+		if err := c.sendFragmentedMessage(ctx, frame); err != nil {
+			return fmt.Errorf("chunk (fragmented) gönderilemedi: %w", err)
+		}
+	} else {
+		if err := dc.Send(frame); err != nil {
+			return fmt.Errorf("chunk gönderilemedi: %w", err)
+		}
 	}
 
 	log.Printf("📤 Chunk gönderildi (WebRTC): %s, file=%s, chunk=%d/%d (%d bytes)", 
@@ -1602,6 +1623,132 @@ func parseICECandidatesFromJSON(jsonStr string) []ICECandidate {
 	}
 	
 	return candidates
+}
+
+// handleFragment parçalanmış mesajı işler
+func (c *WebRTCConnection) handleFragment(payload []byte) {
+	if len(payload) < 24 {
+		log.Printf("⚠️ Fragment payload çok kısa: %d", len(payload))
+		return
+	}
+
+	messageID := string(payload[:16])
+	fragmentIndex := binary.BigEndian.Uint32(payload[16:20])
+	totalFragments := binary.BigEndian.Uint32(payload[20:24])
+	data := payload[24:]
+
+	c.fragmentMu.Lock()
+	defer c.fragmentMu.Unlock()
+
+	assembler, exists := c.fragmentBuffer[messageID]
+	if !exists {
+		assembler = &fragmentAssembler{
+			totalFragments: int(totalFragments),
+			receivedCount:  0,
+			data:           make([][]byte, totalFragments),
+			lastUpdate:     time.Now(),
+		}
+		c.fragmentBuffer[messageID] = assembler
+	}
+
+	if int(fragmentIndex) >= assembler.totalFragments {
+		log.Printf("⚠️ Geçersiz fragment index: %d (total: %d)", fragmentIndex, assembler.totalFragments)
+		return
+	}
+
+	if assembler.data[fragmentIndex] == nil {
+		assembler.data[fragmentIndex] = data
+		assembler.receivedCount++
+		assembler.lastUpdate = time.Now()
+	}
+
+	// Tüm parçalar geldiyse birleştir ve işle
+	if assembler.receivedCount == assembler.totalFragments {
+		// Mesajı birleştir
+		var fullMessage []byte
+		for _, part := range assembler.data {
+			fullMessage = append(fullMessage, part...)
+		}
+
+		// Buffer'dan temizle
+		delete(c.fragmentBuffer, messageID)
+		
+		// Kilidi aç ki handleIncomingMessage deadlock yapmasın (recursive call)
+		c.fragmentMu.Unlock()
+		
+		// Birleşmiş mesajı işle
+		c.handleIncomingMessage(fullMessage)
+		
+		// Kilidi tekrar al (defer unlock için)
+		c.fragmentMu.Lock()
+	}
+}
+
+// sendFragmentedMessage mesajı parçalara bölüp gönderir
+func (c *WebRTCConnection) sendFragmentedMessage(ctx context.Context, data []byte) error {
+	const maxFragmentSize = 60 * 1024 // 60KB (64KB limit için güvenli marj)
+	
+	if len(data) <= maxFragmentSize {
+		// Parçalamaya gerek yok, direkt gönder (ama caller zaten bunu kontrol etmeli)
+		// Ancak bu metod sadece parçalama için çağrılmalı, o yüzden caller'ın sorumluluğunda
+		// Biz yine de kontrol edelim, eğer küçükse direkt gönderemeyiz çünkü caller "MessageTypeFragment" bekliyor olabilir mi?
+		// Hayır, caller normal mesaj gönderemiyorsa burayı çağırır.
+		// Ama eğer buraya geldiyse, karşı taraf "Fragment" bekliyor demektir.
+		// O yüzden tek parça bile olsa fragment olarak sarmalayabiliriz veya direkt gönderebiliriz.
+		// WebRTC'de mesaj tipi header'da olduğu için, eğer sığarsa direkt göndermek daha mantıklı.
+		// AMA, bu metod "büyük mesajı gönder" amacı taşıyor.
+		// Eğer caller "SendChunkWithFileInfo" ise ve data > 64KB ise burayı çağırır.
+		return fmt.Errorf("mesaj boyutu küçük, parçalamaya gerek yok")
+	}
+
+	totalFragments := (len(data) + maxFragmentSize - 1) / maxFragmentSize
+	messageID := uuid.New().String() // 36 char string? No, we need 16 bytes for efficiency or use string directly.
+	// UUID string is 36 bytes. Let's use 16 bytes raw UUID.
+	uuidObj := uuid.New()
+	messageIDBytes, _ := uuidObj.MarshalBinary() // 16 bytes
+
+	for i := 0; i < totalFragments; i++ {
+		start := i * maxFragmentSize
+		end := start + maxFragmentSize
+		if end > len(data) {
+			end = len(data)
+		}
+		chunkData := data[start:end]
+
+		// Header oluştur: [MessageID(16)][Index(4)][Total(4)]
+		header := make([]byte, 24)
+		copy(header[:16], messageIDBytes)
+		binary.BigEndian.PutUint32(header[16:20], uint32(i))
+		binary.BigEndian.PutUint32(header[20:24], uint32(totalFragments))
+
+		// Payload oluştur
+		payload := append(header, chunkData...)
+
+		// Mesaj tipi ekle (WebRTC için 1 byte header)
+		// [Type(1)][Payload]
+		frame := append([]byte{byte(lan.MessageTypeFragment)}, payload...)
+
+		// Gönder
+		c.mu.RLock()
+		dc := c.dataChannel
+		c.mu.RUnlock()
+
+		if dc == nil {
+			return fmt.Errorf("data channel yok")
+		}
+
+		if err := dc.Send(frame); err != nil {
+			return fmt.Errorf("fragment %d/%d gönderilemedi: %w", i+1, totalFragments, err)
+		}
+		
+		// Rate limiting (congestion control için biraz bekle)
+		// WebRTC buffer dolabilir
+		if dc.BufferedAmount() > 1024*1024 { // 1MB buffer
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
+
+	return nil
 }
 
 // getString map'ten string değer alır
