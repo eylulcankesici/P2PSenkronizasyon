@@ -423,6 +423,23 @@ func (t *WANTransport) GetICECandidates() ([]ICECandidate, error) {
 // SetOnPeerIDUpdated peer ID updated callback'ini ayarlar
 func (t *WANTransport) SetOnPeerIDUpdated(callback func(oldID, newID, newName string)) {
 	t.onPeerIDUpdated = callback
+	if t.connMgr != nil {
+		t.connMgr.SetOnPeerIDUpdated(callback)
+	}
+}
+
+// SetOnTransferFinish transfer finish callback'ini ayarlar
+func (t *WANTransport) SetOnTransferFinish(callback func(peerID, fileID string)) {
+	if t.connMgr != nil {
+		t.connMgr.SetOnTransferFinish(callback)
+	}
+}
+
+// SetOnTransferFinishAck transfer finish ack callback'ini ayarlar
+func (t *WANTransport) SetOnTransferFinishAck(callback func(peerID, fileID string)) {
+	if t.connMgr != nil {
+		t.connMgr.SetOnTransferFinishAck(callback)
+	}
 }
 
 // StartSignaling signaling başlatır

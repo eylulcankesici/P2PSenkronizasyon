@@ -160,6 +160,11 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 			webrtcConn.SetChunkHandler(m.chunkHandler)
 		}
 		if m.onChunkReceived != nil {
+			webrtcConn.SetOnChunkReceived(m.onChunkReceived)
+		}
+		
+		// Handshake isteği gönder
+		go func() {
 			// Data channel açılana kadar bekle (max 30 saniye)
 			log.Printf("⏳ Data channel bekleniyor (max 30s)...")
 			
@@ -502,6 +507,21 @@ func (m *WebRTCConnectionManager) SetOnConnectionEstablished(callback func(conn 
 	m.onConnectionEstablished = callback
 }
 
+// SetOnPeerIDUpdated peer ID updated callback'ini ayarlar
+func (m *WebRTCConnectionManager) SetOnPeerIDUpdated(callback func(oldID, newID, newName string)) {
+	m.onPeerIDUpdated = callback
+}
+
+// SetOnTransferFinish callback'i ayarlar
+func (m *WebRTCConnectionManager) SetOnTransferFinish(callback func(peerID, fileID string)) {
+	m.onTransferFinish = callback
+}
+
+// SetOnTransferFinishAck callback'i ayarlar
+func (m *WebRTCConnectionManager) SetOnTransferFinishAck(callback func(peerID, fileID string)) {
+	m.onTransferFinishAck = callback
+}
+
 
 // GetPendingPeer gets and removes a pending peer
 func (m *WebRTCConnectionManager) GetPendingPeer(deviceID string) *WebRTCPeer {
@@ -706,6 +726,27 @@ func (m *WebRTCConnectionManager) RegisterConnection(deviceID string, conn *WebR
 		conn.SetOnChunkReceived(m.onChunkReceived)
 	}
 	if m.onTransferCancel != nil {
+		conn.SetOnTransferCancel(m.onTransferCancel)
+	}
+	if m.onFileDelete != nil {
+		conn.SetOnFileDelete(m.onFileDelete)
+	}
+	if m.onTransferFinish != nil {
+		conn.SetOnTransferFinish(m.onTransferFinish)
+	}
+	if m.onTransferFinishAck != nil {
+		conn.SetOnTransferFinishAck(m.onTransferFinishAck)
+	}
+	
+	m.connections[deviceID] = conn
+	
+	shortID := deviceID
+	if len(deviceID) > 8 {
+		shortID = deviceID[:8]
+	}
+	log.Printf("✅ WebRTC connection kaydedildi: %s (Handshake bekleniyor)", shortID)
+	
+	// Callback çağır
 	if m.onConnectionEstablished != nil {
 		m.onConnectionEstablished(conn)
 	}
@@ -1726,8 +1767,7 @@ func (c *WebRTCConnection) sendFragmentedMessage(ctx context.Context, data []byt
 	return nil
 }
 
-	return nil
-}
+
 
 // SendTransferFinish transfer tamamlandı bildirimi gönderir
 func (c *WebRTCConnection) SendTransferFinish(ctx context.Context, fileID string) error {
