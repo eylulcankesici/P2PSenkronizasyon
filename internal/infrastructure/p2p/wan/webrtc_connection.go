@@ -1726,9 +1726,11 @@ func (c *WebRTCConnection) sendFragmentedMessage(ctx context.Context, data []byt
 		// Payload oluştur
 		payload := append(header, chunkData...)
 
-		// Mesaj tipi ekle (WebRTC için 1 byte header)
-		// [Type(1)][Payload]
-		frame := append([]byte{byte(lan.MessageTypeFragment)}, payload...)
+		// Mesaj tipi ekle (Protocol frame olarak encode et)
+		frame, err := c.protocol.EncodeFrame(lan.MessageTypeFragment, payload)
+		if err != nil {
+			return fmt.Errorf("fragment encode edilemedi: %w", err)
+		}
 
 		// Gönder
 		c.mu.RLock()
