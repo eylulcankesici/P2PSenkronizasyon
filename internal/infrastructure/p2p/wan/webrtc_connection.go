@@ -2,6 +2,7 @@ package wan
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -9,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/aether/sync/internal/config"
 	"github.com/aether/sync/internal/infrastructure/p2p/lan"
@@ -1702,7 +1705,6 @@ func (c *WebRTCConnection) sendFragmentedMessage(ctx context.Context, data []byt
 	}
 
 	totalFragments := (len(data) + maxFragmentSize - 1) / maxFragmentSize
-	messageID := uuid.New().String() // 36 char string? No, we need 16 bytes for efficiency or use string directly.
 	// UUID string is 36 bytes. Let's use 16 bytes raw UUID.
 	uuidObj := uuid.New()
 	messageIDBytes, _ := uuidObj.MarshalBinary() // 16 bytes
