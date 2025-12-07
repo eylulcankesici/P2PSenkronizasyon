@@ -33,9 +33,15 @@ if ($portInUse) {
     }
 }
 
-# Backend'i başlat
-Write-Host "Backend baslatiliyor..." -ForegroundColor Green
-# go run cmd/aether-server/main.go
+# Backend'i build et ve başlat
+Write-Host "Code derleniyor (build)..." -ForegroundColor Yellow
+go build -o cmd/aether-server/aether-server.exe ./cmd/aether-server
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Derleme hatasi!" -ForegroundColor Red
+    exit $LASTEXITCODE
+}
+
+Write-Host "Baslatiliyor..." -ForegroundColor Green
 ./cmd/aether-server/aether-server.exe
 
 
