@@ -48,16 +48,46 @@ class _TransfersPageState extends ConsumerState<TransfersPage> with SingleTicker
           controller: _tabController,
           tabs: [
             Tab(
-              icon: const Icon(LucideIcons.download),
-              text: AppStrings.get('active', currentLang),
+              height: 70,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(LucideIcons.download, color: Colors.lightBlueAccent),
+                  const SizedBox(height: 4),
+                  Text(
+                    AppStrings.get('active', currentLang),
+                    style: const TextStyle(color: Colors.lightBlueAccent),
+                  ),
+                ],
+              ),
             ),
             Tab(
-              icon: const Icon(LucideIcons.checkCircle),
-              text: AppStrings.get('completed', currentLang),
+              height: 70,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(LucideIcons.checkCircle, color: Colors.green),
+                  const SizedBox(height: 4),
+                  Text(
+                    AppStrings.get('completed', currentLang),
+                    style: const TextStyle(color: Colors.green),
+                  ),
+                ],
+              ),
             ),
             Tab(
-              icon: const Icon(LucideIcons.xCircle),
-              text: AppStrings.get('failed', currentLang),
+              height: 70,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(LucideIcons.xCircle, color: Colors.red),
+                  const SizedBox(height: 4),
+                  Text(
+                    AppStrings.get('failed', currentLang),
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
