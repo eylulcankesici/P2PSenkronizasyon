@@ -31,7 +31,7 @@ class _PeersPageState extends ConsumerState<PeersPage>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     // Peer listelerini düzenli olarak yenile (her 15 saniyede bir)
-    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
       if (!mounted) return;
 
       if (_tabController.index == 0) {
@@ -335,7 +335,7 @@ class _PeersPageState extends ConsumerState<PeersPage>
             ),
             // WAN butonları (Invitation oluştur / Invitation gir)
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 220, vertical: 16),
               child: Row(
                 children: [
                   Expanded(
@@ -358,7 +358,7 @@ class _PeersPageState extends ConsumerState<PeersPage>
                           context: context,
                           builder: (context) =>
                               const AddPeerByInvitationDialog(),
-                        );
+                          );
                       },
                       icon: const Icon(LucideIcons.key),
                       label: const Text('Davet Kodu Gir'),
