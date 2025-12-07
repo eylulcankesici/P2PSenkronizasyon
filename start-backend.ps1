@@ -35,7 +35,8 @@ if ($portInUse) {
 
 # Backend'i başlat
 Write-Host "Backend baslatiliyor..." -ForegroundColor Green
-go run cmd/aether-server/main.go
+# go run cmd/aether-server/main.go
+./cmd/aether-server/aether-server.exe
 
 
 
