@@ -539,7 +539,13 @@ func (p *Protocol) EncodeFileDelete(fileID string) ([]byte, error) {
 		return nil, fmt.Errorf("JSON marshal hatası: %w", err)
 	}
 	
-	return p.EncodeFrame(MessageTypeFileDelete, payload)
+	frame, err := p.EncodeFrame(MessageTypeFileDelete, payload)
+	if err == nil {
+		log.Printf("🗑️ EncodeFileDelete frame: %x (len=%d)", frame, len(frame))
+	} else {
+		log.Printf("⚠️ EncodeFileDelete hatası: %v", err)
+	}
+	return frame, err
 }
 
 // DecodeFileDelete dosya silme bildirimini parse eder

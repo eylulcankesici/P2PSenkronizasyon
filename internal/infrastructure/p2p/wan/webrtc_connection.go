@@ -1294,6 +1294,7 @@ func (c *WebRTCConnection) SendFileDelete(ctx context.Context, fileID string) er
 	if err := dc.Send(frame); err != nil {
 		return fmt.Errorf("file delete gönderilemedi: %w", err)
 	}
+	log.Printf("🗑️ SendFileDelete sent frame: %x (len=%d)", frame, len(frame))
 
 	log.Printf("🗑️ Dosya silme bildirimi gönderildi (WebRTC): %s", fileID[:8])
 	return nil
