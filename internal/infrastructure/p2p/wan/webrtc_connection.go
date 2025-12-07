@@ -1285,9 +1285,25 @@ func (c *WebRTCConnection) SendFileDelete(ctx context.Context, fileID string) er
 	}
 
 	// File delete encode et
-	frame, err := c.protocol.EncodeFileDelete(fileID)
+	// File delete encode et
+	// frame, err := c.protocol.EncodeFileDelete(fileID)
+	// if err != nil {
+	// 	return fmt.Errorf("file delete encode edilemedi: %w", err)
+	// }
+	
+	// DEBUG: Manuel encoding
+	deleteMsg := struct {
+		FileID string `json:"file_id"`
+	}{
+		FileID: fileID,
+	}
+	payload, err := json.Marshal(deleteMsg)
 	if err != nil {
-		return fmt.Errorf("file delete encode edilemedi: %w", err)
+		return fmt.Errorf("JSON marshal hatası: %w", err)
+	}
+	frame, err := c.protocol.EncodeFrame(lan.MessageTypeFileDelete, payload)
+	if err != nil {
+		return fmt.Errorf("frame encode edilemedi: %w", err)
 	}
 
 	// Data channel üzerinden gönder
