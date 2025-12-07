@@ -891,6 +891,18 @@ func (c *Container) initP2PTransport() error {
 			}
 		})
 
+		// WAN Chunk received callback
+		tempWAN.SetOnChunkReceived(func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error {
+			return c.handleIncomingChunk(context.Background(), peerID, fileID, chunkHash, chunkData, chunkIndex, totalChunks, fileName, folderName, senderSyncMode, receiverSyncMode)
+		})
+
+		// WAN File deleted callback
+		tempWAN.SetOnFileDelete(func(peerID, fileID string) {
+			if err := c.handleIncomingFileDelete(context.Background(), peerID, fileID); err != nil {
+				log.Printf("⚠️ File delete callback hatası: %v", err)
+			}
+		})
+
 		if err := tempWAN.Start(ctx); err != nil {
 			log.Printf("⚠️ WAN transport başlatılamadı: %v (yalnızca LAN ile devam ediliyor)", err)
 		} else {
@@ -2257,4 +2269,46 @@ func convertEntitySyncModeToProto(mode entity.SyncMode) pb.SyncMode {
 		// Boş veya bilinmeyen değer için UNSPECIFIED
 		return pb.SyncMode_SYNC_MODE_UNSPECIFIED
 	}
+}
+
+// handleIncomingFileDelete dosya silme bildirimini işler
+func (c *Container) handleIncomingFileDelete(ctx context.Context, peerID, fileID string) error {
+	log.Printf("🗑️ Incoming file delete: file=%s, peer=%s", fileID[:8], peerID[:8])
+
+	// Dosyayı bul
+	file, err := c.fileRepo.GetByID(ctx, fileID)
+	if err != nil {
+		return fmt.Errorf("dosya bulunamadı: %w", err)
+	}
+
+	// Folder'ı bul
+	folder, err := c.folderRepo.GetByID(ctx, file.FolderID)
+	if err != nil {
+		return fmt.Errorf("folder bulunamadı: %w", err)
+	}
+
+	// Dosya yolunu oluştur
+	filePath := filepath.Join(folder.LocalPath, file.RelativePath)
+
+	// Dosyayı diskten sil
+	if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
+		log.Printf("⚠️ Dosya diskten silinemedi: %v", err)
+		// Diskten silinemese bile DB'den silmeye devam et
+	} else {
+		log.Printf("  ✅ Dosya diskten silindi: %s", filePath)
+	}
+
+	// Dosyayı DB'den sil
+	if err := c.fileRepo.Delete(ctx, fileID); err != nil {
+		log.Printf("⚠️ Dosya DB'den silinemedi: %v", err)
+	} else {
+		log.Printf("  ✅ Dosya DB'den silindi: %s", fileID[:8])
+	}
+
+	// Sync kaydını sil
+	if err := c.filePeerSyncRepo.Delete(ctx, fileID, peerID); err != nil {
+		log.Printf("⚠️ Sync kaydı silinemedi: %v", err)
+	}
+
+	return nil
 }

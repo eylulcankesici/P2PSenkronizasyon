@@ -523,6 +523,7 @@ func (m *WebRTCConnectionManager) SetOnTransferFinishAck(callback func(peerID, f
 }
 
 
+
 // GetPendingPeer gets and removes a pending peer
 func (m *WebRTCConnectionManager) GetPendingPeer(deviceID string) *WebRTCPeer {
 	m.mu.Lock()

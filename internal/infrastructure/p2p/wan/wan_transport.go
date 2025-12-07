@@ -10,6 +10,7 @@ import (
 	"github.com/aether/sync/internal/config"
 	"github.com/aether/sync/internal/domain/transport"
 	"github.com/aether/sync/internal/infrastructure/p2p/signaling"
+	pb "github.com/aether/sync/api/proto"
 )
 
 // WANTransport WAN üzerinden P2P transport
@@ -439,6 +440,20 @@ func (t *WANTransport) SetOnTransferFinish(callback func(peerID, fileID string))
 func (t *WANTransport) SetOnTransferFinishAck(callback func(peerID, fileID string)) {
 	if t.connMgr != nil {
 		t.connMgr.SetOnTransferFinishAck(callback)
+	}
+}
+
+// SetOnChunkReceived chunk received callback'ini set eder
+func (t *WANTransport) SetOnChunkReceived(callback func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error) {
+	if t.connMgr != nil {
+		t.connMgr.SetOnChunkReceived(callback)
+	}
+}
+
+// SetOnFileDelete dosya silme callback'ini ayarlar
+func (t *WANTransport) SetOnFileDelete(callback func(peerID, fileID string)) {
+	if t.connMgr != nil {
+		t.connMgr.SetOnFileDelete(callback)
 	}
 }
 
