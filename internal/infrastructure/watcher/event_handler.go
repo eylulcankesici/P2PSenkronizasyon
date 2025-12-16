@@ -251,8 +251,10 @@ func (h *EventHandler) handleModify(event *FileEvent) error {
 	file.ModTime = fileInfo.ModTime()
 	file.UpdatedAt = time.Now()
 	// Eğer dosya silinmiş görünüyorsa, 'resurrect' et (geri getir)
+	wasDeleted := false
 	if file.IsDeleted {
 		file.IsDeleted = false
+		wasDeleted = true
 		log.Printf("♻️ Dosya 'resurrect' edildi (geri getirildi): %s", file.ID[:8])
 	}
 	
@@ -287,6 +289,15 @@ func (h *EventHandler) handleModify(event *FileEvent) error {
 				// Bu chunk değişti veya yeni
 				changedChunkIndices = append(changedChunkIndices, newChunk.ChunkIndex)
 			}
+		}
+		
+		// Eğer dosya resurrect edildiyse, değişiklik olmasa bile Full Sync tetikle (peer'da silinmiş olabilir)
+		if wasDeleted {
+			log.Printf("♻️ Dosya resurrect edildi, içerik aynı olsa bile Full Sync tetikleniyor: %s", event.Path)
+			if h.onFileChanged != nil {
+				return h.onFileChanged(file.ID, event.FolderID)
+			}
+			return nil
 		}
 		
 		if len(changedChunkIndices) == 0 {
