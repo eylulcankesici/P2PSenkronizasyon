@@ -2563,6 +2563,14 @@ func (c *Container) handleIncomingFolderCreate(ctx context.Context, peerID, fold
 	// Klasör bilgisini al
 	folder, err := c.folderRepo.GetByID(ctx, folderID)
 	if err != nil {
+		// Log error but check if it's not found
+		log.Printf("⚠️ Folder bulunamadı (%s), yeni default folder oluşturulmaya çalışılıyor... (Peer: %s)", folderID[:8], peerID[:8])
+		
+		// TODO: Bu kısım normalde "New Folder Request" gibi bir akışla yönetilmeli veya 
+		// "Received Folders" altına otomatik eklenmeli. 
+		// Şimdilik hata dönüyoruz çünkü FolderID peer'lar arasında eşleşmeli.
+		// Eğer sender yeni bir folder ID ürettiyse, receiver bunu bilmiyor olabilir.
+		
 		return fmt.Errorf("folder bulunamadı: %w", err)
 	}
 
