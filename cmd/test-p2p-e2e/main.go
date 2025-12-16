@@ -57,7 +57,7 @@ func main() {
 
 	// Dosya kaydı oluştur
 	fileInfo, _ := os.Stat(testFilePath)
-	testFile := entity.NewFile("test-p2p-folder", "test_transfer.txt", int64(len(testContent)), fileInfo.ModTime())
+	testFile := entity.NewFile("test-p2p-folder", "test_transfer.txt", int64(len(testContent)), fileInfo.ModTime(), false)
 	testFile.ID = "test-p2p-file"
 
 	if err := cont.FileRepository().Create(ctx, testFile); err != nil {

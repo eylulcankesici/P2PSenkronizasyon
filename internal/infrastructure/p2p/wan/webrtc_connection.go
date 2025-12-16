@@ -61,6 +61,7 @@ type WebRTCConnectionManager struct {
 	onTransferCancel    func(peerID, fileID string)
 	onTransferFinish    func(peerID, fileID string)
 	onTransferFinishAck func(peerID, fileID string)
+	onFolderCreate      func(peerID, folderID, relativePath string)
 	chunkHandler        func(chunkHash string) ([]byte, error)
 	onPeerIDUpdated     func(oldID, newID, newName string)
 }
@@ -534,6 +535,10 @@ func (m *WebRTCConnectionManager) SetOnTransferFinishAck(callback func(peerID, f
 	m.onTransferFinishAck = callback
 }
 
+func (m *WebRTCConnectionManager) SetOnFolderCreate(callback func(peerID, folderID, relativePath string)) {
+	m.onFolderCreate = callback
+}
+
 // GetPendingPeer gets and removes a pending peer
 func (m *WebRTCConnectionManager) GetPendingPeer(deviceID string) *WebRTCPeer {
 	m.mu.Lock()
@@ -858,6 +863,9 @@ func (m *WebRTCConnectionManager) HandleAnswer(deviceID, deviceName, answerSDP s
 		if m.onFileRename != nil {
 			conn.SetOnFileRename(m.onFileRename)
 		}
+		if m.onFolderCreate != nil {
+			conn.SetOnFolderCreate(m.onFolderCreate)
+		}
 
 		// Connection'ı kaydet
 		m.mu.Lock()
@@ -939,6 +947,7 @@ type WebRTCConnection struct {
 	onConnectionAccepted  func(deviceID, deviceName string)
 	onTransferFinish      func(peerID, fileID string)
 	onTransferFinishAck   func(peerID, fileID string)
+	onFolderCreate        func(peerID, folderID, relativePath string)
 
 	// Fragmentation
 	fragmentBuffer map[string]*fragmentAssembler
@@ -1098,6 +1107,8 @@ func (c *WebRTCConnection) handleIncomingMessage(data []byte) {
 		c.handleFragment(payload)
 	case lan.MessageTypeTransferFinish:
 		c.handleTransferFinish(payload)
+	case lan.MessageTypeFolderCreate:
+		c.handleFolderCreate(payload)
 	case lan.MessageTypeTransferFinishAck:
 		c.handleTransferFinishAck(payload)
 	case lan.MessageTypeConnectionRequest:
@@ -1395,6 +1406,47 @@ func (c *WebRTCConnection) SendMetadata(ctx context.Context, metadata *transport
 		return fmt.Errorf("metadata gönderilemedi: %w", err)
 	}
 
+	return nil
+}
+
+// SendFolderCreate klasör oluşturma bildirimini gönderir
+func (c *WebRTCConnection) SendFolderCreate(ctx context.Context, folderID, relativePath string) error {
+	c.mu.RLock()
+	dc := c.dataChannel
+	connected := c.connected
+	c.mu.RUnlock()
+
+	if !connected || dc == nil {
+		return fmt.Errorf("bağlantı kurulu değil veya data channel yok")
+	}
+
+	if dc.ReadyState() != webrtc.DataChannelStateOpen {
+		return fmt.Errorf("data channel açık değil: %s", dc.ReadyState().String())
+	}
+
+	// Payload oluştur
+	payload := lan.FolderCreatePayload{
+		FolderID:     folderID,
+		RelativePath: relativePath,
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("payload marshal edilemedi: %w", err)
+	}
+
+	// Encode et
+	frame, err := c.protocol.EncodeFolderCreate(payloadBytes)
+	if err != nil {
+		return fmt.Errorf("folder create encode edilemedi: %w", err)
+	}
+
+	// Data channel üzerinden gönder
+	if err := dc.Send(frame); err != nil {
+		return fmt.Errorf("folder create gönderilemedi: %w", err)
+	}
+
+	log.Printf("📁 Klasör oluşturma bildirimi gönderildi (WebRTC): %s/%s", folderID[:8], relativePath)
 	return nil
 }
 
@@ -1917,4 +1969,31 @@ func getString(m map[string]interface{}, key string) string {
 		return val
 	}
 	return ""
+}
+
+// SetOnFolderCreate folder create callback' ini ayarlar
+func (c *WebRTCConnection) SetOnFolderCreate(callback func(peerID, folderID, relativePath string)) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.onFolderCreate = callback
+}
+
+// handleFolderCreate gelen klasör oluşturma mesajını işler
+func (c *WebRTCConnection) handleFolderCreate(payload []byte) {
+	// Decode et
+	msg, err := c.protocol.DecodeFolderCreate(payload)
+	if err != nil {
+		log.Printf("⚠️ Folder create decode hatası (%s): %v", c.peerID[:8], err)
+		return
+	}
+
+	log.Printf("📁 Klasör oluşturma mesajı alındı: %s/%s", msg.FolderID[:8], msg.RelativePath)
+
+	c.mu.RLock()
+	callback := c.onFolderCreate
+	c.mu.RUnlock()
+
+	if callback != nil {
+		callback(c.peerID, msg.FolderID, msg.RelativePath)
+	}
 }

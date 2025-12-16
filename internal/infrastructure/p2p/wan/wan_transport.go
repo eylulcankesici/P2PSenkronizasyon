@@ -463,6 +463,13 @@ func (t *WANTransport) SetOnFileRename(callback func(peerID, fileID, oldPath, ne
 	}
 }
 
+// SetOnFolderCreate klasör oluşturma callback'ini ayarlar
+func (t *WANTransport) SetOnFolderCreate(callback func(peerID, folderID, relativePath string)) {
+	if t.connMgr != nil {
+		t.connMgr.SetOnFolderCreate(callback)
+	}
+}
+
 // StartSignaling signaling başlatır
 func (t *WANTransport) StartSignaling(serverURL, roomID string) (*signaling.SignalingClient, error) {
 	client := signaling.NewSignalingClient(serverURL)

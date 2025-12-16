@@ -199,3 +199,27 @@ func (r *FilePeerSyncRepository) GetPeerIDsByFolderID(ctx context.Context, folde
 
 	return peerIDs, nil
 }
+
+// MarkSynced dosya-peer senkronizasyonunu işaretler
+func (r *FilePeerSyncRepository) MarkSynced(ctx context.Context, fileID, peerID, senderDeviceID string) error {
+	return r.CreateOrUpdate(ctx, &entity.FilePeerSync{
+		FileID:         fileID,
+		PeerID:         peerID,
+		SenderDeviceID: senderDeviceID,
+		SyncedAt:       time.Now(),
+	})
+}
+
+// IsSynced dosyanın peer ile güncel olup olmadığını kontrol eder (synced_at >= file_updated_at)
+func (r *FilePeerSyncRepository) IsSynced(ctx context.Context, fileID, peerID string, fileUpdatedAt time.Time) (bool, error) {
+	sync, err := r.GetByFileAndPeerID(ctx, fileID, peerID)
+	if err != nil {
+		if err == entity.ErrNotFound {
+			return false, nil
+		}
+		return false, err
+	}
+	
+	// Eğer synced_at >= fileUpdatedAt ise günceldir
+	return !sync.SyncedAt.Before(fileUpdatedAt), nil
+}

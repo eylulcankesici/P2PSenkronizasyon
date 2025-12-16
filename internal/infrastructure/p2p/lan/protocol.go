@@ -41,6 +41,7 @@ const (
 	MessageTypeTransferFinish    = 0x000D // Transfer tamamlandı bildirimi
 	MessageTypeTransferFinishAck = 0x000E // Transfer tamamlandı onayı
 	MessageTypeFileRename        = 0x000F // Dosya yeniden adlandırma (peer-to-peer)
+	MessageTypeFolderCreate      = 0x0010 // Klasör oluşturma (peer-to-peer)
 
 	// Frame sizes
 	HeaderSize     = 16               // Magic(4) + Version(2) + Type(2) + Length(4) + CRC(4)
@@ -651,4 +652,24 @@ func (p *Protocol) DecodeFileRename(payload []byte) (string, string, string, err
 	}
 
 	return msg.FileID, msg.OldPath, msg.NewPath, nil
+}
+
+// EncodeFolderCreate klasör oluşturma mesajını encode eder
+func (p *Protocol) EncodeFolderCreate(payload []byte) ([]byte, error) {
+	return p.EncodeFrame(MessageTypeFolderCreate, payload)
+}
+
+// DecodeFolderCreate klasör oluşturma mesajını decode eder
+func (p *Protocol) DecodeFolderCreate(payload []byte) (FolderCreatePayload, error) {
+	var msg FolderCreatePayload
+	if err := json.Unmarshal(payload, &msg); err != nil {
+		return msg, fmt.Errorf("folder create payload decode edilemedi: %w", err)
+	}
+	return msg, nil
+}
+
+// FolderCreatePayload klasör oluşturma mesajı içeriği
+type FolderCreatePayload struct {
+	FolderID     string `json:"folder_id"`
+	RelativePath string `json:"relative_path"`
 }

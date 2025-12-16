@@ -30,8 +30,8 @@ func (r *FileRepository) Create(ctx context.Context, file *entity.File) error {
 	}
 
 	query := `
-		INSERT INTO files (id, folder_id, relative_path, size, mod_time, global_hash, is_deleted)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO files (id, folder_id, relative_path, size, mod_time, global_hash, is_deleted, is_directory)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	_, err := r.conn.DB().ExecContext(ctx, query,
@@ -42,6 +42,7 @@ func (r *FileRepository) Create(ctx context.Context, file *entity.File) error {
 		file.ModTime.Unix(),
 		file.GlobalHash,
 		file.IsDeleted,
+		file.IsDirectory,
 	)
 
 	if err != nil {
@@ -54,7 +55,7 @@ func (r *FileRepository) Create(ctx context.Context, file *entity.File) error {
 // GetByID ID'ye göre dosya getirir
 func (r *FileRepository) GetByID(ctx context.Context, id string) (*entity.File, error) {
 	query := `
-		SELECT id, folder_id, relative_path, size, mod_time, global_hash, is_deleted
+		SELECT id, folder_id, relative_path, size, mod_time, global_hash, is_deleted, is_directory
 		FROM files
 		WHERE id = ?
 	`
@@ -70,6 +71,7 @@ func (r *FileRepository) GetByID(ctx context.Context, id string) (*entity.File, 
 		&modTime,
 		&file.GlobalHash,
 		&file.IsDeleted,
+		&file.IsDirectory,
 	)
 
 	if err == sql.ErrNoRows {
@@ -94,7 +96,7 @@ func (r *FileRepository) GetByID(ctx context.Context, id string) (*entity.File, 
 // GetByPath klasör ID ve relative path'e göre dosya getirir
 func (r *FileRepository) GetByPath(ctx context.Context, folderID, relativePath string) (*entity.File, error) {
 	query := `
-		SELECT id, folder_id, relative_path, size, mod_time, global_hash, is_deleted
+		SELECT id, folder_id, relative_path, size, mod_time, global_hash, is_deleted, is_directory
 		FROM files
 		WHERE folder_id = ? AND relative_path = ?
 	`
@@ -110,6 +112,7 @@ func (r *FileRepository) GetByPath(ctx context.Context, folderID, relativePath s
 		&modTime,
 		&file.GlobalHash,
 		&file.IsDeleted,
+		&file.IsDirectory,
 	)
 
 	if err == sql.ErrNoRows {
@@ -134,7 +137,7 @@ func (r *FileRepository) GetByPath(ctx context.Context, folderID, relativePath s
 // GetByFolderID bir klasördeki tüm dosyaları getirir
 func (r *FileRepository) GetByFolderID(ctx context.Context, folderID string) ([]*entity.File, error) {
 	query := `
-		SELECT id, folder_id, relative_path, size, mod_time, global_hash, is_deleted
+		SELECT id, folder_id, relative_path, size, mod_time, global_hash, is_deleted, is_directory
 		FROM files
 		WHERE folder_id = ? AND is_deleted = 0
 		ORDER BY relative_path
@@ -160,6 +163,7 @@ func (r *FileRepository) GetByFolderID(ctx context.Context, folderID string) ([]
 			&modTime,
 			&file.GlobalHash,
 			&file.IsDeleted,
+			&file.IsDirectory,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("dosya taranamadı: %w", err)
@@ -183,7 +187,7 @@ func (r *FileRepository) GetByFolderID(ctx context.Context, folderID string) ([]
 // GetByHash hash değerine göre dosyaları getirir
 func (r *FileRepository) GetByHash(ctx context.Context, hash string) ([]*entity.File, error) {
 	query := `
-		SELECT id, folder_id, relative_path, size, mod_time, global_hash, is_deleted
+		SELECT id, folder_id, relative_path, size, mod_time, global_hash, is_deleted, is_directory
 		FROM files
 		WHERE global_hash = ? AND is_deleted = 0
 	`
@@ -208,6 +212,7 @@ func (r *FileRepository) GetByHash(ctx context.Context, hash string) ([]*entity.
 			&modTime,
 			&file.GlobalHash,
 			&file.IsDeleted,
+			&file.IsDirectory,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("dosya taranamadı: %w", err)
@@ -234,7 +239,7 @@ func (r *FileRepository) Update(ctx context.Context, file *entity.File) error {
 
 	query := `
 		UPDATE files
-		SET folder_id = ?, relative_path = ?, size = ?, mod_time = ?, global_hash = ?, is_deleted = ?
+		SET folder_id = ?, relative_path = ?, size = ?, mod_time = ?, global_hash = ?, is_deleted = ?, is_directory = ?
 		WHERE id = ?
 	`
 
@@ -245,6 +250,7 @@ func (r *FileRepository) Update(ctx context.Context, file *entity.File) error {
 		file.ModTime.Unix(),
 		file.GlobalHash,
 		file.IsDeleted,
+		file.IsDirectory,
 		file.ID,
 	)
 
@@ -313,7 +319,7 @@ func (r *FileRepository) HardDelete(ctx context.Context, id string) error {
 // GetModifiedSince belirli bir tarihten sonra değişen dosyaları getirir
 func (r *FileRepository) GetModifiedSince(ctx context.Context, folderID string, since int64) ([]*entity.File, error) {
 	query := `
-		SELECT id, folder_id, relative_path, size, mod_time, global_hash, is_deleted
+		SELECT id, folder_id, relative_path, size, mod_time, global_hash, is_deleted, is_directory
 		FROM files
 		WHERE folder_id = ? AND mod_time > ?
 		ORDER BY mod_time DESC
@@ -339,6 +345,7 @@ func (r *FileRepository) GetModifiedSince(ctx context.Context, folderID string, 
 			&modTime,
 			&file.GlobalHash,
 			&file.IsDeleted,
+			&file.IsDirectory,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("dosya taranamadı: %w", err)

@@ -51,6 +51,7 @@ func (m *Migration) RunMigrations() error {
 		{11, "add_folder_source", m.addFolderSource},
 		{12, "create_file_peer_sync_table", m.createFilePeerSyncTable},
 		{13, "cleanup_duplicate_files_and_add_unique_constraint", m.cleanupDuplicateFilesAndAddUniqueConstraint},
+		{14, "add_is_directory_column", m.addIsDirectoryColumn},
 	}
 
 	for _, migration := range migrations {
@@ -679,5 +680,18 @@ func (m *Migration) cleanupDuplicateFilesAndAddUniqueConstraint(db *sql.DB) erro
 		}
 	}
 
+	return nil
+}
+
+// addIsDirectoryColumn files tablosuna is_directory kolonu ekler (migration 14)
+func (m *Migration) addIsDirectoryColumn(db *sql.DB) error {
+	// is_directory kolonu ekle (default 0 - false)
+	_, err := db.Exec(`
+		ALTER TABLE files 
+		ADD COLUMN is_directory BOOLEAN NOT NULL DEFAULT 0
+	`)
+	if err != nil {
+		return fmt.Errorf("is_directory kolonu eklenemedi: %w", err)
+	}
 	return nil
 }

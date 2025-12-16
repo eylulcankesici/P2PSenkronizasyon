@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"time"
+
 	"github.com/aether/sync/internal/domain/entity"
 )
 
@@ -27,4 +29,10 @@ type FilePeerSyncRepository interface {
 
 	// GetPeerIDsByFolderID belirli bir folder'daki dosyaların sync edildiği tüm peer ID'lerini getirir (DISTINCT)
 	GetPeerIDsByFolderID(ctx context.Context, folderID string) ([]string, error)
+
+	// MarkSynced dosya-peer senkronizasyonunu işaretler
+	MarkSynced(ctx context.Context, fileID, peerID, senderDeviceID string) error
+
+	// IsSynced dosyanın peer ile güncel olup olmadığını kontrol eder (synced_at >= file_updated_at)
+	IsSynced(ctx context.Context, fileID, peerID string, fileUpdatedAt time.Time) (bool, error)
 }

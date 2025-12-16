@@ -14,12 +14,13 @@ type File struct {
 	GlobalHash   string    // Tüm dosyanın SHA-256 hash'i
 	ChunkCount   int       // Dosyanın kaç chunk'a bölündüğü
 	IsDeleted    bool      // Soft delete için
+	IsDirectory  bool      // Dosya mı klasör mü?
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
 
 // NewFile yeni bir File oluşturur
-func NewFile(folderID, relativePath string, size int64, modTime time.Time) *File {
+func NewFile(folderID, relativePath string, size int64, modTime time.Time, isDirectory bool) *File {
 	now := time.Now()
 	return &File{
 		FolderID:     folderID,
@@ -27,6 +28,7 @@ func NewFile(folderID, relativePath string, size int64, modTime time.Time) *File
 		Size:         size,
 		ModTime:      modTime,
 		IsDeleted:    false,
+		IsDirectory:  isDirectory,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}

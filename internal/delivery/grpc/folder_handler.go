@@ -459,6 +459,7 @@ func (h *FolderHandler) scanAndSaveFiles(ctx context.Context, folder *entity.Fol
 			result.Path,
 			result.Size,
 			time.Unix(result.ModTime, 0),
+			false, // isDirectory
 		)
 
 		// Veritabanına kaydet

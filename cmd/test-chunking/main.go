@@ -69,7 +69,7 @@ func main() {
 	}
 
 	// Dosya kaydı oluştur
-	file := entity.NewFile("test-folder-id", "aether_chunk_test.txt", int64(len(testData)), fileInfo.ModTime())
+	file := entity.NewFile("test-folder-id", "aether_chunk_test.txt", int64(len(testData)), fileInfo.ModTime(), false)
 	file.ID = "test-file-id-123"
 
 	if err := cont.FileRepository().Create(ctx, file); err != nil {
@@ -157,7 +157,7 @@ func main() {
 	}
 
 	// Aynı dosyayı tekrar ekle (deduplication testi)
-	file2 := entity.NewFile("test-folder-id-2", "aether_chunk_test_copy.txt", int64(len(testData)), fileInfo.ModTime())
+	file2 := entity.NewFile("test-folder-id-2", "aether_chunk_test_copy.txt", int64(len(testData)), fileInfo.ModTime(), false)
 	file2.ID = "test-file-id-456"
 
 	if err := cont.FileRepository().Create(ctx, file2); err != nil {

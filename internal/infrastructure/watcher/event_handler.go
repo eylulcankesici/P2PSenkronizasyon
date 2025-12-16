@@ -137,9 +137,10 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 		return fmt.Errorf("dosya bilgisi alınamadı: %w", err)
 	}
 
-	// Dizinse atla
-	if fileInfo.IsDir() {
-		return nil
+	// Dizin kontrolü
+	isDirectory := fileInfo.IsDir()
+	if isDirectory {
+		log.Printf("📁 FOLDER CREATE: %s (folder: %s)", event.Path, event.FolderID[:8])
 	}
 
 	// Dosya zaten veritabanında var mı? (Word RENAME+CREATE yapıyor)
@@ -221,6 +222,30 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 			if err := h.fileRepo.Update(ctx, oldFile); err != nil {
 				log.Printf("⚠️ Rename update hatası: %v", err)
 			} else {
+				// RECURSIVE RENAME: Eğer klasör ise, altındaki tüm dosyaların path'ini güncelle
+				if oldFile.IsDirectory {
+					files, err := h.fileRepo.GetByFolderID(ctx, event.FolderID)
+					if err == nil {
+						oldPrefix := renamedFromPath + string(filepath.Separator)
+						newPrefix := event.Path + string(filepath.Separator)
+						count := 0
+						for _, f := range files {
+							if strings.HasPrefix(f.RelativePath, oldPrefix) {
+								f.RelativePath = strings.Replace(f.RelativePath, oldPrefix, newPrefix, 1)
+								f.UpdatedAt = time.Now()
+								if err := h.fileRepo.Update(ctx, f); err != nil {
+									log.Printf("⚠️ Child file rename update hatası (%s): %v", f.ID[:8], err)
+								} else {
+									count++
+								}
+							}
+						}
+						if count > 0 {
+							log.Printf("♻️ Klasör rename: %d alt dosyanın path'i güncellendi", count)
+						}
+					}
+				}
+
 				// Rename sync tetikle
 				if h.onFileRenamed != nil {
 					if err := h.onFileRenamed(oldFile.ID, renamedFromPath, event.Path); err != nil {
@@ -233,16 +258,26 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 	}
 
 	// File entity oluştur
+	// İplik: Folder create support
 	file := entity.NewFile(
 		event.FolderID,
 		event.Path,
 		fileInfo.Size(),
 		fileInfo.ModTime(),
+		isDirectory,
 	)
 
 	// Veritabanına kaydet
 	if err := h.fileRepo.Create(ctx, file); err != nil {
 		return fmt.Errorf("dosya kaydedilemedi: %w", err)
+	}
+
+	// Eğer klasör ise chunking yapma, direkt sync tetikle
+	if isDirectory {
+		if h.onFileChanged != nil {
+			return h.onFileChanged(file.ID, event.FolderID)
+		}
+		return nil
 	}
 
 	// Chunk'lara ayır (eğer boyut > 0 ise)

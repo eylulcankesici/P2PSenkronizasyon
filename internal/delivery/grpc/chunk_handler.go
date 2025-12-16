@@ -48,7 +48,7 @@ func (h *ChunkHandler) ChunkFile(ctx context.Context, req *pb.ChunkFileRequest) 
 		if folderID == "" {
 			folderID = "temp-folder-id"
 		}
-		newFile := entity.NewFile(folderID, filepath.Base(req.FilePath), fileInfo.Size(), fileInfo.ModTime())
+		newFile := entity.NewFile(folderID, filepath.Base(req.FilePath), fileInfo.Size(), fileInfo.ModTime(), false)
 		newFile.ID = req.FileId
 
 		if err := h.container.FileRepository().Create(ctx, newFile); err != nil {

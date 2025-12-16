@@ -466,6 +466,8 @@ func (c *TCPConnection) handleMessage(messageType uint16, payload []byte) error 
 		return c.handleTransferCancel(payload)
 	case MessageTypeFileDelete:
 		return c.handleFileDelete(payload)
+	case MessageTypeFolderCreate:
+		return c.handleFolderCreate(payload)
 	default:
 		return fmt.Errorf("bilinmeyen mesaj tipi: 0x%04x", messageType)
 	}
@@ -860,6 +862,63 @@ func (c *TCPConnection) Close() error {
 	return nil
 }
 
+// SendFolderCreate klasör oluşturma bildirimi gönderir
+func (c *TCPConnection) SendFolderCreate(ctx context.Context, folderID, relativePath string) error {
+	c.sendMu.Lock()
+	defer c.sendMu.Unlock()
+
+	// Payload oluştur
+	payload := FolderCreatePayload{
+		FolderID:     folderID,
+		RelativePath: relativePath,
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("folder create payload marshal hatası: %w", err)
+	}
+
+	// Klasör oluşturma mesajı encode et
+	frame, err := c.protocol.EncodeFolderCreate(payloadBytes)
+	if err != nil {
+		return fmt.Errorf("folder create encode hatası: %w", err)
+	}
+
+	// Frame boyutunu gönder
+	if err := c.writeUint32(uint32(len(frame))); err != nil {
+		return fmt.Errorf("frame length yazılamadı: %w", err)
+	}
+
+	// Frame'i gönder
+	if _, err := c.conn.Write(frame); err != nil {
+		return fmt.Errorf("frame yazılamadı: %w", err)
+	}
+
+	log.Printf("📂 Klasör oluşturma bildirimi gönderildi: %s (path: %s)", folderID[:8], relativePath)
+	return nil
+}
+
+// handleFolderCreate klasör oluşturma bildirimini işler
+func (c *TCPConnection) handleFolderCreate(payload []byte) error {
+	// Payload decode et
+	msg, err := c.protocol.DecodeFolderCreate(payload)
+	if err != nil {
+		return fmt.Errorf("folder create decode hatası: %w", err)
+	}
+
+	log.Printf("📂 Klasör oluşturma bildirimi alındı: folder=%s, path=%s (peer: %s)", msg.FolderID[:8], msg.RelativePath, c.peerID[:8])
+
+	// Manager varsa ve onFolderCreate callback'i varsa, klasörü oluştur
+	if c.manager != nil && c.manager.onFolderCreate != nil {
+		c.manager.onFolderCreate(c.peerID, msg.FolderID, msg.RelativePath)
+		log.Printf("  ✅ Klasör oluşturma callback'i çağrıldı")
+	} else {
+		log.Printf("  ⚠️ Klasör oluşturma callback'i tanımlı değil")
+	}
+
+	return nil
+}
+
 // GetPeerID peer ID'sini döner
 func (c *TCPConnection) GetPeerID() string {
 	return c.peerID
@@ -948,6 +1007,7 @@ type TCPConnectionManager struct {
 	onChunkReceived         func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error
 	onTransferCancel        func(peerID, fileID string) // Transfer iptal bildirimi callback'i
 	onFileDelete            func(peerID, fileID string) // Dosya silme bildirimi callback'i
+	onFolderCreate          func(peerID, folderID, relativePath string) // Klasör oluşturma bildirimi callback'i
 }
 
 // NewTCPConnectionManager yeni TCP connection manager oluşturur
@@ -1214,6 +1274,11 @@ func (m *TCPConnectionManager) SetOnTransferCancel(callback func(peerID, fileID 
 // SetOnFileDelete dosya silme callback'ini ayarlar
 func (m *TCPConnectionManager) SetOnFileDelete(callback func(peerID, fileID string)) {
 	m.onFileDelete = callback
+}
+
+// SetOnFolderCreate klasör oluşturma callback'ini ayarlar
+func (m *TCPConnectionManager) SetOnFolderCreate(callback func(peerID, folderID, relativePath string)) {
+	m.onFolderCreate = callback
 }
 
 // handleConnectionLost bağlantı kaybını işler (internal)

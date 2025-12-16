@@ -565,6 +565,15 @@ func (c *Container) initUseCases() error {
 			}
 		})
 
+
+
+		// Klasör oluşturma callback'ini bağla
+		connMgr.SetOnFolderCreate(func(peerID, folderID, relativePath string) {
+			if err := c.handleIncomingFolderCreate(context.Background(), peerID, folderID, relativePath); err != nil {
+				log.Printf("⚠️ Incoming folder create handling error (LAN): %v", err)
+			}
+		})
+
 		log.Println("✓ Dosya silme callback bağlandı (LAN)")
 	}
 
@@ -907,6 +916,13 @@ func (c *Container) initP2PTransport() error {
 		tempWAN.SetOnFileRename(func(peerID, fileID, oldPath, newPath string) {
 			if err := c.handleIncomingFileRename(context.Background(), fileID, oldPath, newPath); err != nil {
 				log.Printf("⚠️ Incoming file rename handling error: %v", err)
+			}
+		})
+
+		// WAN Folder create callback
+		tempWAN.SetOnFolderCreate(func(peerID, folderID, relativePath string) {
+			if err := c.handleIncomingFolderCreate(context.Background(), peerID, folderID, relativePath); err != nil {
+				log.Printf("⚠️ Incoming folder create handling error: %v", err)
 			}
 		})
 
@@ -1356,7 +1372,7 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 					}
 				} else {
 					// Yeni file oluştur
-					newFile := entity.NewFile(folderID, finalFileName, 0, time.Now())
+					newFile := entity.NewFile(folderID, finalFileName, 0, time.Now(), false)
 					newFile.ID = fileID
 					if err := c.fileRepo.Create(ctx, newFile); err != nil {
 						log.Printf("  ⚠️ File entity oluşturulamadı: %v", err)
@@ -1847,6 +1863,51 @@ func (c *Container) syncFileToAllPeers(fileID, folderID string) error {
 		return nil
 	}
 
+	// File entity'yi al (Directory check için)
+	file, err := c.fileRepo.GetByID(ctx, fileID)
+	if err != nil {
+		log.Printf("⚠️ Dosya bilgisi alınamadı (syncFileToAllPeers): %v", err)
+		return nil
+	}
+
+	// IS DIRECTORY CHECK
+	if file.IsDirectory {
+		log.Printf("📂 Klasör sync ediliyor: %s -> %d peer", file.RelativePath, len(allConnections))
+		
+		for _, conn := range allConnections {
+			pid := conn.GetPeerID()
+			
+			// Auto-sync mantığı: Sadece send/bidirectional ise gönder
+			// Folder sync mode zaten yukarıda kontrol edildi
+			
+			// WebRTC connection mı?
+			if webrtcConn, ok := conn.(interface {
+				SendFolderCreate(ctx context.Context, folderID, relativePath string) error
+			}); ok {
+				go func(pid string) {
+					// Peer sync check yapabiliriz (file_peer_sync) ama klasörler için çok kritik değil, idempotent
+					// Yine de kontrol edelim
+					isSynced, err := c.filePeerSyncRepo.IsSynced(ctx, fileID, pid, file.UpdatedAt)
+					if err == nil && isSynced {
+						return 
+					}
+
+					log.Printf("📤 Folder create gönderiliyor: %s -> %s", file.RelativePath, pid[:8])
+					if err := webrtcConn.SendFolderCreate(ctx, folderID, file.RelativePath); err != nil {
+						log.Printf("⚠️ Folder create gönderilemedi: %v", err)
+					} else {
+						// Sync başarılı, kaydet
+						deviceID, _ := c.GetDeviceID()
+						c.filePeerSyncRepo.MarkSynced(ctx, fileID, pid, deviceID)
+					}
+				}(pid)
+			} else {
+				log.Printf("⚠️ Peer connection folder create desteklemiyor: %s", pid[:8])
+			}
+		}
+		return nil
+	}
+
 	log.Printf("🔄 Dosya otomatik sync ediliyor: %s -> %d peer", fileID[:8], len(allConnections))
 
 	// Her peer'a sync et - SADECE DAHA ÖNCE SENKRONİZE EDİLMİŞ DOSYALAR İÇİN
@@ -2310,12 +2371,24 @@ func (c *Container) handleIncomingFileDelete(ctx context.Context, peerID, fileID
 	// Dosya yolunu oluştur
 	filePath := filepath.Join(folder.LocalPath, file.RelativePath)
 
-	// Dosyayı diskten sil
-	if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
-		log.Printf("⚠️ Dosya diskten silinemedi: %v", err)
+	// Watcher'ı geçici olarak ignore et (loop'u önlemek için)
+	if c.eventHandler != nil {
+		c.eventHandler.IgnoreFile(folder.ID, file.RelativePath)
+	}
+
+	// Dosyayı/Klasörü diskten sil
+	var rmErr error
+	if file.IsDirectory {
+		rmErr = os.RemoveAll(filePath)
+	} else {
+		rmErr = os.Remove(filePath)
+	}
+
+	if rmErr != nil && !os.IsNotExist(rmErr) {
+		log.Printf("⚠️ Diskten silinemedi: %v", rmErr)
 		// Diskten silinemese bile DB'den silmeye devam et
 	} else {
-		log.Printf("  ✅ Dosya diskten silindi: %s", filePath)
+		log.Printf("  ✅ Diskten silindi: %s", filePath)
 	}
 
 	// Dosyayı DB'den sil
@@ -2448,5 +2521,72 @@ func (c *Container) handleIncomingFileRename(ctx context.Context, fileID, oldPat
 	}
 	log.Printf("  ✅ DB rename başarılı: %s", fileID[:8])
 
+	// RECURSIVE RENAME: Eğer klasör ise, altındaki tüm dosyaların path'ini güncelle (alıcı taraf)
+	if file.IsDirectory {
+		files, err := c.fileRepo.GetByFolderID(ctx, file.FolderID)
+		if err == nil {
+			oldPrefix := oldPath + string(filepath.Separator)
+			newPrefix := newPath + string(filepath.Separator)
+			count := 0
+			for _, f := range files {
+				if strings.HasPrefix(f.RelativePath, oldPrefix) {
+					f.RelativePath = strings.Replace(f.RelativePath, oldPrefix, newPrefix, 1)
+					f.UpdatedAt = time.Now()
+					if err := c.fileRepo.Update(ctx, f); err != nil {
+						log.Printf("⚠️ Child file rename update hatası (%s): %v", f.ID[:8], err)
+					} else {
+						count++
+					}
+				}
+			}
+			if count > 0 {
+				log.Printf("♻️ Klasör rename (incoming): %d alt dosyanın path'i güncellendi", count)
+			}
+		}
+	}
+
+	return nil
+}
+
+// handleIncomingFolderCreate gelen klasör oluşturma isteğini işler
+func (c *Container) handleIncomingFolderCreate(ctx context.Context, peerID, folderID, relativePath string) error {
+	log.Printf("📂 Incoming folder create: folder=%s, path=%s, peer=%s", folderID[:8], relativePath, peerID[:8])
+
+	// Klasör bilgisini al
+	folder, err := c.folderRepo.GetByID(ctx, folderID)
+	if err != nil {
+		return fmt.Errorf("folder bulunamadı: %w", err)
+	}
+
+	// Path check
+	if strings.Contains(relativePath, "..") {
+		return fmt.Errorf("invalid relative path: %s", relativePath)
+	}
+
+	absPath := filepath.Join(folder.LocalPath, relativePath)
+
+	// File Watcher'ı geçici olarak ignore et (loop'u önlemek için)
+	c.eventHandler.IgnoreFile(folderID, relativePath)
+
+	// Klasörü oluştur (fiziksel)
+	if err := os.MkdirAll(absPath, 0755); err != nil {
+		return fmt.Errorf("klasör oluşturulamadı: %w", err)
+	}
+
+	// DB'de var mı kontrol et
+	existingFile, err := c.fileRepo.GetByPath(ctx, folderID, relativePath)
+	if err == nil && existingFile != nil {
+		// Zaten var, güncellemeye gerek yok
+		return nil
+	}
+
+	// DB'ye kaydet
+	// isDirectory = true
+	newFile := entity.NewFile(folderID, relativePath, 0, time.Now(), true)
+	if err := c.fileRepo.Create(ctx, newFile); err != nil {
+		return fmt.Errorf("klasör DB'ye kaydedilemedi: %w", err)
+	}
+
+	log.Printf("✅ Klasör oluşturuldu ve DB'ye kaydedildi: %s", relativePath)
 	return nil
 }
