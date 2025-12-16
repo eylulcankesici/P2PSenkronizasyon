@@ -167,6 +167,9 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 		if m.onFileRename != nil {
 			webrtcConn.SetOnFileRename(m.onFileRename)
 		}
+		if m.onFolderCreate != nil {
+			webrtcConn.SetOnFolderCreate(m.onFolderCreate)
+		}
 
 		// Handshake isteği gönder
 		go func() {
@@ -264,6 +267,9 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 	}
 	if m.onFileRename != nil {
 		webrtcConn.SetOnFileRename(m.onFileRename)
+	}
+	if m.onFolderCreate != nil {
+		webrtcConn.SetOnFolderCreate(m.onFolderCreate)
 	}
 
 	// SDP offer oluştur
@@ -749,6 +755,9 @@ func (m *WebRTCConnectionManager) RegisterConnection(deviceID string, conn *WebR
 	}
 	if m.onFileRename != nil {
 		conn.SetOnFileRename(m.onFileRename)
+	}
+	if m.onFolderCreate != nil {
+		conn.SetOnFolderCreate(m.onFolderCreate)
 	}
 	if m.onTransferFinish != nil {
 		conn.SetOnTransferFinish(m.onTransferFinish)
