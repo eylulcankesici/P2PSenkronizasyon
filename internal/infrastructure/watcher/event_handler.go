@@ -36,7 +36,8 @@ type EventHandler struct {
 	eventBroadcaster *EventBroadcaster
 	
 	// Ignore listesi (kullanıcı tarafından silinen dosyalar - file watcher tarafından tekrar eklenmemeli)
-	ignoredFiles sync.Map // map[string]bool - "folderID:relativePath" -> bool
+	// map[string]time.Time - "folderID:relativePath" -> expiryTime
+	ignoredFiles sync.Map 
 }
 
 // NewEventHandler yeni EventHandler oluşturur
@@ -145,10 +146,17 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 	
 	// SADECE FILE WATCHER'IN OTOMATİK CREATE EVENT'İNDE: Ignore listesi kontrol et
 	// (Kullanıcı tarafından silinen dosyalar file watcher tarafından tekrar eklenmemeli)
+	// (Kullanıcı tarafından silinen dosyalar file watcher tarafından tekrar eklenmemeli)
 	ignoreKey := fmt.Sprintf("%s:%s", event.FolderID, event.Path)
-	if _, ignored := h.ignoredFiles.Load(ignoreKey); ignored {
-		log.Printf("🚫 CREATE ignored (kullanıcı tarafından silindi): %s", event.Path)
-		return nil // Ignore et, ekleme
+	if val, ok := h.ignoredFiles.Load(ignoreKey); ok {
+		expiry := val.(time.Time)
+		if time.Now().Before(expiry) {
+			log.Printf("🚫 CREATE ignored (kullanıcı tarafından silindi, expires in %v): %s", time.Until(expiry), event.Path)
+			return nil // Ignore et, ekleme
+		} else {
+			// Süresi dolmuş, listeden sil
+			h.ignoredFiles.Delete(ignoreKey)
+		}
 	}
 	
 	log.Printf("📄 CREATE: %s (folder: %s)", event.Path, event.FolderID[:8])
@@ -401,10 +409,11 @@ func (h *EventHandler) SetOnFileDeleted(callback func(fileID, folderID string) e
 }
 
 // IgnoreFile dosyayı ignore listesine ekler (kullanıcı tarafından silindi, file watcher tekrar eklememeli)
+// 3 saniye boyunca ignore edilir (tekrar eklenirse döngü oluşmasın diye)
 func (h *EventHandler) IgnoreFile(folderID, relativePath string) {
 	ignoreKey := fmt.Sprintf("%s:%s", folderID, relativePath)
-	h.ignoredFiles.Store(ignoreKey, true)
-	log.Printf("🚫 Dosya ignore listesine eklendi: %s (folder: %s)", relativePath, folderID[:8])
+	h.ignoredFiles.Store(ignoreKey, time.Now().Add(3*time.Second))
+	log.Printf("🚫 Dosya ignore listesine eklendi (3sn): %s (folder: %s)", relativePath, folderID[:8])
 }
 
 // UnignoreFile dosyayı ignore listesinden çıkarır (kullanıcı manuel olarak tekrar eklemek isterse)
