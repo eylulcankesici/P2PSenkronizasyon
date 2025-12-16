@@ -250,6 +250,11 @@ func (h *EventHandler) handleModify(event *FileEvent) error {
 	file.Size = fileInfo.Size()
 	file.ModTime = fileInfo.ModTime()
 	file.UpdatedAt = time.Now()
+	// Eğer dosya silinmiş görünüyorsa, 'resurrect' et (geri getir)
+	if file.IsDeleted {
+		file.IsDeleted = false
+		log.Printf("♻️ Dosya 'resurrect' edildi (geri getirildi): %s", file.ID[:8])
+	}
 	
 	if err := h.fileRepo.Update(ctx, file); err != nil {
 		return fmt.Errorf("dosya güncellenemedi: %w", err)
