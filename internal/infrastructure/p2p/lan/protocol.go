@@ -671,5 +671,6 @@ func (p *Protocol) DecodeFolderCreate(payload []byte) (FolderCreatePayload, erro
 // FolderCreatePayload klasör oluşturma mesajı içeriği
 type FolderCreatePayload struct {
 	FolderID     string `json:"folder_id"`
+	FolderName   string `json:"folder_name"`
 	RelativePath string `json:"relative_path"`
 }

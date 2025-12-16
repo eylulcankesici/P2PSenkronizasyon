@@ -464,7 +464,7 @@ func (t *WANTransport) SetOnFileRename(callback func(peerID, fileID, oldPath, ne
 }
 
 // SetOnFolderCreate klasör oluşturma callback'ini ayarlar
-func (t *WANTransport) SetOnFolderCreate(callback func(peerID, folderID, relativePath string)) {
+func (t *WANTransport) SetOnFolderCreate(callback func(peerID, folderID, folderName, relativePath string)) {
 	if t.connMgr != nil {
 		t.connMgr.SetOnFolderCreate(callback)
 	}

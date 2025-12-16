@@ -568,8 +568,8 @@ func (c *Container) initUseCases() error {
 
 
 		// Klasör oluşturma callback'ini bağla
-		connMgr.SetOnFolderCreate(func(peerID, folderID, relativePath string) {
-			if err := c.handleIncomingFolderCreate(context.Background(), peerID, folderID, relativePath); err != nil {
+		connMgr.SetOnFolderCreate(func(peerID, folderID, folderName, relativePath string) {
+			if err := c.handleIncomingFolderCreate(context.Background(), peerID, folderID, folderName, relativePath); err != nil {
 				log.Printf("⚠️ Incoming folder create handling error (LAN): %v", err)
 			}
 		})
@@ -673,8 +673,8 @@ func (c *Container) initUseCases() error {
 			})
 			
 			// Klasör oluşturma callback'ini bağla
-			connMgr.SetOnFolderCreate(func(peerID, folderID, relativePath string) {
-				if err := c.handleIncomingFolderCreate(context.Background(), peerID, folderID, relativePath); err != nil {
+			connMgr.SetOnFolderCreate(func(peerID, folderID, folderName, relativePath string) {
+				if err := c.handleIncomingFolderCreate(context.Background(), peerID, folderID, folderName, relativePath); err != nil {
 					log.Printf("⚠️ Incoming folder create handling error (WAN): %v", err)
 				}
 			})
@@ -928,8 +928,8 @@ func (c *Container) initP2PTransport() error {
 		})
 
 		// WAN Folder create callback
-		tempWAN.SetOnFolderCreate(func(peerID, folderID, relativePath string) {
-			if err := c.handleIncomingFolderCreate(context.Background(), peerID, folderID, relativePath); err != nil {
+		tempWAN.SetOnFolderCreate(func(peerID, folderID, folderName, relativePath string) {
+			if err := c.handleIncomingFolderCreate(context.Background(), peerID, folderID, folderName, relativePath); err != nil {
 				log.Printf("⚠️ Incoming folder create handling error: %v", err)
 			}
 		})
@@ -1890,7 +1890,7 @@ func (c *Container) syncFileToAllPeers(fileID, folderID string) error {
 			
 			// WebRTC connection mı?
 			if webrtcConn, ok := conn.(interface {
-				SendFolderCreate(ctx context.Context, folderID, relativePath string) error
+				SendFolderCreate(ctx context.Context, folderID, folderName, relativePath string) error
 			}); ok {
 				go func(pid string) {
 					// Peer sync check yapabiliriz (file_peer_sync) ama klasörler için çok kritik değil, idempotent
@@ -1901,7 +1901,8 @@ func (c *Container) syncFileToAllPeers(fileID, folderID string) error {
 					}
 
 					log.Printf("📤 Folder create gönderiliyor: %s -> %s", file.RelativePath, pid[:8])
-					if err := webrtcConn.SendFolderCreate(ctx, folderID, file.RelativePath); err != nil {
+					folderName := filepath.Base(folder.LocalPath)
+					if err := webrtcConn.SendFolderCreate(ctx, folderID, folderName, file.RelativePath); err != nil {
 						log.Printf("⚠️ Folder create gönderilemedi: %v", err)
 					} else {
 						// Sync başarılı, kaydet
@@ -2557,21 +2558,34 @@ func (c *Container) handleIncomingFileRename(ctx context.Context, fileID, oldPat
 }
 
 // handleIncomingFolderCreate gelen klasör oluşturma isteğini işler
-func (c *Container) handleIncomingFolderCreate(ctx context.Context, peerID, folderID, relativePath string) error {
-	log.Printf("📂 Incoming folder create: folder=%s, path=%s, peer=%s", folderID[:8], relativePath, peerID[:8])
+func (c *Container) handleIncomingFolderCreate(ctx context.Context, peerID, folderID, folderName, relativePath string) error {
+	log.Printf("📂 Incoming folder create: folder=%s, name=%s, path=%s, peer=%s", folderID[:8], folderName, relativePath, peerID[:8])
 
 	// Klasör bilgisini al
 	folder, err := c.folderRepo.GetByID(ctx, folderID)
 	if err != nil {
-		// Log error but check if it's not found
-		log.Printf("⚠️ Folder bulunamadı (%s), yeni default folder oluşturulmaya çalışılıyor... (Peer: %s)", folderID[:8], peerID[:8])
+		log.Printf("⚠️ Folder bulunamadı (%s) - hash-based fallback deneniyor...", folderID[:8])
 		
-		// TODO: Bu kısım normalde "New Folder Request" gibi bir akışla yönetilmeli veya 
-		// "Received Folders" altına otomatik eklenmeli. 
-		// Şimdilik hata dönüyoruz çünkü FolderID peer'lar arasında eşleşmeli.
-		// Eğer sender yeni bir folder ID ürettiyse, receiver bunu bilmiyor olabilir.
-		
-		return fmt.Errorf("folder bulunamadı: %w", err)
+		// Fallback: FolderName'den hash üretip tekrar dene (handleIncomingChunk mantığı)
+		if folderName != "" {
+			hash := sha256.Sum256([]byte(folderName))
+			fallbackID := hex.EncodeToString(hash[:])[:32]
+			
+			log.Printf("  🔍 Fallback ID hesaplandı: %s (Name: %s)", fallbackID[:8], folderName)
+			
+			folder, err = c.folderRepo.GetByID(ctx, fallbackID)
+			if err == nil && folder != nil {
+				folderID = fallbackID // ID'yi güncelle
+				log.Printf("  ✅ Fallback folder bulundu: %s", folderID[:8])
+			} else {
+				// Hala bulunamadıysa, son çare olarak bu isimde bir Received folder var mı?
+				// Şu an için yoksa hata dönüyoruz, çünkü folder'ı sıfırdan oluşturmak
+				// "New Folder Request" kapsamına girer.
+				return fmt.Errorf("folder bulunamadı (fallback denendi): %w", err)
+			}
+		} else {
+			return fmt.Errorf("folder bulunamadı ve folderName boş: %w", err)
+		}
 	}
 
 	// Path check

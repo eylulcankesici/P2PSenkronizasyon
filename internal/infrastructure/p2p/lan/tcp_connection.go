@@ -863,13 +863,14 @@ func (c *TCPConnection) Close() error {
 }
 
 // SendFolderCreate klasör oluşturma bildirimi gönderir
-func (c *TCPConnection) SendFolderCreate(ctx context.Context, folderID, relativePath string) error {
+func (c *TCPConnection) SendFolderCreate(ctx context.Context, folderID, folderName, relativePath string) error {
 	c.sendMu.Lock()
 	defer c.sendMu.Unlock()
 
 	// Payload oluştur
 	payload := FolderCreatePayload{
 		FolderID:     folderID,
+		FolderName:   folderName,
 		RelativePath: relativePath,
 	}
 
@@ -906,11 +907,11 @@ func (c *TCPConnection) handleFolderCreate(payload []byte) error {
 		return fmt.Errorf("folder create decode hatası: %w", err)
 	}
 
-	log.Printf("📂 Klasör oluşturma bildirimi alındı: folder=%s, path=%s (peer: %s)", msg.FolderID[:8], msg.RelativePath, c.peerID[:8])
+	log.Printf("📂 Klasör oluşturma bildirimi alındı: folder=%s, path=%s (peer: %s), FolderName: %s", msg.FolderID[:8], msg.RelativePath, c.peerID[:8], msg.FolderName)
 
 	// Manager varsa ve onFolderCreate callback'i varsa, klasörü oluştur
 	if c.manager != nil && c.manager.onFolderCreate != nil {
-		c.manager.onFolderCreate(c.peerID, msg.FolderID, msg.RelativePath)
+		c.manager.onFolderCreate(c.peerID, msg.FolderID, msg.FolderName, msg.RelativePath)
 		log.Printf("  ✅ Klasör oluşturma callback'i çağrıldı")
 	} else {
 		log.Printf("  ⚠️ Klasör oluşturma callback'i tanımlı değil")
@@ -1007,7 +1008,7 @@ type TCPConnectionManager struct {
 	onChunkReceived         func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error
 	onTransferCancel        func(peerID, fileID string) // Transfer iptal bildirimi callback'i
 	onFileDelete            func(peerID, fileID string) // Dosya silme bildirimi callback'i
-	onFolderCreate          func(peerID, folderID, relativePath string) // Klasör oluşturma bildirimi callback'i
+	onFolderCreate          func(peerID, folderID, folderName, relativePath string) // Klasör oluşturma bildirimi callback'i
 }
 
 // NewTCPConnectionManager yeni TCP connection manager oluşturur
@@ -1277,7 +1278,7 @@ func (m *TCPConnectionManager) SetOnFileDelete(callback func(peerID, fileID stri
 }
 
 // SetOnFolderCreate klasör oluşturma callback'ini ayarlar
-func (m *TCPConnectionManager) SetOnFolderCreate(callback func(peerID, folderID, relativePath string)) {
+func (m *TCPConnectionManager) SetOnFolderCreate(callback func(peerID, folderID, folderName, relativePath string)) {
 	m.onFolderCreate = callback
 }
 

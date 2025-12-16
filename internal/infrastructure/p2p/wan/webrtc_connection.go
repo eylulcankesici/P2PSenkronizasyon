@@ -61,7 +61,7 @@ type WebRTCConnectionManager struct {
 	onTransferCancel    func(peerID, fileID string)
 	onTransferFinish    func(peerID, fileID string)
 	onTransferFinishAck func(peerID, fileID string)
-	onFolderCreate      func(peerID, folderID, relativePath string)
+	onFolderCreate      func(peerID, folderID, folderName, relativePath string)
 	chunkHandler        func(chunkHash string) ([]byte, error)
 	onPeerIDUpdated     func(oldID, newID, newName string)
 }
@@ -541,7 +541,7 @@ func (m *WebRTCConnectionManager) SetOnTransferFinishAck(callback func(peerID, f
 	m.onTransferFinishAck = callback
 }
 
-func (m *WebRTCConnectionManager) SetOnFolderCreate(callback func(peerID, folderID, relativePath string)) {
+func (m *WebRTCConnectionManager) SetOnFolderCreate(callback func(peerID, folderID, folderName, relativePath string)) {
 	m.onFolderCreate = callback
 }
 
@@ -956,7 +956,7 @@ type WebRTCConnection struct {
 	onConnectionAccepted  func(deviceID, deviceName string)
 	onTransferFinish      func(peerID, fileID string)
 	onTransferFinishAck   func(peerID, fileID string)
-	onFolderCreate        func(peerID, folderID, relativePath string)
+	onFolderCreate        func(peerID, folderID, folderName, relativePath string)
 
 	// Fragmentation
 	fragmentBuffer map[string]*fragmentAssembler
@@ -1419,7 +1419,7 @@ func (c *WebRTCConnection) SendMetadata(ctx context.Context, metadata *transport
 }
 
 // SendFolderCreate klasör oluşturma bildirimini gönderir
-func (c *WebRTCConnection) SendFolderCreate(ctx context.Context, folderID, relativePath string) error {
+func (c *WebRTCConnection) SendFolderCreate(ctx context.Context, folderID, folderName, relativePath string) error {
 	c.mu.RLock()
 	dc := c.dataChannel
 	connected := c.connected
@@ -1436,6 +1436,7 @@ func (c *WebRTCConnection) SendFolderCreate(ctx context.Context, folderID, relat
 	// Payload oluştur
 	payload := lan.FolderCreatePayload{
 		FolderID:     folderID,
+		FolderName:   folderName,
 		RelativePath: relativePath,
 	}
 
@@ -1981,7 +1982,7 @@ func getString(m map[string]interface{}, key string) string {
 }
 
 // SetOnFolderCreate folder create callback' ini ayarlar
-func (c *WebRTCConnection) SetOnFolderCreate(callback func(peerID, folderID, relativePath string)) {
+func (c *WebRTCConnection) SetOnFolderCreate(callback func(peerID, folderID, folderName, relativePath string)) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.onFolderCreate = callback
@@ -1996,13 +1997,13 @@ func (c *WebRTCConnection) handleFolderCreate(payload []byte) {
 		return
 	}
 
-	log.Printf("📁 Klasör oluşturma mesajı alındı: %s/%s", msg.FolderID[:8], msg.RelativePath)
+	log.Printf("📁 Klasör oluşturma mesajı alındı: %s/%s (Folder: %s)", msg.FolderID[:8], msg.RelativePath, msg.FolderName)
 
 	c.mu.RLock()
 	callback := c.onFolderCreate
 	c.mu.RUnlock()
 
 	if callback != nil {
-		callback(c.peerID, msg.FolderID, msg.RelativePath)
+		callback(c.peerID, msg.FolderID, msg.FolderName, msg.RelativePath)
 	}
 }
