@@ -24,12 +24,12 @@ func (h *Hasher) HashFile(filePath string) (string, error) {
 		return "", fmt.Errorf("dosya açılamadı: %w", err)
 	}
 	defer file.Close()
-	
+
 	hasher := sha256.New()
 	if _, err := io.Copy(hasher, file); err != nil {
 		return "", fmt.Errorf("dosya hash'i hesaplanamadı: %w", err)
 	}
-	
+
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
@@ -50,7 +50,7 @@ func (h *Hasher) VerifyFileHash(filePath, expectedHash string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	
+
 	return actualHash == expectedHash, nil
 }
 
@@ -60,16 +60,11 @@ func (h *Hasher) CompareFiles(file1Path, file2Path string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("dosya1 hash'i hesaplanamadı: %w", err)
 	}
-	
+
 	hash2, err := h.HashFile(file2Path)
 	if err != nil {
 		return false, fmt.Errorf("dosya2 hash'i hesaplanamadı: %w", err)
 	}
-	
+
 	return hash1 == hash2, nil
 }
-
-
-
-
-

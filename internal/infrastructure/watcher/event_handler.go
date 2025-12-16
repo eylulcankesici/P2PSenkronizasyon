@@ -22,25 +22,25 @@ type EventHandler struct {
 	folderRepo    repository.FolderRepository
 	chunkRepo     repository.ChunkRepository
 	debounceDelay time.Duration
-	
+
 	// Debouncing için
-	pendingEvents map[string]*FileEvent      // path -> event
-	eventTimers   map[string]*time.Timer     // path -> timer
-	eventMu       sync.Mutex                 // Debouncing map'leri için mutex
-	
+	pendingEvents map[string]*FileEvent  // path -> event
+	eventTimers   map[string]*time.Timer // path -> timer
+	eventMu       sync.Mutex             // Debouncing map'leri için mutex
+
 	// Sync callbacks
-	onFileChanged      func(fileID, folderID string) error                    // Tüm dosya için sync (CREATE)
-	onChunksChanged    func(fileID, folderID string, changedChunks []int) error // Sadece değişen chunk'lar için sync (MODIFY)
-	onFileDeleted      func(fileID, folderID string) error                    // Dosya silindi sync (DELETE)
-	onFileRenamed      func(fileID, oldPath, newPath string) error            // Dosya yeniden adlandırıldı sync (RENAME)
-	
+	onFileChanged   func(fileID, folderID string) error                      // Tüm dosya için sync (CREATE)
+	onChunksChanged func(fileID, folderID string, changedChunks []int) error // Sadece değişen chunk'lar için sync (MODIFY)
+	onFileDeleted   func(fileID, folderID string) error                      // Dosya silindi sync (DELETE)
+	onFileRenamed   func(fileID, oldPath, newPath string) error              // Dosya yeniden adlandırıldı sync (RENAME)
+
 	// Event broadcaster (UI için)
 	eventBroadcaster *EventBroadcaster
-	
+
 	// Ignore listesi (kullanıcı tarafından silinen dosyalar - file watcher tarafından tekrar eklenmemeli)
 	// map[string]time.Time - "folderID:relativePath" -> expiryTime
-	ignoredFiles sync.Map 
-	
+	ignoredFiles sync.Map
+
 	// Rename tespiti için (OldPath -> Timestamp)
 	// Rename işlemi genellikle: RENAME(old) -> CREATE(new) şeklinde gelir
 	pendingRenames sync.Map // map[string]time.Time (key: "folderID:oldRelativePath")
@@ -74,19 +74,19 @@ func (h *EventHandler) HandleEvent(event *FileEvent) error {
 	if event.Type == EventTypeModify {
 		return h.handleEventWithDebounce(event)
 	}
-	
+
 	// Event tipine göre işle
 	switch event.Type {
 	case EventTypeCreate:
 		return h.handleCreate(event)
-		
+
 	case EventTypeDelete:
 		return h.handleDelete(event)
-		
+
 	case EventTypeRename:
 		// Rename event'i geldiğinde old path'i sakla ve Create event'ini bekle
 		return h.handleRename(event)
-		
+
 	default:
 		return fmt.Errorf("bilinmeyen event tipi: %s", event.Type)
 	}
@@ -96,18 +96,18 @@ func (h *EventHandler) HandleEvent(event *FileEvent) error {
 func (h *EventHandler) handleEventWithDebounce(event *FileEvent) error {
 	h.eventMu.Lock()
 	defer h.eventMu.Unlock()
-	
+
 	// Event key (folder + path)
 	eventKey := fmt.Sprintf("%s:%s", event.FolderID, event.Path)
-	
+
 	// Önceki timer varsa iptal et
 	if timer, exists := h.eventTimers[eventKey]; exists {
 		timer.Stop()
 	}
-	
+
 	// Event'i sakla
 	h.pendingEvents[eventKey] = event
-	
+
 	// Yeni timer başlat
 	h.eventTimers[eventKey] = time.AfterFunc(h.debounceDelay, func() {
 		h.eventMu.Lock()
@@ -115,7 +115,7 @@ func (h *EventHandler) handleEventWithDebounce(event *FileEvent) error {
 		delete(h.pendingEvents, eventKey)
 		delete(h.eventTimers, eventKey)
 		h.eventMu.Unlock()
-		
+
 		if pendingEvent != nil {
 			// Event'i işle (debounce delay'den sonra)
 			if err := h.handleModify(pendingEvent); err != nil {
@@ -123,25 +123,25 @@ func (h *EventHandler) handleEventWithDebounce(event *FileEvent) error {
 			}
 		}
 	})
-	
+
 	return nil
 }
 
 // handleCreate yeni dosya oluşturma event'ini işler
 func (h *EventHandler) handleCreate(event *FileEvent) error {
 	ctx := context.Background()
-	
+
 	// Dosya bilgilerini al
 	fileInfo, err := os.Stat(event.AbsPath)
 	if err != nil {
 		return fmt.Errorf("dosya bilgisi alınamadı: %w", err)
 	}
-	
+
 	// Dizinse atla
 	if fileInfo.IsDir() {
 		return nil
 	}
-	
+
 	// Dosya zaten veritabanında var mı? (Word RENAME+CREATE yapıyor)
 	existingFile, err := h.fileRepo.GetByPath(ctx, event.FolderID, event.Path)
 	if err == nil && existingFile != nil {
@@ -149,7 +149,7 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 		log.Printf("📝 CREATE → MODIFY (dosya zaten var): %s", event.Path)
 		return h.handleModify(event)
 	}
-	
+
 	// SADECE FILE WATCHER'IN OTOMATİK CREATE EVENT'İNDE: Ignore listesi kontrol et
 	// (Kullanıcı tarafından silinen dosyalar file watcher tarafından tekrar eklenmemeli)
 	// (Kullanıcı tarafından silinen dosyalar file watcher tarafından tekrar eklenmemeli)
@@ -164,50 +164,50 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 			h.ignoredFiles.Delete(ignoreKey)
 		}
 	}
-	
+
 	log.Printf("📄 CREATE: %s (folder: %s)", event.Path, event.FolderID[:8])
-	
+
 	// RENAME KONTROLÜ: Yakın zamanda rename edilmiş bir dosya var mı?
 	// Folder içindeki tüm pending rename'leri kontrol et
 	var renamedFromFileID string
 	var renamedFromPath string
-	
+
 	h.pendingRenames.Range(func(key, value any) bool {
 		k := key.(string)
 		t := value.(time.Time)
-		
+
 		// 1 saniye içinde rename edilmiş olmalı
 		if time.Since(t) > 1*time.Second {
 			h.pendingRenames.Delete(k)
 			return true // continue
 		}
-		
+
 		// Key format: "folderID:path"
 		parts := strings.SplitN(k, ":", 2)
 		if len(parts) != 2 || parts[0] != event.FolderID {
 			return true // continue
 		}
 		oldPath := parts[1]
-		
+
 		// Eğer dosya boyutları/modtime tutuyorsa veya sadece isim benzerliği varsa eşleştirilebilir
 		// Şimdilik sadece zaman yakınlığına güveniyoruz (kullanıcı rename yaptı)
-		
+
 		// Veritabanında eski dosyayı bul
 		oldFile, err := h.fileRepo.GetByPath(ctx, event.FolderID, oldPath)
 		if err == nil && oldFile != nil {
 			renamedFromFileID = oldFile.ID
 			renamedFromPath = oldPath
 			h.pendingRenames.Delete(k) // Eşleşti, sil
-			return false // break
+			return false               // break
 		}
-		
+
 		return true
 	})
-	
+
 	// EĞER RENAME TESPİT EDİLDİYSE: Dosyayı güncelle
 	if renamedFromFileID != "" {
 		log.Printf("♻️ RENAME tespit edildi: %s -> %s", renamedFromPath, event.Path)
-		
+
 		// Eski dosyayı güncelle
 		oldFile, err := h.fileRepo.GetByID(ctx, renamedFromFileID)
 		if err == nil {
@@ -217,7 +217,7 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 			if oldFile.IsDeleted {
 				oldFile.IsDeleted = false
 			}
-			
+
 			if err := h.fileRepo.Update(ctx, oldFile); err != nil {
 				log.Printf("⚠️ Rename update hatası: %v", err)
 			} else {
@@ -231,7 +231,7 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 			}
 		}
 	}
-	
+
 	// File entity oluştur
 	file := entity.NewFile(
 		event.FolderID,
@@ -239,19 +239,19 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 		fileInfo.Size(),
 		fileInfo.ModTime(),
 	)
-	
+
 	// Veritabanına kaydet
 	if err := h.fileRepo.Create(ctx, file); err != nil {
 		return fmt.Errorf("dosya kaydedilemedi: %w", err)
 	}
-	
+
 	// Chunk'lara ayır (eğer boyut > 0 ise)
 	if fileInfo.Size() > 0 {
 		if err := h.createChunks(ctx, file, event.AbsPath); err != nil {
 			log.Printf("⚠️ Chunk oluşturulamadı (%s): %v", event.Path, err)
 			return nil // Chunk hatası olsa bile devam et
 		}
-		
+
 		// YENİ DOSYA için otomatik sync tetikle
 		// (Tüm chunk'lar gitmeli - yeni dosya)
 		if h.onFileChanged != nil {
@@ -261,7 +261,7 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 			}
 		}
 	}
-	
+
 	// UI'a event gönder (CREATE)
 	if h.eventBroadcaster != nil {
 		h.eventBroadcaster.Broadcast(&FileEventData{
@@ -272,14 +272,14 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 			Timestamp: time.Now().UnixMilli(),
 		})
 	}
-	
+
 	return nil
 }
 
 // handleModify dosya değişikliği event'ini işler
 func (h *EventHandler) handleModify(event *FileEvent) error {
 	ctx := context.Background()
-	
+
 	// Dosya bilgilerini al
 	fileInfo, err := os.Stat(event.AbsPath)
 	if err != nil {
@@ -289,34 +289,34 @@ func (h *EventHandler) handleModify(event *FileEvent) error {
 		}
 		return fmt.Errorf("dosya bilgisi alınamadı: %w", err)
 	}
-	
+
 	// Dizinse atla
 	if fileInfo.IsDir() {
 		return nil
 	}
-	
+
 	log.Printf("📝 MODIFY: %s (folder: %s)", event.Path, event.FolderID[:8])
-	
+
 	// Veritabanında dosyayı bul
 	file, err := h.fileRepo.GetByPath(ctx, event.FolderID, event.Path)
 	if err != nil {
 		// Dosya veritabanında yoksa, CREATE olarak işle
 		return h.handleCreate(event)
 	}
-	
+
 	// ESKİ chunk hash'lerini al (delta sync için)
 	oldChunks, err := h.chunkRepo.GetFileChunks(ctx, file.ID)
 	if err != nil {
 		log.Printf("⚠️ Eski chunk'lar alınamadı, tüm dosya sync edilecek: %v", err)
 		oldChunks = nil // Eski chunk yok, tüm dosyayı sync et
 	}
-	
+
 	// Eski chunk hash'lerini map'e al (hızlı karşılaştırma için)
 	oldChunkHashes := make(map[int]string) // index -> hash
 	for _, chunk := range oldChunks {
 		oldChunkHashes[chunk.ChunkIndex] = chunk.ChunkHash
 	}
-	
+
 	// Dosya bilgilerini güncelle
 	file.Size = fileInfo.Size()
 	file.ModTime = fileInfo.ModTime()
@@ -328,30 +328,30 @@ func (h *EventHandler) handleModify(event *FileEvent) error {
 		wasDeleted = true
 		log.Printf("♻️ Dosya 'resurrect' edildi (geri getirildi): %s", file.ID[:8])
 	}
-	
+
 	if err := h.fileRepo.Update(ctx, file); err != nil {
 		return fmt.Errorf("dosya güncellenemedi: %w", err)
 	}
-	
+
 	// YENİ chunk'lar oluştur
 	if fileInfo.Size() > 0 {
 		// ESKİ chunk'ları sil (yenileriyle değiştirilecek)
 		if err := h.chunkRepo.DeleteFileChunks(ctx, file.ID); err != nil {
 			log.Printf("⚠️ Eski chunk'lar silinemedi (%s): %v", event.Path, err)
 		}
-		
+
 		if err := h.createChunks(ctx, file, event.AbsPath); err != nil {
 			log.Printf("⚠️ Chunk oluşturulamadı (%s): %v", event.Path, err)
 			return nil
 		}
-		
+
 		// Yeni chunk'ları al
 		newChunks, err := h.chunkRepo.GetFileChunks(ctx, file.ID)
 		if err != nil {
 			log.Printf("⚠️ Yeni chunk'lar alınamadı: %v", err)
 			return nil
 		}
-		
+
 		// DEĞİŞEN chunk'ları tespit et
 		changedChunkIndices := make([]int, 0)
 		for _, newChunk := range newChunks {
@@ -361,7 +361,7 @@ func (h *EventHandler) handleModify(event *FileEvent) error {
 				changedChunkIndices = append(changedChunkIndices, newChunk.ChunkIndex)
 			}
 		}
-		
+
 		// Eğer dosya resurrect edildiyse, değişiklik olmasa bile Full Sync tetikle (peer'da silinmiş olabilir)
 		if wasDeleted {
 			log.Printf("♻️ Dosya resurrect edildi, içerik aynı olsa bile Full Sync tetikleniyor: %s", event.Path)
@@ -370,21 +370,21 @@ func (h *EventHandler) handleModify(event *FileEvent) error {
 			}
 			return nil
 		}
-		
+
 		if len(changedChunkIndices) == 0 {
 			log.Printf("✅ MODIFY işlendi, değişiklik yok: %s", event.Path)
 			return nil
 		}
-		
+
 		log.Printf("🔄 %d/%d chunk değişti: %s", len(changedChunkIndices), len(newChunks), event.Path)
-		
+
 		// DELTA SYNC: Sadece değişen chunk'ları gönder
 		if h.onChunksChanged != nil {
 			if err := h.onChunksChanged(file.ID, event.FolderID, changedChunkIndices); err != nil {
 				log.Printf("⚠️ Delta sync hatası (%s): %v", event.Path, err)
 			}
 		}
-		
+
 		// UI'a event gönder (MODIFY)
 		if h.eventBroadcaster != nil {
 			h.eventBroadcaster.Broadcast(&FileEventData{
@@ -396,7 +396,7 @@ func (h *EventHandler) handleModify(event *FileEvent) error {
 			})
 		}
 	}
-	
+
 	log.Printf("✅ MODIFY işlendi: %s", event.Path)
 	return nil
 }
@@ -404,26 +404,26 @@ func (h *EventHandler) handleModify(event *FileEvent) error {
 // handleDelete dosya silme event'ini işler
 func (h *EventHandler) handleDelete(event *FileEvent) error {
 	ctx := context.Background()
-	
+
 	log.Printf("🗑️ DELETE: %s (folder: %s)", event.Path, event.FolderID[:8])
-	
+
 	// Veritabanında dosyayı bul
 	file, err := h.fileRepo.GetByPath(ctx, event.FolderID, event.Path)
 	if err != nil {
 		// Dosya veritabanında yoksa atla
 		return nil
 	}
-	
+
 	// Dosya ID'sini sakla (silmeden önce)
 	fileID := file.ID
-	
+
 	// Dosyayı veritabanından sil (CASCADE: chunk'lar da silinir)
 	if err := h.fileRepo.Delete(ctx, fileID); err != nil {
 		return fmt.Errorf("dosya silinemedi: %w", err)
 	}
-	
+
 	log.Printf("✅ DELETE işlendi (veritabanı): %s", event.Path)
-	
+
 	// DELETE için otomatik sync tetikle (karşı taraftan da silinmeli)
 	if h.onFileDeleted != nil {
 		log.Printf("🔄 Dosya silindi - karşı tarafa bildirim gönderiliyor: %s", event.Path)
@@ -431,7 +431,7 @@ func (h *EventHandler) handleDelete(event *FileEvent) error {
 			log.Printf("⚠️ Silme sync hatası (%s): %v", event.Path, err)
 		}
 	}
-	
+
 	// UI'a event gönder (DELETE)
 	if h.eventBroadcaster != nil {
 		h.eventBroadcaster.Broadcast(&FileEventData{
@@ -442,7 +442,7 @@ func (h *EventHandler) handleDelete(event *FileEvent) error {
 			Timestamp: time.Now().UnixMilli(),
 		})
 	}
-	
+
 	return nil
 }
 
@@ -453,16 +453,16 @@ func (h *EventHandler) createChunks(ctx context.Context, file *entity.File, absP
 	if err != nil {
 		return fmt.Errorf("folder bulunamadı: %w", err)
 	}
-	
+
 	// Absolute path oluştur
 	fullPath := filepath.Join(folder.LocalPath, file.RelativePath)
-	
+
 	// Chunk'lara ayır
 	chunks, _, err := h.chunkingUC.ChunkAndStoreFile(ctx, file.ID, fullPath)
 	if err != nil {
 		return fmt.Errorf("chunk hatası: %w", err)
 	}
-	
+
 	// Log azaltılmış (spam önleme)
 	// Her 50 chunk'ta bir veya ilk/son chunk'ta log
 	for i, chunk := range chunks {
@@ -470,7 +470,7 @@ func (h *EventHandler) createChunks(ctx context.Context, file *entity.File, absP
 			log.Printf("  🧩 Chunk %d/%d: %s (%d bytes)", i+1, len(chunks), chunk.Hash[:8], chunk.Size)
 		}
 	}
-	
+
 	log.Printf("✅ %d chunk oluşturuldu: %s", len(chunks), file.RelativePath)
 	return nil
 }
@@ -518,17 +518,37 @@ func (h *EventHandler) UnignoreFile(folderID, relativePath string) {
 // handleRename rename event'ini işler (Pending listesine ekler)
 func (h *EventHandler) handleRename(event *FileEvent) error {
 	log.Printf("📝 RENAME (Old Path detected): %s (folder: %s)", event.Path, event.FolderID[:8])
-	
+
 	key := fmt.Sprintf("%s:%s", event.FolderID, event.Path)
 	h.pendingRenames.Store(key, time.Now())
-	
+
 	// Fallback mechanism: 2 saniye sonra kontrol et, hala pending ise Delete olarak işle
-	time.AfterFunc(2 * time.Second, func() {
+	time.AfterFunc(2*time.Second, func() {
 		if _, ok := h.pendingRenames.Load(key); ok {
-			// Hala pending'de duruyor, demek ki Create gelmedi. Bu bir DELETE olabilir.
+			// Hala pending'de duruyor.
+			// Office save gibi durumlarda dosya silinip hemen geri gelmiş olabilir.
+			// Önce dosyanın şu an diskte var olup olmadığını kontrol et.
+			if _, err := os.Stat(event.AbsPath); err == nil {
+				log.Printf("⚠️ Rename timeout ama dosya mevcut (Office save?): %s", event.Path)
+				h.pendingRenames.Delete(key)
+
+				// Dosya var, MODIFY tetikle
+				modifyEvent := &FileEvent{
+					Type:     EventTypeModify,
+					Path:     event.Path,
+					AbsPath:  event.AbsPath,
+					FolderID: event.FolderID,
+				}
+				if err := h.handleModify(modifyEvent); err != nil {
+					log.Printf("⚠️ Rename->Modify fallback hatası: %v", err)
+				}
+				return
+			}
+
+			// Dosya gerçekten yok, DELETE olarak işle
 			h.pendingRenames.Delete(key)
 			log.Printf("⚠️ Rename timeout -> DELETE olarak işleniyor: %s", event.Path)
-			
+
 			// Manuel DELETE event oluştur
 			deleteEvent := &FileEvent{
 				Type:     EventTypeDelete,
@@ -541,7 +561,6 @@ func (h *EventHandler) handleRename(event *FileEvent) error {
 			}
 		}
 	})
-	
+
 	return nil
 }
-

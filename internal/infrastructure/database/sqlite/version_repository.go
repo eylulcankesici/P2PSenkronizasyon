@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	
+
 	"github.com/aether/sync/internal/domain/entity"
 	"github.com/aether/sync/internal/domain/repository"
 	"github.com/google/uuid"
@@ -27,12 +27,12 @@ func (r *VersionRepository) Create(ctx context.Context, version *entity.FileVers
 	if version.ID == "" {
 		version.ID = uuid.New().String()
 	}
-	
+
 	query := `
 		INSERT INTO file_versions (id, file_id, version_number, backup_path, original_path, size, hash, created_at, created_by_peer_id)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
-	
+
 	_, err := r.conn.DB().ExecContext(ctx, query,
 		version.ID,
 		version.FileID,
@@ -44,11 +44,11 @@ func (r *VersionRepository) Create(ctx context.Context, version *entity.FileVers
 		version.CreatedAt,
 		version.CreatedByPeerID,
 	)
-	
+
 	if err != nil {
 		return fmt.Errorf("versiyon oluşturulamadı: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -59,9 +59,9 @@ func (r *VersionRepository) GetByID(ctx context.Context, id string) (*entity.Fil
 		FROM file_versions
 		WHERE id = ?
 	`
-	
+
 	version := &entity.FileVersion{}
-	
+
 	err := r.conn.DB().QueryRowContext(ctx, query, id).Scan(
 		&version.ID,
 		&version.FileID,
@@ -73,14 +73,14 @@ func (r *VersionRepository) GetByID(ctx context.Context, id string) (*entity.Fil
 		&version.CreatedAt,
 		&version.CreatedByPeerID,
 	)
-	
+
 	if err == sql.ErrNoRows {
 		return nil, entity.ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("versiyon getirilemedi: %w", err)
 	}
-	
+
 	return version, nil
 }
 
@@ -92,18 +92,18 @@ func (r *VersionRepository) GetByFileID(ctx context.Context, fileID string) ([]*
 		WHERE file_id = ?
 		ORDER BY version_number DESC
 	`
-	
+
 	rows, err := r.conn.DB().QueryContext(ctx, query, fileID)
 	if err != nil {
 		return nil, fmt.Errorf("versiyonlar getirilemedi: %w", err)
 	}
 	defer rows.Close()
-	
+
 	versions := make([]*entity.FileVersion, 0)
-	
+
 	for rows.Next() {
 		version := &entity.FileVersion{}
-		
+
 		err := rows.Scan(
 			&version.ID,
 			&version.FileID,
@@ -118,10 +118,10 @@ func (r *VersionRepository) GetByFileID(ctx context.Context, fileID string) ([]*
 		if err != nil {
 			return nil, fmt.Errorf("versiyon taranamadı: %w", err)
 		}
-		
+
 		versions = append(versions, version)
 	}
-	
+
 	return versions, nil
 }
 
@@ -134,9 +134,9 @@ func (r *VersionRepository) GetLatestVersion(ctx context.Context, fileID string)
 		ORDER BY version_number DESC
 		LIMIT 1
 	`
-	
+
 	version := &entity.FileVersion{}
-	
+
 	err := r.conn.DB().QueryRowContext(ctx, query, fileID).Scan(
 		&version.ID,
 		&version.FileID,
@@ -148,14 +148,14 @@ func (r *VersionRepository) GetLatestVersion(ctx context.Context, fileID string)
 		&version.CreatedAt,
 		&version.CreatedByPeerID,
 	)
-	
+
 	if err == sql.ErrNoRows {
 		return nil, entity.ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("versiyon getirilemedi: %w", err)
 	}
-	
+
 	return version, nil
 }
 
@@ -166,9 +166,9 @@ func (r *VersionRepository) GetByVersionNumber(ctx context.Context, fileID strin
 		FROM file_versions
 		WHERE file_id = ? AND version_number = ?
 	`
-	
+
 	version := &entity.FileVersion{}
-	
+
 	err := r.conn.DB().QueryRowContext(ctx, query, fileID, versionNumber).Scan(
 		&version.ID,
 		&version.FileID,
@@ -180,35 +180,35 @@ func (r *VersionRepository) GetByVersionNumber(ctx context.Context, fileID strin
 		&version.CreatedAt,
 		&version.CreatedByPeerID,
 	)
-	
+
 	if err == sql.ErrNoRows {
 		return nil, entity.ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("versiyon getirilemedi: %w", err)
 	}
-	
+
 	return version, nil
 }
 
 // Delete versiyon kaydını siler
 func (r *VersionRepository) Delete(ctx context.Context, id string) error {
 	query := `DELETE FROM file_versions WHERE id = ?`
-	
+
 	result, err := r.conn.DB().ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("versiyon silinemedi: %w", err)
 	}
-	
+
 	rows, err := result.RowsAffected()
 	if err != nil {
 		return err
 	}
-	
+
 	if rows == 0 {
 		return entity.ErrNotFound
 	}
-	
+
 	return nil
 }
 
@@ -222,29 +222,29 @@ func (r *VersionRepository) DeleteOldVersions(ctx context.Context, fileID string
 		ORDER BY version_number DESC
 		LIMIT -1 OFFSET ?
 	`
-	
+
 	rows, err := r.conn.DB().QueryContext(ctx, query, fileID, keepCount)
 	if err != nil {
 		return fmt.Errorf("silinecek versiyonlar bulunamadı: %w", err)
 	}
 	defer rows.Close()
-	
+
 	idsToDelete := make([]string, 0)
 	for rows.Next() {
 		var id string
 		if err := rows.Scan(&id); err != nil {
 			return fmt.Errorf("versiyon ID taranamadı: %w", err)
-	}
+		}
 		idsToDelete = append(idsToDelete, id)
 	}
-	
+
 	// Versiyonları sil
 	for _, id := range idsToDelete {
 		if err := r.Delete(ctx, id); err != nil {
 			return err
 		}
 	}
-	
+
 	return nil
 }
 
@@ -255,17 +255,12 @@ func (r *VersionRepository) GetTotalVersionCount(ctx context.Context, fileID str
 		FROM file_versions
 		WHERE file_id = ?
 	`
-	
+
 	var count int
 	err := r.conn.DB().QueryRowContext(ctx, query, fileID).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("versiyon sayısı alınamadı: %w", err)
 	}
-	
+
 	return count, nil
 }
-
-
-
-
-

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	
+
 	"github.com/aether/sync/internal/domain/entity"
 	"github.com/aether/sync/internal/domain/repository"
 	"github.com/aether/sync/internal/domain/usecase"
@@ -28,23 +28,23 @@ func (uc *FolderUseCaseImpl) CreateFolder(ctx context.Context, localPath string,
 	if err := uc.ValidateFolderPath(ctx, localPath); err != nil {
 		return nil, err
 	}
-	
+
 	// Aynı path ile klasör var mı kontrol et
 	existingFolder, err := uc.folderRepo.GetByPath(ctx, localPath)
 	if err == nil && existingFolder != nil {
 		return nil, entity.ErrAlreadyExists
 	}
-	
+
 	// Yeni klasör oluştur
 	folder := entity.NewFolder(localPath, syncMode)
 	if err := folder.Validate(); err != nil {
 		return nil, err
 	}
-	
+
 	if err := uc.folderRepo.Create(ctx, folder); err != nil {
 		return nil, fmt.Errorf("klasör oluşturulamadı: %w", err)
 	}
-	
+
 	return folder, nil
 }
 
@@ -54,7 +54,7 @@ func (uc *FolderUseCaseImpl) GetFolder(ctx context.Context, id string) (*entity.
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return folder, nil
 }
 
@@ -64,7 +64,7 @@ func (uc *FolderUseCaseImpl) GetAllFolders(ctx context.Context) ([]*entity.Folde
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return folders, nil
 }
 
@@ -78,17 +78,17 @@ func (uc *FolderUseCaseImpl) UpdateFolder(ctx context.Context, folder *entity.Fo
 	if existing == nil {
 		return entity.ErrNotFound
 	}
-	
+
 	// Doğrula
 	if err := folder.Validate(); err != nil {
 		return err
 	}
-	
+
 	// Güncelle
 	if err := uc.folderRepo.Update(ctx, folder); err != nil {
 		return fmt.Errorf("klasör güncellenemedi: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -102,12 +102,12 @@ func (uc *FolderUseCaseImpl) DeleteFolder(ctx context.Context, id string) error 
 	if folder == nil {
 		return entity.ErrNotFound
 	}
-	
+
 	// Sil
 	if err := uc.folderRepo.Delete(ctx, id); err != nil {
 		return fmt.Errorf("klasör silinemedi: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -117,13 +117,13 @@ func (uc *FolderUseCaseImpl) ActivateFolder(ctx context.Context, id string) erro
 	if err != nil {
 		return err
 	}
-	
+
 	folder.Activate()
-	
+
 	if err := uc.folderRepo.Update(ctx, folder); err != nil {
 		return fmt.Errorf("klasör aktif edilemedi: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -133,13 +133,13 @@ func (uc *FolderUseCaseImpl) DeactivateFolder(ctx context.Context, id string) er
 	if err != nil {
 		return err
 	}
-	
+
 	folder.Deactivate()
-	
+
 	if err := uc.folderRepo.Update(ctx, folder); err != nil {
 		return fmt.Errorf("klasör pasif edilemedi: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -148,7 +148,7 @@ func (uc *FolderUseCaseImpl) ValidateFolderPath(ctx context.Context, path string
 	if path == "" {
 		return entity.ErrInvalidPath
 	}
-	
+
 	// Klasörün var olduğunu kontrol et
 	info, err := os.Stat(path)
 	if err != nil {
@@ -157,12 +157,12 @@ func (uc *FolderUseCaseImpl) ValidateFolderPath(ctx context.Context, path string
 		}
 		return fmt.Errorf("klasör bilgisi alınamadı: %w", err)
 	}
-	
+
 	// Dizin olduğunu kontrol et
 	if !info.IsDir() {
 		return fmt.Errorf("yol bir dizin değil: %s", path)
 	}
-	
+
 	// Yazılabilir olduğunu kontrol et
 	testFile := fmt.Sprintf("%s/.aether_test", path)
 	f, err := os.Create(testFile)
@@ -171,11 +171,6 @@ func (uc *FolderUseCaseImpl) ValidateFolderPath(ctx context.Context, path string
 	}
 	f.Close()
 	os.Remove(testFile)
-	
+
 	return nil
 }
-
-
-
-
-

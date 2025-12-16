@@ -33,8 +33,3 @@ type ChunkingUseCase interface {
 	// DeleteOrphanedChunks hiçbir dosyaya referans vermeyen chunk'ları siler (DB + disk)
 	DeleteOrphanedChunks(ctx context.Context) (int, error)
 }
-
-
-
-
-

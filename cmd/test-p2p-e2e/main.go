@@ -171,14 +171,13 @@ func main() {
 // createLargeTestData test verisi oluşturur
 func createLargeTestData(size int) []byte {
 	data := make([]byte, size)
-	
+
 	// Tekrar eden pattern
 	pattern := []byte("AETHER_P2P_TRANSFER_TEST_")
-	
+
 	for i := 0; i < size; i++ {
 		data[i] = pattern[i%len(pattern)]
 	}
-	
+
 	return data
 }
-

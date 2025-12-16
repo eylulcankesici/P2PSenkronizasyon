@@ -39,10 +39,10 @@ type FileWatcher struct {
 	watcher        *fsnotify.Watcher
 	watchedFolders map[string]*WatchedFolder // folderID -> WatchedFolder
 	mu             sync.RWMutex
-	
+
 	eventHandlers []func(*FileEvent) error
 	errorHandlers []func(error)
-	
+
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
@@ -61,9 +61,9 @@ func NewFileWatcher() (*FileWatcher, error) {
 	if err != nil {
 		return nil, fmt.Errorf("fsnotify watcher oluşturulamadı: %w", err)
 	}
-	
+
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	fw := &FileWatcher{
 		watcher:        fsWatcher,
 		watchedFolders: make(map[string]*WatchedFolder),
@@ -72,17 +72,17 @@ func NewFileWatcher() (*FileWatcher, error) {
 		ctx:            ctx,
 		cancel:         cancel,
 	}
-	
+
 	return fw, nil
 }
 
 // Start watcher'ı başlatır
 func (fw *FileWatcher) Start() error {
 	log.Println("📂 File watcher başlatılıyor...")
-	
+
 	fw.wg.Add(1)
 	go fw.eventLoop()
-	
+
 	log.Println("✅ File watcher başlatıldı")
 	return nil
 }
@@ -90,15 +90,15 @@ func (fw *FileWatcher) Start() error {
 // Stop watcher'ı durdurur
 func (fw *FileWatcher) Stop() error {
 	log.Println("🛑 File watcher durduruluyor...")
-	
+
 	fw.cancel()
-	
+
 	if err := fw.watcher.Close(); err != nil {
 		log.Printf("⚠️ Watcher kapatılamadı: %v", err)
 	}
-	
+
 	fw.wg.Wait()
-	
+
 	log.Println("✅ File watcher durduruldu")
 	return nil
 }
@@ -107,22 +107,22 @@ func (fw *FileWatcher) Stop() error {
 func (fw *FileWatcher) AddFolder(folder *entity.Folder) error {
 	fw.mu.Lock()
 	defer fw.mu.Unlock()
-	
+
 	// Zaten izleniyor mu?
 	if _, exists := fw.watchedFolders[folder.ID]; exists {
 		return fmt.Errorf("klasör zaten izleniyor: %s", folder.ID)
 	}
-	
+
 	// Klasörü fsnotify'a ekle
 	if err := fw.watcher.Add(folder.LocalPath); err != nil {
 		return fmt.Errorf("klasör izlenemiyor: %w", err)
 	}
-	
+
 	// Alt dizinleri de ekle (recursive watch)
 	if err := fw.addSubdirectories(folder.LocalPath); err != nil {
 		log.Printf("⚠️ Alt dizinler eklenirken hata: %v", err)
 	}
-	
+
 	// WatchedFolder oluştur
 	watched := &WatchedFolder{
 		FolderID: folder.ID,
@@ -137,16 +137,16 @@ func (fw *FileWatcher) AddFolder(folder *entity.Folder) error {
 			".idea",
 			".vscode",
 			// Microsoft Office geçici dosyaları
-			"~$",      // Word/Excel lock files (~$document.docx)
-			"~WRD",    // Word temp files (~WRD0001.tmp)
-			"~WRL",    // Word recovery files (~WRL0001.tmp)
-			".tmp",    // Genel temp files
-			"~",       // Backup files (file.txt~)
+			"~$",   // Word/Excel lock files (~$document.docx)
+			"~WRD", // Word temp files (~WRD0001.tmp)
+			"~WRL", // Word recovery files (~WRL0001.tmp)
+			".tmp", // Genel temp files
+			"~",    // Backup files (file.txt~)
 		},
 	}
-	
+
 	fw.watchedFolders[folder.ID] = watched
-	
+
 	log.Printf("✅ Klasör izlemeye alındı: %s (%s)", folder.LocalPath, folder.ID[:8])
 	return nil
 }
@@ -155,20 +155,20 @@ func (fw *FileWatcher) AddFolder(folder *entity.Folder) error {
 func (fw *FileWatcher) RemoveFolder(folderID string) error {
 	fw.mu.Lock()
 	defer fw.mu.Unlock()
-	
+
 	watched, exists := fw.watchedFolders[folderID]
 	if !exists {
 		return fmt.Errorf("klasör izlenmiyor: %s", folderID)
 	}
-	
+
 	// fsnotify'dan kaldır
 	if err := fw.watcher.Remove(watched.RootPath); err != nil {
 		log.Printf("⚠️ Klasör fsnotify'dan kaldırılamadı: %v", err)
 	}
-	
+
 	// Map'ten sil
 	delete(fw.watchedFolders, folderID)
-	
+
 	log.Printf("✅ Klasör izlemeden çıkarıldı: %s", folderID[:8])
 	return nil
 }
@@ -186,26 +186,26 @@ func (fw *FileWatcher) OnError(handler func(error)) {
 // eventLoop fsnotify event'lerini işler
 func (fw *FileWatcher) eventLoop() {
 	defer fw.wg.Done()
-	
+
 	log.Println("🔄 File watcher event loop başladı")
-	
+
 	for {
 		select {
 		case <-fw.ctx.Done():
 			log.Println("🔌 File watcher event loop sonlandı")
 			return
-			
+
 		case event, ok := <-fw.watcher.Events:
 			if !ok {
 				return
 			}
-			
+
 			// Event'i işle
 			if err := fw.handleFsnotifyEvent(event); err != nil {
 				log.Printf("⚠️ Event işleme hatası: %v", err)
 				fw.notifyError(err)
 			}
-			
+
 		case err, ok := <-fw.watcher.Errors:
 			if !ok {
 				return
@@ -220,51 +220,51 @@ func (fw *FileWatcher) eventLoop() {
 func (fw *FileWatcher) handleFsnotifyEvent(event fsnotify.Event) error {
 	// Event path'ini kontrol et
 	absPath := event.Name
-	
+
 	// Hangi folder'a ait?
 	fw.mu.RLock()
 	watched := fw.findWatchedFolder(absPath)
 	fw.mu.RUnlock()
-	
+
 	if watched == nil {
 		// İzlenmeyen klasör
 		return nil
 	}
-	
+
 	// Ignore pattern kontrolü
 	if fw.shouldIgnore(absPath, watched) {
 		return nil
 	}
-	
+
 	// Relative path hesapla
 	relPath, err := filepath.Rel(watched.RootPath, absPath)
 	if err != nil {
 		return fmt.Errorf("relative path hesaplanamadı: %w", err)
 	}
-	
+
 	// Event tipini belirle
 	var eventType EventType
 	switch {
 	case event.Op&fsnotify.Create == fsnotify.Create:
 		eventType = EventTypeCreate
-		
+
 		// Yeni dizin mi? Onu da watch'a ekle
 		// TODO: Check if directory and add to watcher
-		
+
 	case event.Op&fsnotify.Write == fsnotify.Write:
 		eventType = EventTypeModify
-		
+
 	case event.Op&fsnotify.Remove == fsnotify.Remove:
 		eventType = EventTypeDelete
-		
+
 	case event.Op&fsnotify.Rename == fsnotify.Rename:
 		eventType = EventTypeRename
-		
+
 	default:
 		// Bilinmeyen event tipi
 		return nil
 	}
-	
+
 	// FileEvent oluştur
 	fileEvent := &FileEvent{
 		Type:      eventType,
@@ -273,16 +273,16 @@ func (fw *FileWatcher) handleFsnotifyEvent(event fsnotify.Event) error {
 		FolderID:  watched.FolderID,
 		Timestamp: time.Now(),
 	}
-	
+
 	// Log azaltılmış (spam önleme)
 	// Sadece CREATE/DELETE için log, MODIFY çok fazla
 	if eventType != EventTypeModify {
 		log.Printf("📝 File event: %s - %s (folder: %s)", eventType, relPath, watched.FolderID[:8])
 	}
-	
+
 	// Handler'ları çağır
 	fw.notifyEvent(fileEvent)
-	
+
 	return nil
 }
 
@@ -299,7 +299,7 @@ func (fw *FileWatcher) findWatchedFolder(absPath string) *WatchedFolder {
 // shouldIgnore path ignore edilmeli mi?
 func (fw *FileWatcher) shouldIgnore(absPath string, watched *WatchedFolder) bool {
 	baseName := filepath.Base(absPath)
-	
+
 	for _, pattern := range watched.IgnorePatterns {
 		if strings.Contains(baseName, pattern) {
 			return true
@@ -308,7 +308,7 @@ func (fw *FileWatcher) shouldIgnore(absPath string, watched *WatchedFolder) bool
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -318,17 +318,17 @@ func (fw *FileWatcher) addSubdirectories(rootPath string) error {
 		if err != nil {
 			return err
 		}
-		
+
 		// Sadece dizinler
 		if !info.IsDir() {
 			return nil
 		}
-		
+
 		// Root path zaten eklendi
 		if path == rootPath {
 			return nil
 		}
-		
+
 		// Ignore pattern kontrolü
 		baseName := filepath.Base(path)
 		if strings.HasPrefix(baseName, ".") ||
@@ -336,12 +336,12 @@ func (fw *FileWatcher) addSubdirectories(rootPath string) error {
 			baseName == ".git" {
 			return filepath.SkipDir
 		}
-		
+
 		// Dizini watch'a ekle
 		if err := fw.watcher.Add(path); err != nil {
 			log.Printf("⚠️ Alt dizin eklenemedi (%s): %v", path, err)
 		}
-		
+
 		return nil
 	})
 }
@@ -369,11 +369,10 @@ func (fw *FileWatcher) notifyError(err error) {
 func (fw *FileWatcher) GetWatchedFolders() []string {
 	fw.mu.RLock()
 	defer fw.mu.RUnlock()
-	
+
 	folderIDs := make([]string, 0, len(fw.watchedFolders))
 	for folderID := range fw.watchedFolders {
 		folderIDs = append(folderIDs, folderID)
 	}
 	return folderIDs
 }
-

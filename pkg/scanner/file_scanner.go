@@ -36,12 +36,12 @@ type ScanResult struct {
 // ScanDirectory dizini tarar ve dosya listesi döner
 func (s *FileScanner) ScanDirectory(rootPath string) ([]*ScanResult, error) {
 	results := make([]*ScanResult, 0)
-	
+
 	err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		
+
 		// Görmezden gelinecek dosyaları atla
 		if s.shouldIgnore(path) {
 			if info.IsDir() {
@@ -49,44 +49,44 @@ func (s *FileScanner) ScanDirectory(rootPath string) ([]*ScanResult, error) {
 			}
 			return nil
 		}
-		
+
 		// Sadece dosyaları ekle (dizinleri değil)
 		if !info.IsDir() {
 			relativePath, err := filepath.Rel(rootPath, path)
 			if err != nil {
 				return err
 			}
-			
+
 			result := &ScanResult{
 				Path:    relativePath,
 				Size:    info.Size(),
 				ModTime: info.ModTime().Unix(),
 				IsDir:   false,
 			}
-			
+
 			results = append(results, result)
 		}
-		
+
 		return nil
 	})
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("dizin taranamadı: %w", err)
 	}
-	
+
 	return results, nil
 }
 
 // shouldIgnore dosyanın görmezden gelinip gelinmeyeceğini kontrol eder
 func (s *FileScanner) shouldIgnore(path string) bool {
 	baseName := filepath.Base(path)
-	
+
 	for _, pattern := range s.ignorePatterns {
 		if strings.Contains(baseName, pattern) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -94,8 +94,3 @@ func (s *FileScanner) shouldIgnore(path string) bool {
 func (s *FileScanner) AddIgnorePattern(pattern string) {
 	s.ignorePatterns = append(s.ignorePatterns, pattern)
 }
-
-
-
-
-

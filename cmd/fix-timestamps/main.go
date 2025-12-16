@@ -37,7 +37,7 @@ func main() {
 
 	// files tablosundaki string timestamp'leri Unix timestamp'e çevir
 	log.Println("🔧 files tablosu timestamp'leri düzeltiliyor...")
-	
+
 	query := `
 		UPDATE files 
 		SET mod_time = CAST(strftime('%s', mod_time) AS INTEGER),
@@ -45,18 +45,18 @@ func main() {
 		    updated_at = CAST(strftime('%s', updated_at) AS INTEGER)
 		WHERE typeof(mod_time) = 'text'
 	`
-	
+
 	result, err := conn.DB().ExecContext(ctx, query)
 	if err != nil {
 		log.Fatal("❌ Update hatası:", err)
 	}
-	
+
 	rowsAffected, _ := result.RowsAffected()
 	log.Printf("✅ %d dosya güncellendi\n", rowsAffected)
-	
+
 	// folders tablosu
 	log.Println("🔧 folders tablosu timestamp'leri düzeltiliyor...")
-	
+
 	query = `
 		UPDATE folders
 		SET last_scan_time = CAST(strftime('%s', last_scan_time) AS INTEGER),
@@ -64,19 +64,17 @@ func main() {
 		    updated_at = CAST(strftime('%s', updated_at) AS INTEGER)
 		WHERE typeof(last_scan_time) = 'text'
 	`
-	
+
 	result, err = conn.DB().ExecContext(ctx, query)
 	if err != nil {
 		log.Fatal("❌ Update hatası:", err)
 	}
-	
+
 	rowsAffected, _ = result.RowsAffected()
 	log.Printf("✅ %d klasör güncellendi\n", rowsAffected)
-	
+
 	log.Println()
 	log.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	log.Println("       ✅ Timestamp fix tamamlandı!")
 	log.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 }
-
-

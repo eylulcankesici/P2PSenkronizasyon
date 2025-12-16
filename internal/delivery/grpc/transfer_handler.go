@@ -106,18 +106,18 @@ func (h *TransferHandler) CancelTransfer(ctx context.Context, req *pb.CancelTran
 
 	// Transfer yönünü kaydet (iptal edilmeden önce)
 	direction := transfer.Direction
-	
+
 	// Transfer'i iptal et (hem SEND hem RECEIVE için çalışır)
 	transferManager.CancelTransfer(req.FileId)
-	
+
 	// Yön bilgisini logla
 	directionStr := "SEND"
 	if direction == pb.TransferDirection_TRANSFER_DIRECTION_RECEIVE {
 		directionStr = "RECEIVE"
 	}
-	
+
 	log.Printf("✅ Transfer iptal edildi: %s (direction: %s, peer: %s)", req.FileId, directionStr, transfer.PeerID[:8])
-	
+
 	// Her iki direction için de fileReassembler'ı temizle (yeni transfer için hazırlık)
 	if direction == pb.TransferDirection_TRANSFER_DIRECTION_RECEIVE {
 		log.Printf("  🗑️ RECEIVE transfer iptal edildi, fileReassembler temizleniyor: %s", req.FileId[:8])
@@ -126,9 +126,9 @@ func (h *TransferHandler) CancelTransfer(ctx context.Context, req *pb.CancelTran
 		log.Printf("  🗑️ SEND transfer iptal edildi, fileReassembler temizleniyor (güvenlik için): %s", req.FileId[:8])
 		h.container.FileReassembler().CleanupFile(req.FileId)
 	}
-	
+
 	log.Printf("  ✅ Transfer ve fileReassembler temizlendi, yeni transfer için hazır: %s", req.FileId[:8])
-	
+
 	// Her iki durumda da karşı tarafa bildirim gönder
 	var reason string
 	if direction == pb.TransferDirection_TRANSFER_DIRECTION_RECEIVE {
@@ -138,14 +138,14 @@ func (h *TransferHandler) CancelTransfer(ctx context.Context, req *pb.CancelTran
 		reason = "Gönderen taraf tarafından iptal edildi"
 		log.Printf("  📤 Gönderen taraf iptal edildi, alıcı tarafa bildirim gönderiliyor (peer: %s, file: %s)...", transfer.PeerID[:8], req.FileId[:8])
 	}
-	
+
 	// Karşı tarafa transfer cancel bildirimi gönder
 	conn, exists := h.container.TransportProvider().GetConnection(transfer.PeerID)
 	if !exists {
 		log.Printf("  ❌ Peer bağlı değil, transfer iptal bildirimi gönderilemedi: %s", transfer.PeerID[:8])
 	} else {
 		log.Printf("  ✅ Peer bağlantısı bulundu: %s", transfer.PeerID[:8])
-		
+
 		// Type assertion ile SendTransferCancel metoduna eriş
 		if tcpConn, ok := conn.(interface {
 			SendTransferCancel(ctx context.Context, fileID, reason string) error
@@ -167,4 +167,3 @@ func (h *TransferHandler) CancelTransfer(ctx context.Context, req *pb.CancelTran
 		Code:    200,
 	}, nil
 }
-

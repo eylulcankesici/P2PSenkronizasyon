@@ -197,7 +197,7 @@ func (h *FolderHandler) UpdateFolder(ctx context.Context, req *pb.UpdateFolderRe
 // DeleteFolder klasör siler
 func (h *FolderHandler) DeleteFolder(ctx context.Context, req *pb.DeleteFolderRequest) (*pb.Status, error) {
 	log.Printf("🗑️ Klasör siliniyor: %s", req.Id[:8])
-	
+
 	// Önce folder bilgisini al (fiziksel path için)
 	folder, err := h.container.FolderRepository().GetByID(ctx, req.Id)
 	if err != nil {
@@ -207,7 +207,7 @@ func (h *FolderHandler) DeleteFolder(ctx context.Context, req *pb.DeleteFolderRe
 			Code:    404,
 		}, nil
 	}
-	
+
 	// File watcher'dan kaldır (folder silinmeden önce)
 	if h.container.FileWatcher() != nil {
 		if err := h.container.FileWatcher().RemoveFolder(req.Id); err != nil {
@@ -224,22 +224,22 @@ func (h *FolderHandler) DeleteFolder(ctx context.Context, req *pb.DeleteFolderRe
 		log.Printf("⚠️ Klasördeki dosyalar alınamadı: %v (devam ediliyor)", err)
 		files = []*entity.File{}
 	}
-	
+
 	if len(files) > 0 {
 		log.Printf("🗑️ Klasördeki %d dosya siliniyor: %s", len(files), req.Id[:8])
-		
+
 		for _, file := range files {
 			// Peer'lara silme bildirimi gönder (dosya silinmeden önce)
 			if err := h.container.DeleteFileFromAllPeers(file.ID, file.FolderID); err != nil {
 				log.Printf("⚠️ Dosya için peer'lara silme bildirimi gönderilemedi (%s): %v (devam ediliyor)", file.ID[:8], err)
 			}
-			
+
 			// Dosyayı veritabanından tamamen sil (HARD DELETE)
 			if err := h.container.FileRepository().HardDelete(ctx, file.ID); err != nil {
 				log.Printf("⚠️ Dosya silinemedi (%s): %v (devam ediliyor)", file.ID[:8], err)
 				continue
 			}
-			
+
 			// Eğer fiziksel dosya korunacaksa (deletePhysically = false), ignore listesine ekle
 			if !req.DeletePhysically && file.RelativePath != "" {
 				if eventHandler := h.container.EventHandler(); eventHandler != nil {
@@ -247,14 +247,14 @@ func (h *FolderHandler) DeleteFolder(ctx context.Context, req *pb.DeleteFolderRe
 				}
 			}
 		}
-		
+
 		// Yetim chunk'ları temizle (hiçbir dosya tarafından kullanılmayan chunk'lar)
 		if deletedCount, err := h.container.ChunkingUseCase().DeleteOrphanedChunks(ctx); err != nil {
 			log.Printf("⚠️ Yetim chunk'lar temizlenemedi: %v", err)
 		} else if deletedCount > 0 {
 			log.Printf("🧹 %d yetim chunk temizlendi (disk + DB)", deletedCount)
 		}
-		
+
 		log.Printf("✅ %d dosya silindi: %s", len(files), req.Id[:8])
 	}
 
@@ -262,7 +262,7 @@ func (h *FolderHandler) DeleteFolder(ctx context.Context, req *pb.DeleteFolderRe
 	// KURAL: Kullanıcı seçimine göre karar ver (req.DeletePhysically)
 	//   - delete_physically = true → Bilgisayardan tamamen kaldır (hem fiziksel klasör hem veritabanından tamamen sil)
 	//   - delete_physically = false → Sadece uygulamadan kaldır (veritabanından tamamen sil, fiziksel klasör korunur)
-	
+
 	// Veritabanından tamamen sil (HARD DELETE) - Dosyalar zaten silindi
 	if err := h.container.FolderRepository().Delete(ctx, req.Id); err != nil {
 		return &pb.Status{
@@ -272,11 +272,11 @@ func (h *FolderHandler) DeleteFolder(ctx context.Context, req *pb.DeleteFolderRe
 		}, nil
 	}
 	log.Printf("✅ Klasör veritabanından tamamen silindi (hard delete): %s", req.Id[:8])
-	
+
 	if req.DeletePhysically {
 		// Kullanıcı bilgisayardan tamamen kaldırmayı seçti
 		log.Printf("🗑️ Kullanıcı seçimi: Klasör bilgisayardan tamamen kaldırılıyor: %s", folder.LocalPath)
-		
+
 		// Desktop symlink'ini sil (varsa - sadece received folder'lar için)
 		if h.container.SymlinkManager() != nil && folder.Source == entity.FolderSourceReceived {
 			folderName := filepath.Base(folder.LocalPath)
@@ -286,7 +286,7 @@ func (h *FolderHandler) DeleteFolder(ctx context.Context, req *pb.DeleteFolderRe
 				log.Printf("🔗 Desktop symlink silindi: %s", folderName)
 			}
 		}
-		
+
 		// Fiziksel klasörü sil
 		if err := os.RemoveAll(folder.LocalPath); err != nil {
 			log.Printf("⚠️ Fiziksel klasör silinemedi (%s): %v", folder.LocalPath, err)
@@ -297,7 +297,7 @@ func (h *FolderHandler) DeleteFolder(ctx context.Context, req *pb.DeleteFolderRe
 			}, nil
 		}
 		log.Printf("✅ Fiziksel klasör silindi: %s", folder.LocalPath)
-		
+
 		return &pb.Status{
 			Success: true,
 			Message: "Klasör başarıyla silindi (veritabanı + fiziksel dosyalar)",
@@ -306,7 +306,7 @@ func (h *FolderHandler) DeleteFolder(ctx context.Context, req *pb.DeleteFolderRe
 	} else {
 		// Kullanıcı sadece uygulamadan kaldırmayı seçti → Fiziksel dosyalar korunur
 		log.Printf("📁 Kullanıcı seçimi: Klasör sadece uygulamadan kaldırıldı (fiziksel dosyalar korundu): %s", folder.LocalPath)
-		
+
 		return &pb.Status{
 			Success: true,
 			Message: "Klasör uygulamadan kaldırıldı (fiziksel dosyalar korundu)",
@@ -477,4 +477,3 @@ func (h *FolderHandler) scanAndSaveFiles(ctx context.Context, folder *entity.Fol
 
 	return savedCount, nil
 }
-

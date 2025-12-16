@@ -4,16 +4,16 @@ import (
 	"database/sql"
 	"fmt"
 	"path/filepath"
-	
+
 	_ "modernc.org/sqlite"
 )
 
 // Connection SQLite veritabanı bağlantısını yönetir
 // Single Responsibility: Sadece DB bağlantı yönetimi
 type Connection struct {
-	db       *sql.DB
-	dbPath   string
-	isOpen   bool
+	db     *sql.DB
+	dbPath string
+	isOpen bool
 }
 
 // NewConnection yeni bir SQLite connection oluşturur
@@ -29,39 +29,39 @@ func (c *Connection) Open() error {
 	if c.isOpen {
 		return nil
 	}
-	
+
 	// SQLite bağlantısı aç
 	db, err := sql.Open("sqlite", c.dbPath)
 	if err != nil {
 		return fmt.Errorf("sqlite bağlantısı açılamadı: %w", err)
 	}
-	
+
 	// Bağlantı havuzu ayarları
 	db.SetMaxOpenConns(25)
 	db.SetMaxIdleConns(5)
-	
+
 	// WAL modu etkinleştir (daha iyi concurrency)
 	if _, err := db.Exec("PRAGMA journal_mode=WAL"); err != nil {
 		db.Close()
 		return fmt.Errorf("WAL modu etkinleştirilemedi: %w", err)
 	}
-	
+
 	// Busy timeout (database locked ise 5 saniye bekle)
 	// File watcher gibi concurrent operasyonlar için önemli
 	if _, err := db.Exec("PRAGMA busy_timeout=5000"); err != nil {
 		db.Close()
 		return fmt.Errorf("busy timeout ayarlanamadı: %w", err)
 	}
-	
+
 	// Foreign key'leri etkinleştir
 	if _, err := db.Exec("PRAGMA foreign_keys=ON"); err != nil {
 		db.Close()
 		return fmt.Errorf("foreign key'ler etkinleştirilemedi: %w", err)
 	}
-	
+
 	c.db = db
 	c.isOpen = true
-	
+
 	return nil
 }
 
@@ -70,7 +70,7 @@ func (c *Connection) Close() error {
 	if !c.isOpen || c.db == nil {
 		return nil
 	}
-	
+
 	err := c.db.Close()
 	c.isOpen = false
 	return err
@@ -103,5 +103,3 @@ func (c *Connection) GetPath() string {
 func (c *Connection) GetDirPath() string {
 	return filepath.Dir(c.dbPath)
 }
-
-

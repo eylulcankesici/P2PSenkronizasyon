@@ -16,11 +16,11 @@ import (
 // Single Responsibility: Chunking orchestration
 // Dependency Inversion: Interface'lere bağımlı, concrete types'a değil
 type ChunkingUseCaseImpl struct {
-	chunkRepo  repository.ChunkRepository
-	fileRepo   repository.FileRepository
-	chunker    chunking.Chunker
-	storage    chunking.ChunkStorage
-	verifier   chunking.ChunkVerifier
+	chunkRepo repository.ChunkRepository
+	fileRepo  repository.FileRepository
+	chunker   chunking.Chunker
+	storage   chunking.ChunkStorage
+	verifier  chunking.ChunkVerifier
 }
 
 // NewChunkingUseCase yeni bir ChunkingUseCaseImpl oluşturur (Factory)
@@ -276,11 +276,11 @@ func (uc *ChunkingUseCaseImpl) DeleteOrphanedChunks(ctx context.Context) (int, e
 	if err != nil {
 		return 0, fmt.Errorf("orphaned chunk'lar sorgulanamadı: %w", err)
 	}
-	
+
 	if len(orphanedHashes) == 0 {
 		return 0, nil
 	}
-	
+
 	// Disk'ten sil
 	deletedFromDisk := 0
 	for _, hash := range orphanedHashes {
@@ -289,7 +289,7 @@ func (uc *ChunkingUseCaseImpl) DeleteOrphanedChunks(ctx context.Context) (int, e
 		if err != nil {
 			continue
 		}
-		
+
 		// Sadece local chunk'ları disk'ten sil
 		if chunk.IsLocal {
 			if err := uc.storage.Delete(hash); err != nil {
@@ -299,16 +299,16 @@ func (uc *ChunkingUseCaseImpl) DeleteOrphanedChunks(ctx context.Context) (int, e
 			}
 		}
 	}
-	
+
 	// Veritabanından sil
 	deletedCount, err := uc.chunkRepo.DeleteOrphanedChunks(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("orphaned chunk'lar veritabanından silinemedi: %w", err)
 	}
-	
+
 	if deletedFromDisk > 0 {
 		log.Printf("  🧹 %d orphaned chunk disk'ten temizlendi", deletedFromDisk)
 	}
-	
+
 	return deletedCount, nil
 }

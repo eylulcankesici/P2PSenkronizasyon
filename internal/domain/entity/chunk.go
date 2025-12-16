@@ -7,10 +7,10 @@ import (
 const (
 	// DefaultChunkSize varsayılan chunk boyutu (256KB - optimal P2P transfer)
 	DefaultChunkSize = 256 * 1024
-	
+
 	// MinChunkSize minimum chunk boyutu (64KB)
 	MinChunkSize = 64 * 1024
-	
+
 	// MaxChunkSize maksimum chunk boyutu (4MB)
 	MaxChunkSize = 4 * 1024 * 1024
 )
@@ -57,15 +57,15 @@ func (c *Chunk) Validate() error {
 	if c.Hash == "" {
 		return ErrInvalidChunkHash
 	}
-	
+
 	if len(c.Hash) != 64 { // SHA-256 = 64 hex characters
 		return ErrInvalidChunkHash
 	}
-	
+
 	if c.Size <= 0 || c.Size > MaxChunkSize {
 		return ErrInvalidChunkSize
 	}
-	
+
 	return nil
 }
 
@@ -78,7 +78,3 @@ func (c *Chunk) MarkAsLocal() {
 func (c *Chunk) MarkAsRemote() {
 	c.IsLocal = false
 }
-
-
-
-

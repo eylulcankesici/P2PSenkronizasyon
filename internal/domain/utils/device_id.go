@@ -37,27 +37,27 @@ func (d *DeviceIDGenerator) GeneratePersistentDeviceID() (string, error) {
 func (d *DeviceIDGenerator) generateUniqueDeviceID() (string, error) {
 	// 1. MAC address'leri topla
 	macAddresses := d.getAllMACAddresses()
-	
+
 	// 2. Hostname al
 	hostname, err := os.Hostname()
 	if err != nil {
 		hostname = "unknown-host"
 	}
-	
+
 	// 3. Sistem bilgileri
 	osInfo := runtime.GOOS
 	archInfo := runtime.GOARCH
-	
+
 	// 4. Random bytes oluştur
 	randomBytes := make([]byte, 16)
 	if _, err := rand.Read(randomBytes); err != nil {
 		return "", fmt.Errorf("random bytes oluşturulamadı: %w", err)
 	}
-	
+
 	// 5. Tüm bilgileri birleştir
-	data := fmt.Sprintf("%s-%s-%s-%s-%x-%d", 
+	data := fmt.Sprintf("%s-%s-%s-%s-%x-%d",
 		macAddresses, hostname, osInfo, archInfo, randomBytes, time.Now().UnixNano())
-	
+
 	// 6. SHA-256 hash'le
 	hasher := sha256.New()
 	hasher.Write([]byte(data))
@@ -116,15 +116,15 @@ func (d *DeviceIDGenerator) generateFromHostname() (string, error) {
 	// Hostname + sistem bilgileri + random kombinasyonu
 	osInfo := runtime.GOOS
 	archInfo := runtime.GOARCH
-	
+
 	// Random bytes oluştur
 	randomBytes := make([]byte, 16)
 	if _, err := rand.Read(randomBytes); err != nil {
 		return "", fmt.Errorf("random bytes oluşturulamadı: %w", err)
 	}
-	
+
 	// Tüm bilgileri birleştir
-	data := fmt.Sprintf("%s-%s-%s-%x-%d", 
+	data := fmt.Sprintf("%s-%s-%s-%x-%d",
 		hostname, osInfo, archInfo, randomBytes, time.Now().UnixNano())
 
 	// Hash'le
@@ -155,10 +155,10 @@ func (d *DeviceIDGenerator) GenerateDeviceName() string {
 func (d *DeviceIDGenerator) cleanHostname(hostname string) string {
 	// Küçük harfe çevir
 	hostname = fmt.Sprintf("%c%s", hostname[0], hostname[1:])
-	
+
 	// İlk harfi büyük yap
 	if len(hostname) > 0 {
-		hostname = fmt.Sprintf("%c%s", 
+		hostname = fmt.Sprintf("%c%s",
 			hostname[0]-32, // ASCII'de büyük harfe çevir
 			hostname[1:])
 	}
@@ -197,36 +197,36 @@ func (d *DeviceIDGenerator) IsDeviceIDUnique(deviceID string, existingIDs []stri
 	if deviceID == "" {
 		return false
 	}
-	
+
 	// Mevcut ID'lerle karşılaştır
 	for _, existingID := range existingIDs {
 		if deviceID == existingID {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
 // GenerateUniqueDeviceID benzersiz device ID oluşturur (çakışma kontrolü ile)
 func (d *DeviceIDGenerator) GenerateUniqueDeviceID(existingIDs []string) (string, error) {
 	maxAttempts := 10
-	
+
 	for attempt := 0; attempt < maxAttempts; attempt++ {
 		deviceID, err := d.generateUniqueDeviceID()
 		if err != nil {
 			continue
 		}
-		
+
 		// Çakışma kontrolü
 		if d.IsDeviceIDUnique(deviceID, existingIDs) {
 			return deviceID, nil
 		}
-		
+
 		// Çakışma varsa, random seed'i değiştir
 		time.Sleep(time.Millisecond * 10)
 	}
-	
+
 	// Son çare: UUID kullan
 	return uuid.New().String(), nil
 }

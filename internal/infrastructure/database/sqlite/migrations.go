@@ -24,14 +24,14 @@ func (m *Migration) RunMigrations() error {
 			return err
 		}
 	}
-	
+
 	db := m.conn.DB()
-	
+
 	// Migration version tablosu oluştur
 	if err := m.createVersionTable(db); err != nil {
 		return err
 	}
-	
+
 	// Tüm migration'ları sırayla çalıştır
 	migrations := []struct {
 		version int
@@ -52,13 +52,13 @@ func (m *Migration) RunMigrations() error {
 		{12, "create_file_peer_sync_table", m.createFilePeerSyncTable},
 		{13, "cleanup_duplicate_files_and_add_unique_constraint", m.cleanupDuplicateFilesAndAddUniqueConstraint},
 	}
-	
+
 	for _, migration := range migrations {
 		if err := m.runMigration(db, migration.version, migration.name, migration.up); err != nil {
 			return fmt.Errorf("migration %d (%s) başarısız: %w", migration.version, migration.name, err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -70,7 +70,7 @@ func (m *Migration) createVersionTable(db *sql.DB) error {
 		name TEXT NOT NULL,
 		applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	)`
-	
+
 	_, err := db.Exec(query)
 	return err
 }
@@ -83,29 +83,29 @@ func (m *Migration) runMigration(db *sql.DB, version int, name string, up func(*
 	if err != nil {
 		return err
 	}
-	
+
 	if count > 0 {
 		return nil // Zaten çalıştırılmış
 	}
-	
+
 	// Transaction başlat
 	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
-	
+
 	// Migration'ı çalıştır
 	if err := up(db); err != nil {
 		return err
 	}
-	
+
 	// Version'ı kaydet
 	_, err = tx.Exec("INSERT INTO schema_migrations (version, name) VALUES (?, ?)", version, name)
 	if err != nil {
 		return err
 	}
-	
+
 	return tx.Commit()
 }
 
@@ -121,7 +121,7 @@ func (m *Migration) createFoldersTable(db *sql.DB) error {
 		device_id TEXT NOT NULL,
 		is_active BOOLEAN NOT NULL DEFAULT 1
 	)`
-	
+
 	_, err := db.Exec(query)
 	return err
 }
@@ -139,7 +139,7 @@ func (m *Migration) createFilesTable(db *sql.DB) error {
 		is_deleted BOOLEAN NOT NULL,
 		FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE
 	)`
-	
+
 	_, err := db.Exec(query)
 	return err
 }
@@ -153,7 +153,7 @@ func (m *Migration) createChunksTable(db *sql.DB) error {
 		creation_time INTEGER NOT NULL,
 		is_local BOOLEAN NOT NULL
 	)`
-	
+
 	_, err := db.Exec(query)
 	return err
 }
@@ -169,7 +169,7 @@ func (m *Migration) createFileChunksTable(db *sql.DB) error {
 		FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
 		FOREIGN KEY (chunk_hash) REFERENCES chunks(hash)
 	)`
-	
+
 	_, err := db.Exec(query)
 	return err
 }
@@ -184,7 +184,7 @@ func (m *Migration) createPeersTable(db *sql.DB) error {
 		is_trusted BOOLEAN NOT NULL,
 		last_seen INTEGER
 	)`
-	
+
 	_, err := db.Exec(query)
 	return err
 }
@@ -201,7 +201,7 @@ func (m *Migration) createPeerFolderStatusTable(db *sql.DB) error {
 		FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE,
 		FOREIGN KEY (peer_id) REFERENCES peers(device_id) ON DELETE CASCADE
 	)`
-	
+
 	_, err := db.Exec(query)
 	return err
 }
@@ -218,7 +218,7 @@ func (m *Migration) createUsersTable(db *sql.DB) error {
 		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 	)`
-	
+
 	_, err := db.Exec(query)
 	return err
 }
@@ -239,7 +239,7 @@ func (m *Migration) createVersionsTable(db *sql.DB) error {
 		FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
 		UNIQUE(file_id, version_number)
 	)`
-	
+
 	_, err := db.Exec(query)
 	return err
 }
@@ -257,23 +257,23 @@ func (m *Migration) createFilePeerSyncTable(db *sql.DB) error {
 		FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
 		FOREIGN KEY (peer_id) REFERENCES peers(device_id) ON DELETE CASCADE
 	)`
-	
+
 	if _, err := db.Exec(query); err != nil {
 		return err
 	}
-	
+
 	// file_peer_sync tablosu için index'ler
 	indexes := []string{
 		"CREATE INDEX IF NOT EXISTS idx_file_peer_sync_file_id ON file_peer_sync(file_id)",
 		"CREATE INDEX IF NOT EXISTS idx_file_peer_sync_peer_id ON file_peer_sync(peer_id)",
 	}
-	
+
 	for _, indexQuery := range indexes {
 		if _, err := db.Exec(indexQuery); err != nil {
 			return err
 		}
 	}
-	
+
 	return nil
 }
 
@@ -292,40 +292,40 @@ func (m *Migration) createIndexes(db *sql.DB) error {
 		"CREATE INDEX IF NOT EXISTS idx_file_versions_file_id ON file_versions(file_id)",
 		// file_peer_sync index'leri createFilePeerSyncTable'dan sonra eklenecek (migration 12)
 	}
-	
+
 	for _, indexQuery := range indexes {
 		if _, err := db.Exec(indexQuery); err != nil {
 			return err
 		}
 	}
-	
+
 	return nil
 }
 
 // fixCascadeDelete mevcut tablolara ON DELETE CASCADE constraint'ini ekler
 func (m *Migration) fixCascadeDelete(db *sql.DB) error {
 	// SQLite'da mevcut tabloya foreign key constraint eklemek için tabloları yeniden oluşturmak gerekiyor
-	
+
 	// 1. files tablosunu yeniden oluştur (ON DELETE CASCADE ile)
 	if err := m.recreateFilesTable(db); err != nil {
 		return fmt.Errorf("files tablosu yeniden oluşturulamadı: %w", err)
 	}
-	
+
 	// 2. file_chunks tablosunu yeniden oluştur (ON DELETE CASCADE ile)
 	if err := m.recreateFileChunksTable(db); err != nil {
 		return fmt.Errorf("file_chunks tablosu yeniden oluşturulamadı: %w", err)
 	}
-	
+
 	// 3. file_versions tablosunu yeniden oluştur (ON DELETE CASCADE ile)
 	if err := m.recreateFileVersionsTable(db); err != nil {
 		return fmt.Errorf("file_versions tablosu yeniden oluşturulamadı: %w", err)
 	}
-	
+
 	// 4. peer_folder_status tablosunu yeniden oluştur (ON DELETE CASCADE ile)
 	if err := m.recreatePeerFolderStatusTable(db); err != nil {
 		return fmt.Errorf("peer_folder_status tablosu yeniden oluşturulamadı: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -347,7 +347,7 @@ func (m *Migration) recreateFilesTable(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Eski tablodan verileri kopyala
 	_, err = db.Exec(`
 		INSERT INTO files_new (id, folder_id, relative_path, size, mod_time, global_hash, is_deleted)
@@ -357,19 +357,19 @@ func (m *Migration) recreateFilesTable(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Eski tabloyu sil
 	_, err = db.Exec(`DROP TABLE files`)
 	if err != nil {
 		return err
 	}
-	
+
 	// Yeni tabloyu eski adla rename et
 	_, err = db.Exec(`ALTER TABLE files_new RENAME TO files`)
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -389,7 +389,7 @@ func (m *Migration) recreateFileChunksTable(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Eski tablodan verileri kopyala
 	_, err = db.Exec(`
 		INSERT INTO file_chunks_new (file_id, chunk_hash, chunk_index)
@@ -399,19 +399,19 @@ func (m *Migration) recreateFileChunksTable(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Eski tabloyu sil
 	_, err = db.Exec(`DROP TABLE file_chunks`)
 	if err != nil {
 		return err
 	}
-	
+
 	// Yeni tabloyu eski adla rename et
 	_, err = db.Exec(`ALTER TABLE file_chunks_new RENAME TO file_chunks`)
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -436,7 +436,7 @@ func (m *Migration) recreateFileVersionsTable(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Eski tablodan verileri kopyala
 	_, err = db.Exec(`
 		INSERT INTO file_versions_new (id, file_id, version_number, backup_path, original_path, size, hash, created_at, created_by_peer_id)
@@ -446,19 +446,19 @@ func (m *Migration) recreateFileVersionsTable(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Eski tabloyu sil
 	_, err = db.Exec(`DROP TABLE file_versions`)
 	if err != nil {
 		return err
 	}
-	
+
 	// Yeni tabloyu eski adla rename et
 	_, err = db.Exec(`ALTER TABLE file_versions_new RENAME TO file_versions`)
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -479,7 +479,7 @@ func (m *Migration) recreatePeerFolderStatusTable(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Eski tablodan verileri kopyala
 	_, err = db.Exec(`
 		INSERT INTO peer_folder_status_new (folder_id, peer_id, global_version, sync_state)
@@ -489,19 +489,19 @@ func (m *Migration) recreatePeerFolderStatusTable(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Eski tabloyu sil
 	_, err = db.Exec(`DROP TABLE peer_folder_status`)
 	if err != nil {
 		return err
 	}
-	
+
 	// Yeni tabloyu eski adla rename et
 	_, err = db.Exec(`ALTER TABLE peer_folder_status_new RENAME TO peer_folder_status`)
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -515,7 +515,7 @@ func (m *Migration) addFolderSource(db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("source kolonu eklenemedi: %w", err)
 	}
-	
+
 	// Mevcut tüm folder'ların source'unu belirle
 	// synced_folders içindeyse 'received', değilse 'user'
 	_, err = db.Exec(`
@@ -528,7 +528,7 @@ func (m *Migration) addFolderSource(db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("source değerleri güncellenemedi: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -536,11 +536,11 @@ func (m *Migration) addFolderSource(db *sql.DB) error {
 func (m *Migration) cleanupDuplicateFilesAndAddUniqueConstraint(db *sql.DB) error {
 	// ÖNEMLİ: Bu migration mevcut çalışan sistemleri bozmamalı
 	// Sadece duplicate kayıtları temizler ve güvenlik için UNIQUE constraint ekler
-	
+
 	// 1. ADIM: Duplicate kayıtları bul ve temizle
 	// Strategy: Her (folder_id, relative_path) kombinasyonu için sadece en eski kaydı tut
 	// En eski kayıt = rowid'si en küçük olan (SQLite'ın internal rowid'si)
-	
+
 	// Duplicate olan (folder_id, relative_path) kombinasyonlarını bul
 	duplicateQuery := `
 		SELECT folder_id, relative_path, COUNT(*) as count
@@ -549,21 +549,21 @@ func (m *Migration) cleanupDuplicateFilesAndAddUniqueConstraint(db *sql.DB) erro
 		GROUP BY folder_id, relative_path
 		HAVING COUNT(*) > 1
 	`
-	
+
 	rows, err := db.Query(duplicateQuery)
 	if err != nil {
 		return fmt.Errorf("duplicate kayıtlar bulunamadı: %w", err)
 	}
 	defer rows.Close()
-	
+
 	type duplicateGroup struct {
 		FolderID     string
 		RelativePath string
 		Count        int
 	}
-	
+
 	duplicateGroups := make([]duplicateGroup, 0)
-	
+
 	for rows.Next() {
 		var group duplicateGroup
 		if err := rows.Scan(&group.FolderID, &group.RelativePath, &group.Count); err != nil {
@@ -571,11 +571,11 @@ func (m *Migration) cleanupDuplicateFilesAndAddUniqueConstraint(db *sql.DB) erro
 		}
 		duplicateGroups = append(duplicateGroups, group)
 	}
-	
+
 	if err = rows.Err(); err != nil {
 		return fmt.Errorf("rows iteration hatası: %w", err)
 	}
-	
+
 	if len(duplicateGroups) > 0 {
 		// Transaction başlat (güvenli temizlik için)
 		tx, err := db.Begin()
@@ -583,7 +583,7 @@ func (m *Migration) cleanupDuplicateFilesAndAddUniqueConstraint(db *sql.DB) erro
 			return fmt.Errorf("transaction başlatılamadı: %w", err)
 		}
 		defer tx.Rollback()
-		
+
 		totalDeleted := 0
 		for _, group := range duplicateGroups {
 			// Her grup için en eski kaydı (en küçük rowid) tut, diğerlerini sil
@@ -602,26 +602,26 @@ func (m *Migration) cleanupDuplicateFilesAndAddUniqueConstraint(db *sql.DB) erro
 					  LIMIT 1
 				  )
 			`
-			
+
 			result, err := tx.Exec(deleteQuery, group.FolderID, group.RelativePath, group.FolderID, group.RelativePath)
 			if err != nil {
 				// Hata olsa bile devam et, diğerlerini temizlemeye çalış
 				continue
 			}
-			
+
 			deleted, _ := result.RowsAffected()
 			totalDeleted += int(deleted)
 		}
-		
+
 		// Transaction commit
 		if err := tx.Commit(); err != nil {
 			return fmt.Errorf("transaction commit edilemedi: %w", err)
 		}
 	}
-	
+
 	// 2. ADIM: UNIQUE constraint ekle
 	// SQLite'da mevcut tabloya constraint eklemek için tabloyu yeniden oluşturmak gerekiyor
-	
+
 	// Yeni tablo oluştur (UNIQUE constraint ile)
 	createNewTableQuery := `
 		CREATE TABLE IF NOT EXISTS files_new (
@@ -636,48 +636,48 @@ func (m *Migration) cleanupDuplicateFilesAndAddUniqueConstraint(db *sql.DB) erro
 			FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE
 		)
 	`
-	
+
 	if _, err := db.Exec(createNewTableQuery); err != nil {
 		return fmt.Errorf("yeni files tablosu oluşturulamadı: %w", err)
 	}
-	
+
 	// Mevcut verileri kopyala (duplicate'ler zaten temizlendi, güvenli)
 	copyDataQuery := `
 		INSERT INTO files_new (id, folder_id, relative_path, size, mod_time, global_hash, is_deleted)
 		SELECT id, folder_id, relative_path, size, mod_time, global_hash, is_deleted
 		FROM files
 	`
-	
+
 	if _, err := db.Exec(copyDataQuery); err != nil {
 		// Eğer duplicate varsa (temizleme başarısız olduysa), hatayı logla ama devam et
 		// Eski tabloyu koru, yeni tabloyu sil
 		db.Exec("DROP TABLE IF EXISTS files_new")
 		return fmt.Errorf("veri kopyalanamadı (muhtemelen duplicate kayıtlar var): %w", err)
 	}
-	
+
 	// Eski tabloyu sil
 	if _, err := db.Exec("DROP TABLE files"); err != nil {
 		return fmt.Errorf("eski files tablosu silinemedi: %w", err)
 	}
-	
+
 	// Yeni tabloyu eski adla rename et
 	if _, err := db.Exec("ALTER TABLE files_new RENAME TO files"); err != nil {
 		return fmt.Errorf("tablo rename edilemedi: %w", err)
 	}
-	
+
 	// Index'leri yeniden oluştur
 	indexes := []string{
 		"CREATE INDEX IF NOT EXISTS idx_files_folder_id ON files(folder_id)",
 		"CREATE INDEX IF NOT EXISTS idx_files_relative_path ON files(relative_path)",
 		"CREATE INDEX IF NOT EXISTS idx_files_is_deleted ON files(is_deleted)",
 	}
-	
+
 	for _, indexQuery := range indexes {
 		if _, err := db.Exec(indexQuery); err != nil {
 			// Index hatası kritik değil, devam et
 			_ = err
 		}
 	}
-	
+
 	return nil
 }

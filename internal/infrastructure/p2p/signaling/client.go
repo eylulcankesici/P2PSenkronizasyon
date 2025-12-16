@@ -3,9 +3,9 @@ package signaling
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/websocket"
 	"log"
 	"sync"
-	"github.com/gorilla/websocket"
 )
 
 // SignalingClient signaling server client'ı
@@ -13,7 +13,7 @@ type SignalingClient struct {
 	serverURL string
 	conn      *websocket.Conn
 	mu        sync.Mutex
-	
+
 	// Callbacks
 	OnOffer     func(sdp string)
 	OnAnswer    func(sdp string)
@@ -41,10 +41,10 @@ func (c *SignalingClient) Connect() error {
 	}
 
 	c.conn = conn
-	
+
 	// Mesaj dinlemeye başla
 	go c.listen()
-	
+
 	return nil
 }
 
@@ -77,7 +77,7 @@ func (c *SignalingClient) SendReady() error {
 func (c *SignalingClient) Close() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	if c.conn != nil {
 		return c.conn.Close()
 	}

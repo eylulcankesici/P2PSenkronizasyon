@@ -50,7 +50,7 @@ func (h *ChunkHandler) ChunkFile(ctx context.Context, req *pb.ChunkFileRequest) 
 		}
 		newFile := entity.NewFile(folderID, filepath.Base(req.FilePath), fileInfo.Size(), fileInfo.ModTime())
 		newFile.ID = req.FileId
-		
+
 		if err := h.container.FileRepository().Create(ctx, newFile); err != nil {
 			return &pb.ChunkFileResponse{
 				Status: &pb.Status{
@@ -217,7 +217,7 @@ func (h *ChunkHandler) UploadChunk(stream pb.ChunkService_UploadChunkServer) err
 
 	// Chunk'ı kaydet
 	chunk := entity.NewChunk(chunkHash, int64(len(receivedData)))
-	
+
 	// Chunk zaten var mı kontrol et
 	existingChunk, _ := h.container.ChunkRepository().GetByHash(ctx, chunkHash)
 	wasDuplicate := existingChunk != nil
@@ -318,7 +318,7 @@ func (h *ChunkHandler) GetDeduplicationStats(ctx context.Context, req *pb.GetDed
 func (h *ChunkHandler) CleanOrphanChunks(ctx context.Context, req *pb.CleanOrphanChunksRequest) (*pb.CleanOrphanChunksResponse, error) {
 	// Önce silinecek chunk'ların boyutunu al
 	var freedBytes int64
-	
+
 	deletedCount, err := h.container.ChunkRepository().DeleteOrphanedChunks(ctx)
 	if err != nil {
 		return &pb.CleanOrphanChunksResponse{
@@ -359,4 +359,3 @@ func convertChunkToProto(c *entity.Chunk) *pb.ChunkInfo {
 		IsLocal:      c.IsLocal,
 	}
 }
-

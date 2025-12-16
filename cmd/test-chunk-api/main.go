@@ -63,10 +63,10 @@ func main() {
 	if err != nil {
 		log.Fatal("❌ Test klasörü oluşturulamadı:", err)
 	}
-	
+
 	folderID := folderResp.Folder.Id
 	fmt.Printf("📁 Test klasörü oluşturuldu: %s\n", folderID)
-	
+
 	// File ID oluştur
 	fileID := "test-api-file-" + fmt.Sprint(time.Now().Unix())
 	fmt.Printf("📝 Test dosya ID'si: %s\n\n", fileID)
@@ -126,7 +126,7 @@ func main() {
 
 	if len(chunkResp.Chunks) > 0 {
 		firstChunkHash := chunkResp.Chunks[0].Hash
-		
+
 		stream, err := chunkClient.DownloadChunk(ctx, &pb.DownloadChunkRequest{
 			ChunkHash: firstChunkHash,
 		})
@@ -136,7 +136,7 @@ func main() {
 
 		var downloadedData []byte
 		packetCount := 0
-		
+
 		for {
 			packet, err := stream.Recv()
 			if err == io.EOF {
@@ -234,4 +234,3 @@ func min(a, b int) int {
 	}
 	return b
 }
-

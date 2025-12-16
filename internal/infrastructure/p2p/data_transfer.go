@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	
+
 	"github.com/aether/sync/internal/domain/entity"
 )
 
@@ -27,15 +27,15 @@ func (dtm *DataTransferManager) TransferChunk(ctx context.Context, peerID string
 	if !dtm.networkManager.IsPeerConnected(peerID) {
 		return fmt.Errorf("peer bağlı değil: %s", peerID)
 	}
-	
-	log.Printf("Chunk transfer ediliyor: %s -> %s (size: %d bytes)", 
+
+	log.Printf("Chunk transfer ediliyor: %s -> %s (size: %d bytes)",
 		chunk.Hash[:8], peerID, len(data))
-	
+
 	// libp2p stream üzerinden chunk gönder
 	// Şimdilik placeholder
-	
+
 	log.Printf("✓ Chunk transfer edildi: %s", chunk.Hash[:8])
-	
+
 	return nil
 }
 
@@ -45,17 +45,17 @@ func (dtm *DataTransferManager) RequestChunk(ctx context.Context, peerID, chunkH
 	if !dtm.networkManager.IsPeerConnected(peerID) {
 		return nil, fmt.Errorf("peer bağlı değil: %s", peerID)
 	}
-	
+
 	log.Printf("Chunk talep ediliyor: %s <- %s", chunkHash[:8], peerID)
-	
+
 	// libp2p stream üzerinden chunk talep et
 	// Şimdilik placeholder
-	
+
 	// Placeholder data
 	data := []byte{}
-	
+
 	log.Printf("✓ Chunk alındı: %s (%d bytes)", chunkHash[:8], len(data))
-	
+
 	return data, nil
 }
 
@@ -64,12 +64,12 @@ func (dtm *DataTransferManager) SendFileMetadata(ctx context.Context, peerID, fi
 	if !dtm.networkManager.IsPeerConnected(peerID) {
 		return fmt.Errorf("peer bağlı değil: %s", peerID)
 	}
-	
+
 	log.Printf("Dosya metadata'sı gönderiliyor: %s -> %s", fileID, peerID)
-	
+
 	// libp2p üzerinden metadata gönder
 	// Şimdilik placeholder
-	
+
 	return nil
 }
 
@@ -78,16 +78,11 @@ func (dtm *DataTransferManager) Ping(ctx context.Context, peerID string) (int64,
 	if !dtm.networkManager.IsPeerConnected(peerID) {
 		return 0, fmt.Errorf("peer bağlı değil: %s", peerID)
 	}
-	
+
 	// Ping-pong latency ölçümü
 	// Şimdilik placeholder
-	
+
 	latency := int64(10) // ms
-	
+
 	return latency, nil
 }
-
-
-
-
-

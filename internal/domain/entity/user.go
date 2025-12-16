@@ -41,15 +41,15 @@ func (u *User) Validate() error {
 	if u.ProfileName == "" {
 		return ErrInvalidProfileName
 	}
-	
+
 	if u.Role != UserRoleAdmin && u.Role != UserRoleStandard {
 		return ErrInvalidUserRole
 	}
-	
+
 	if u.PasswordHash == "" {
 		return ErrInvalidPasswordHash
 	}
-	
+
 	return nil
 }
 
@@ -75,7 +75,3 @@ func (u *User) UpdatePassword(newPasswordHash string) {
 	u.PasswordHash = newPasswordHash
 	u.UpdatedAt = time.Now()
 }
-
-
-
-

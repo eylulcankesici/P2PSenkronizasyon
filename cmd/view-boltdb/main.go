@@ -44,7 +44,7 @@ func main() {
 		err := tx.ForEach(func(name []byte, bucket *bolt.Bucket) error {
 			bucketCount++
 			bucketName := string(name)
-			
+
 			fmt.Printf("📦 Bucket: %s\n", bucketName)
 			fmt.Println("   ├─ Key-Value Çiftleri:")
 
@@ -53,25 +53,25 @@ func main() {
 			err := bucket.ForEach(func(k, v []byte) error {
 				count++
 				keyCount++
-				
+
 				key := string(k)
 				value := string(v)
-				
+
 				// Değer çok uzunsa kısalt
 				if len(value) > 100 {
 					value = value[:100] + "..."
 				}
-				
+
 				fmt.Printf("   │  • %s: %s\n", key, value)
 				return nil
 			})
-			
+
 			if count == 0 {
 				fmt.Println("   │  (Boş)")
 			}
-			
+
 			fmt.Printf("   └─ Toplam: %d anahtar\n\n", count)
-			
+
 			return err
 		})
 
@@ -79,7 +79,7 @@ func main() {
 		fmt.Printf("📊 Özet:\n")
 		fmt.Printf("   • Toplam Bucket: %d\n", bucketCount)
 		fmt.Printf("   • Toplam Anahtar: %d\n", keyCount)
-		
+
 		if bucketCount == 0 {
 			fmt.Println("\n⚠️  BoltDB boş görünüyor. Henüz hiç ayar kaydedilmemiş olabilir.")
 		}
@@ -91,4 +91,3 @@ func main() {
 		log.Fatal("❌ Veritabanı okunurken hata:", err)
 	}
 }
-

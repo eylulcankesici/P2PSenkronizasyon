@@ -53,10 +53,10 @@ func (c *Connection) InitializeDesignSpecConfig() error {
 func (c *Connection) getDesignSpecConfigs() map[string]string {
 	// Benzersiz instance ID oluştur
 	instanceID := c.generateInstanceID()
-	
+
 	// Admin API hash oluştur (varsayılan: "admin123")
 	adminHash, _ := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
-	
+
 	return map[string]string{
 		// TASARIM SPESİFİKASYONU - APP
 		"app:instance_id": instanceID,
@@ -160,4 +160,3 @@ func (c *Connection) ListAllConfigs() (map[string]string, error) {
 
 	return configs, err
 }
-

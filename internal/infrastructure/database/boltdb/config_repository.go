@@ -34,11 +34,11 @@ func (r *ConfigRepository) Get(ctx context.Context, key string) ([]byte, error) 
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if value == nil {
 		return nil, fmt.Errorf("key bulunamadı: %s", key)
 	}
-	
+
 	return value, nil
 }
 
@@ -64,17 +64,17 @@ func (r *ConfigRepository) Exists(ctx context.Context, key string) (bool, error)
 // GetWithPrefix belirli prefix ile başlayan tüm değerleri getirir
 func (r *ConfigRepository) GetWithPrefix(ctx context.Context, prefix string) (map[string][]byte, error) {
 	result := make(map[string][]byte)
-	
+
 	err := r.conn.DB().View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(r.bucketName))
 		if b == nil {
 			return fmt.Errorf("bucket bulunamadı: %s", r.bucketName)
 		}
-		
+
 		// Cursor ile prefix araması
 		c := b.Cursor()
 		prefixBytes := []byte(prefix)
-		
+
 		for k, v := c.Seek(prefixBytes); k != nil && strings.HasPrefix(string(k), prefix); k, v = c.Next() {
 			key := make([]byte, len(k))
 			value := make([]byte, len(v))
@@ -82,10 +82,10 @@ func (r *ConfigRepository) GetWithPrefix(ctx context.Context, prefix string) (ma
 			copy(value, v)
 			result[string(key)] = value
 		}
-		
+
 		return nil
 	})
-	
+
 	return result, err
 }
 

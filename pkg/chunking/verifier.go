@@ -11,7 +11,7 @@ import (
 type ChunkVerifier interface {
 	// Verify chunk'ın hash'inin doğru olup olmadığını kontrol eder
 	Verify(data []byte, expectedHash string) error
-	
+
 	// VerifyChunk ChunkResult'ın bütünlüğünü kontrol eder
 	VerifyChunk(chunk *ChunkResult) error
 }
@@ -40,7 +40,7 @@ func (v *SHA256Verifier) Verify(data []byte, expectedHash string) error {
 
 	// Karşılaştır
 	if actualHash != expectedHash {
-		return fmt.Errorf("chunk bütünlük hatası: beklenen=%s, gerçek=%s", 
+		return fmt.Errorf("chunk bütünlük hatası: beklenen=%s, gerçek=%s",
 			expectedHash, actualHash)
 	}
 
@@ -58,7 +58,7 @@ func (v *SHA256Verifier) VerifyChunk(chunk *ChunkResult) error {
 	}
 
 	if int64(len(chunk.Data)) != chunk.Size {
-		return fmt.Errorf("chunk boyutu uyumsuz: beklenen=%d, gerçek=%d", 
+		return fmt.Errorf("chunk boyutu uyumsuz: beklenen=%d, gerçek=%d",
 			chunk.Size, len(chunk.Data))
 	}
 
@@ -81,7 +81,7 @@ func VerifyFile(chunks []*ChunkResult, expectedGlobalHash string) error {
 
 		// Index kontrolü
 		if chunk.Index != i {
-			return fmt.Errorf("chunk %d index uyumsuz: beklenen=%d, gerçek=%d", 
+			return fmt.Errorf("chunk %d index uyumsuz: beklenen=%d, gerçek=%d",
 				i, i, chunk.Index)
 		}
 	}
@@ -90,7 +90,7 @@ func VerifyFile(chunks []*ChunkResult, expectedGlobalHash string) error {
 	if expectedGlobalHash != "" {
 		actualGlobalHash := CalculateFileHash(chunks)
 		if actualGlobalHash != expectedGlobalHash {
-			return fmt.Errorf("global hash uyumsuz: beklenen=%s, gerçek=%s", 
+			return fmt.Errorf("global hash uyumsuz: beklenen=%s, gerçek=%s",
 				expectedGlobalHash, actualGlobalHash)
 		}
 	}
@@ -109,7 +109,7 @@ func ReconstructFile(chunks []*ChunkResult) ([]byte, error) {
 	// Index'ler sıralı mı kontrol et
 	for i, chunk := range chunks {
 		if chunk.Index != i {
-			return nil, fmt.Errorf("chunk sıralaması bozuk: beklenen=%d, gerçek=%d", 
+			return nil, fmt.Errorf("chunk sıralaması bozuk: beklenen=%d, gerçek=%d",
 				i, chunk.Index)
 		}
 	}
@@ -130,4 +130,3 @@ func ReconstructFile(chunks []*ChunkResult) ([]byte, error) {
 
 	return result, nil
 }
-

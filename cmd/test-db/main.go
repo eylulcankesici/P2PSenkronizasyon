@@ -40,7 +40,7 @@ func main() {
 	fmt.Println("📝 Test 1: Kullanıcı Oluşturma")
 	fmt.Println("--------------------------------")
 	user := entity.NewUser("test_user", entity.UserRoleAdmin, "test123")
-	
+
 	if err := cont.UserRepository().Create(ctx, user); err != nil {
 		fmt.Printf("❌ Kullanıcı oluşturulamadı: %v\n\n", err)
 	} else {
@@ -50,7 +50,7 @@ func main() {
 	// Test 2: Klasör Oluştur
 	fmt.Println("📝 Test 2: Klasör Oluşturma")
 	fmt.Println("--------------------------------")
-	
+
 	// Test klasörü oluştur
 	testFolderPath := filepath.Join(os.TempDir(), "aether_test_folder")
 	if err := os.MkdirAll(testFolderPath, 0755); err != nil {
@@ -59,7 +59,7 @@ func main() {
 	fmt.Printf("📁 Test klasörü: %s\n", testFolderPath)
 
 	folder := entity.NewFolder(testFolderPath, entity.SyncModeBidirectional)
-	
+
 	if err := cont.FolderRepository().Create(ctx, folder); err != nil {
 		fmt.Printf("❌ Klasör oluşturulamadı: %v\n\n", err)
 	} else {
@@ -69,7 +69,7 @@ func main() {
 	// Test 3: Klasörleri Listele
 	fmt.Println("📝 Test 3: Klasörleri Listeleme")
 	fmt.Println("--------------------------------")
-	
+
 	folders, err := cont.FolderRepository().GetAll(ctx)
 	if err != nil {
 		fmt.Printf("❌ Klasörler listelenemedi: %v\n\n", err)
@@ -87,7 +87,7 @@ func main() {
 	// Test 4: Kullanıcıları Listele
 	fmt.Println("📝 Test 4: Kullanıcıları Listeleme")
 	fmt.Println("--------------------------------")
-	
+
 	users, err := cont.UserRepository().GetAll(ctx)
 	if err != nil {
 		fmt.Printf("❌ Kullanıcılar listelenemedi: %v\n\n", err)
@@ -103,10 +103,10 @@ func main() {
 	if len(folders) > 0 {
 		fmt.Println("📝 Test 5: Klasör Durumunu Değiştirme")
 		fmt.Println("--------------------------------")
-		
+
 		testFolder := folders[0]
 		fmt.Printf("Klasör önceki durumu: Aktif=%v\n", testFolder.IsActive)
-		
+
 		// Durumu değiştir
 		testFolder.IsActive = !testFolder.IsActive
 		if err := cont.FolderRepository().Update(ctx, testFolder); err != nil {
@@ -119,9 +119,9 @@ func main() {
 	// Test 6: Temizlik (Opsiyonel)
 	fmt.Println("📝 Test 6: Temizlik")
 	fmt.Println("--------------------------------")
-	
+
 	cleanup := promptYesNo("Test verilerini silmek ister misiniz? (E/H)")
-	
+
 	if cleanup {
 		// Klasörü sil
 		if len(folders) > 0 {
@@ -133,14 +133,14 @@ func main() {
 				}
 			}
 		}
-		
+
 		// Kullanıcıyı sil
 		if err := cont.UserRepository().Delete(ctx, user.ID); err != nil {
 			fmt.Printf("❌ Kullanıcı silinemedi: %v\n", err)
 		} else {
 			fmt.Printf("✅ Kullanıcı silindi: %s\n", user.ProfileName)
 		}
-		
+
 		// Test klasörünü sil
 		if err := os.RemoveAll(testFolderPath); err != nil {
 			fmt.Printf("❌ Test klasörü silinemedi: %v\n", err)
@@ -160,4 +160,3 @@ func promptYesNo(question string) bool {
 	fmt.Scanln(&response)
 	return response == "E" || response == "e" || response == "Y" || response == "y"
 }
-

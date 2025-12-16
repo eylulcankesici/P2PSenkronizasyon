@@ -15,12 +15,12 @@ import (
 type NATType string
 
 const (
-	NATTypeUnknown           NATType = "unknown"
-	NATTypeNone              NATType = "none"                // Public IP, NAT yok
-	NATTypeFullCone          NATType = "full_cone"           // Endpoint-independent mapping, endpoint-independent filtering
-	NATTypeRestrictedCone    NATType = "restricted_cone"     // Endpoint-independent mapping, address-dependent filtering
+	NATTypeUnknown            NATType = "unknown"
+	NATTypeNone               NATType = "none"                 // Public IP, NAT yok
+	NATTypeFullCone           NATType = "full_cone"            // Endpoint-independent mapping, endpoint-independent filtering
+	NATTypeRestrictedCone     NATType = "restricted_cone"      // Endpoint-independent mapping, address-dependent filtering
 	NATTypePortRestrictedCone NATType = "port_restricted_cone" // Endpoint-independent mapping, address and port-dependent filtering
-	NATTypeSymmetric         NATType = "symmetric"           // Address-dependent mapping
+	NATTypeSymmetric          NATType = "symmetric"            // Address-dependent mapping
 )
 
 // STUNClient STUN client interface'i
@@ -33,14 +33,14 @@ type STUNClient interface {
 
 // stunClientImpl STUN client implementasyonu
 type stunClientImpl struct {
-	stunServers []string
-	conn        net.PacketConn
-	mu          sync.RWMutex
-	cachedIP    net.IP
-	cachedPort  int
+	stunServers   []string
+	conn          net.PacketConn
+	mu            sync.RWMutex
+	cachedIP      net.IP
+	cachedPort    int
 	cachedNATType NATType
-	lastUpdate  time.Time
-	cacheTTL    time.Duration
+	lastUpdate    time.Time
+	cacheTTL      time.Duration
 }
 
 // NewSTUNClient yeni STUN client oluşturur
@@ -289,7 +289,7 @@ func (c *stunClientImpl) DetectNATType(ctx context.Context) (NATType, error) {
 		c.cachedNATType = NATTypeSymmetric
 		c.lastUpdate = time.Now()
 		c.mu.Unlock()
-		log.Printf("📡 NAT type tespit edildi: %s (public: %s, local: %s, port testi başarısız)", 
+		log.Printf("📡 NAT type tespit edildi: %s (public: %s, local: %s, port testi başarısız)",
 			NATTypeSymmetric, publicIP, localIP)
 		return NATTypeSymmetric, nil
 	}
@@ -302,7 +302,7 @@ func (c *stunClientImpl) DetectNATType(ctx context.Context) (NATType, error) {
 	c.lastUpdate = time.Now()
 	c.mu.Unlock()
 
-	log.Printf("📡 NAT type tespit edildi: %s (public: %s:%d, local: %s)", 
+	log.Printf("📡 NAT type tespit edildi: %s (public: %s:%d, local: %s)",
 		NATTypeSymmetric, publicIP, mappedPort, localIP)
 	return NATTypeSymmetric, nil
 }
@@ -356,5 +356,3 @@ func getLocalIP() net.IP {
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 	return localAddr.IP
 }
-
-

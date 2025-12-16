@@ -32,7 +32,7 @@ func (c *Connection) Open() error {
 
 	c.db = db
 	log.Printf("BoltDB bağlantısı açıldı: %s", c.path)
-	
+
 	// Varsayılan bucket'ları oluştur
 	if err := c.initBuckets(); err != nil {
 		return fmt.Errorf("bucket'lar oluşturulamadı: %w", err)
@@ -58,10 +58,10 @@ func (c *Connection) DB() *bbolt.DB {
 func (c *Connection) initBuckets() error {
 	return c.db.Update(func(tx *bbolt.Tx) error {
 		buckets := []string{
-			"config",      // Ayarlar için
-			"cache",       // Önbellek için
-			"settings",    // Kullanıcı ayarları
-			"ui_state",    // UI durumu
+			"config",   // Ayarlar için
+			"cache",    // Önbellek için
+			"settings", // Kullanıcı ayarları
+			"ui_state", // UI durumu
 		}
 
 		for _, bucket := range buckets {
@@ -91,23 +91,23 @@ func (c *Connection) Set(bucket, key string, value []byte) error {
 // Get bir key'e karşılık gelen value'yu okur
 func (c *Connection) Get(bucket, key string) ([]byte, error) {
 	var value []byte
-	
+
 	err := c.db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
 		if b == nil {
 			return fmt.Errorf("bucket bulunamadı: %s", bucket)
 		}
-		
+
 		v := b.Get([]byte(key))
 		if v != nil {
 			// Copy the value because it's only valid during the transaction
 			value = make([]byte, len(v))
 			copy(value, v)
 		}
-		
+
 		return nil
 	})
-	
+
 	return value, err
 }
 
@@ -125,13 +125,13 @@ func (c *Connection) Delete(bucket, key string) error {
 // GetAll bir bucket'taki tüm key-value çiftlerini döndürür
 func (c *Connection) GetAll(bucket string) (map[string][]byte, error) {
 	result := make(map[string][]byte)
-	
+
 	err := c.db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
 		if b == nil {
 			return fmt.Errorf("bucket bulunamadı: %s", bucket)
 		}
-		
+
 		return b.ForEach(func(k, v []byte) error {
 			key := make([]byte, len(k))
 			value := make([]byte, len(v))
@@ -141,7 +141,7 @@ func (c *Connection) GetAll(bucket string) (map[string][]byte, error) {
 			return nil
 		})
 	})
-	
+
 	return result, err
 }
 
@@ -152,7 +152,7 @@ func (c *Connection) Clear(bucket string) error {
 		if b == nil {
 			return fmt.Errorf("bucket bulunamadı: %s", bucket)
 		}
-		
+
 		// Tüm key'leri sil
 		return b.ForEach(func(k, v []byte) error {
 			return b.Delete(k)

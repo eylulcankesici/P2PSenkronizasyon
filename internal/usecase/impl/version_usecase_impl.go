@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-	
+
 	"github.com/aether/sync/internal/domain/entity"
 	"github.com/aether/sync/internal/domain/repository"
 	"github.com/aether/sync/internal/domain/usecase"
@@ -47,50 +47,50 @@ func (uc *VersionUseCaseImpl) CreateVersion(ctx context.Context, fileID, origina
 	if err != nil {
 		return nil, fmt.Errorf("dosya bulunamadı: %w", err)
 	}
-	
+
 	// Klasörü al
 	folder, err := uc.folderRepo.GetByID(ctx, file.FolderID)
 	if err != nil {
 		return nil, fmt.Errorf("klasör bulunamadı: %w", err)
 	}
-	
+
 	// Versiyon dizinini oluştur
 	versionsDir := filepath.Join(folder.LocalPath, VersionsDir)
 	if err := os.MkdirAll(versionsDir, 0755); err != nil {
 		return nil, fmt.Errorf("versiyon dizini oluşturulamadı: %w", err)
 	}
-	
+
 	// Mevcut versiyon sayısını al
 	versionCount, err := uc.versionRepo.GetTotalVersionCount(ctx, fileID)
 	if err != nil {
 		versionCount = 0
 	}
-	
+
 	// Yeni versiyon numarası
 	newVersionNumber := versionCount + 1
-	
+
 	// Yedek dosya yolu
 	timestamp := time.Now().Format("20060102_150405")
 	backupFileName := fmt.Sprintf("%s_v%d_%s", file.ID, newVersionNumber, timestamp)
 	backupPath := filepath.Join(versionsDir, backupFileName)
-	
+
 	// Orijinal dosyayı yedekle
 	if err := uc.copyFile(originalPath, backupPath); err != nil {
 		return nil, fmt.Errorf("dosya yedeklenemedi: %w", err)
 	}
-	
+
 	// Dosya hash'ini hesapla
 	fileHash, err := uc.hasher.HashFile(backupPath)
 	if err != nil {
 		return nil, fmt.Errorf("hash hesaplanamadı: %w", err)
 	}
-	
+
 	// Dosya boyutunu al
 	fileInfo, err := os.Stat(backupPath)
 	if err != nil {
 		return nil, fmt.Errorf("dosya bilgisi alınamadı: %w", err)
 	}
-	
+
 	// Versiyon entity'si oluştur
 	version := entity.NewFileVersion(
 		fileID,
@@ -101,20 +101,20 @@ func (uc *VersionUseCaseImpl) CreateVersion(ctx context.Context, fileID, origina
 		fileHash,
 		"", // Peer ID burada ayarlanabilir
 	)
-	
+
 	if err := version.Validate(); err != nil {
 		// Yedek dosyayı temizle
 		os.Remove(backupPath)
 		return nil, err
 	}
-	
+
 	// Veritabanına kaydet
 	if err := uc.versionRepo.Create(ctx, version); err != nil {
 		// Yedek dosyayı temizle
 		os.Remove(backupPath)
 		return nil, fmt.Errorf("versiyon kaydedilemedi: %w", err)
 	}
-	
+
 	return version, nil
 }
 
@@ -124,7 +124,7 @@ func (uc *VersionUseCaseImpl) GetVersions(ctx context.Context, fileID string) ([
 	if err != nil {
 		return nil, fmt.Errorf("versiyonlar alınamadı: %w", err)
 	}
-	
+
 	return versions, nil
 }
 
@@ -135,48 +135,48 @@ func (uc *VersionUseCaseImpl) RestoreVersion(ctx context.Context, versionID stri
 	if err != nil {
 		return fmt.Errorf("versiyon bulunamadı: %w", err)
 	}
-	
+
 	// Dosyayı al
 	file, err := uc.fileRepo.GetByID(ctx, version.FileID)
 	if err != nil {
 		return fmt.Errorf("dosya bulunamadı: %w", err)
 	}
-	
+
 	// Klasörü al
 	folder, err := uc.folderRepo.GetByID(ctx, file.FolderID)
 	if err != nil {
 		return fmt.Errorf("klasör bulunamadı: %w", err)
 	}
-	
+
 	// Orijinal dosya yolu
 	originalPath := filepath.Join(folder.LocalPath, file.RelativePath)
-	
+
 	// Mevcut dosyayı yedekle (restore öncesi)
 	if _, err := os.Stat(originalPath); err == nil {
 		if _, err := uc.CreateVersion(ctx, file.ID, originalPath); err != nil {
 			return fmt.Errorf("mevcut dosya yedeklenemedi: %w", err)
 		}
 	}
-	
+
 	// Yedek dosyayı orijinal konuma kopyala
 	if err := uc.copyFile(version.BackupPath, originalPath); err != nil {
 		return fmt.Errorf("dosya geri yüklenemedi: %w", err)
 	}
-	
+
 	// Dosya bilgilerini güncelle
 	fileInfo, err := os.Stat(originalPath)
 	if err != nil {
 		return fmt.Errorf("dosya bilgisi alınamadı: %w", err)
 	}
-	
+
 	file.Size = fileInfo.Size()
 	file.ModTime = fileInfo.ModTime()
 	file.GlobalHash = version.Hash
-	
+
 	if err := uc.fileRepo.Update(ctx, file); err != nil {
 		return fmt.Errorf("dosya bilgisi güncellenemedi: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -187,17 +187,17 @@ func (uc *VersionUseCaseImpl) DeleteVersion(ctx context.Context, versionID strin
 	if err != nil {
 		return fmt.Errorf("versiyon bulunamadı: %w", err)
 	}
-	
+
 	// Yedek dosyayı sil
 	if err := os.Remove(version.BackupPath); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("yedek dosya silinemedi: %w", err)
 	}
-	
+
 	// Veritabanından sil
 	if err := uc.versionRepo.Delete(ctx, versionID); err != nil {
 		return fmt.Errorf("versiyon kaydı silinemedi: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -208,18 +208,18 @@ func (uc *VersionUseCaseImpl) CleanupOldVersions(ctx context.Context, fileID str
 	if err != nil {
 		return fmt.Errorf("versiyonlar alınamadı: %w", err)
 	}
-	
+
 	if len(versions) <= keepCount {
 		return nil // Silinecek versiyon yok
 	}
-	
+
 	// Eski versiyonları sil (en yeniler başta gelir)
 	for i := keepCount; i < len(versions); i++ {
 		if err := uc.DeleteVersion(ctx, versions[i].ID); err != nil {
 			return fmt.Errorf("versiyon silinemedi: %w", err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -229,23 +229,23 @@ func (uc *VersionUseCaseImpl) GetVersionInfo(ctx context.Context, versionID stri
 	if err != nil {
 		return nil, fmt.Errorf("versiyon bulunamadı: %w", err)
 	}
-	
+
 	// Yedek dosyanın var olup olmadığını kontrol et
 	backupExists := false
 	sizeOnDisk := int64(0)
-	
+
 	if info, err := os.Stat(version.BackupPath); err == nil {
 		backupExists = true
 		sizeOnDisk = info.Size()
 	}
-	
+
 	versionInfo := &usecase.VersionInfo{
 		Version:      version,
 		CanRestore:   backupExists,
 		BackupExists: backupExists,
 		SizeOnDisk:   sizeOnDisk,
 	}
-	
+
 	return versionInfo, nil
 }
 
@@ -256,27 +256,22 @@ func (uc *VersionUseCaseImpl) copyFile(src, dst string) error {
 		return err
 	}
 	defer sourceFile.Close()
-	
+
 	destFile, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
 	defer destFile.Close()
-	
+
 	if _, err := destFile.ReadFrom(sourceFile); err != nil {
 		return err
 	}
-	
+
 	// Dosya izinlerini kopyala
 	sourceInfo, err := os.Stat(src)
 	if err != nil {
 		return err
 	}
-	
+
 	return os.Chmod(dst, sourceInfo.Mode())
 }
-
-
-
-
-

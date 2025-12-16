@@ -2,7 +2,7 @@ package crypto
 
 import (
 	"fmt"
-	
+
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -29,7 +29,7 @@ func (p *PasswordHasher) Hash(password string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("şifre hash'lenemedi: %w", err)
 	}
-	
+
 	return string(hash), nil
 }
 
@@ -45,8 +45,3 @@ func (p *PasswordHasher) SetCost(cost int) {
 		p.cost = cost
 	}
 }
-
-
-
-
-

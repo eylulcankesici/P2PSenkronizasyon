@@ -43,10 +43,10 @@ var (
 
 func main() {
 	http.HandleFunc("/ws", handleWebSocket)
-	
+
 	log.Println("🚀 Signaling Server başlatılıyor...")
 	log.Println("👂 Port 8080 dinleniyor")
-	
+
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatal("❌ Sunucu hatası:", err)
 	}
@@ -117,13 +117,13 @@ func joinRoom(client *Client, roomID string) {
 		room.mu.Unlock()
 		return
 	}
-	
+
 	room.clients[client] = true
 	client.room = room
 	room.mu.Unlock()
 
 	log.Printf("👤 %s odaya katıldı: %s", client.id, roomID)
-	
+
 	// Başarı mesajı gönder (opsiyonel)
 	// sendToClient(client, Message{Type: "joined", RoomID: roomID})
 }
@@ -174,7 +174,7 @@ func broadcastToRoom(sender *Client, msg Message) {
 
 func sendError(client *Client, errorMsg string) {
 	msg := Message{
-		Type: "error",
+		Type:    "error",
 		Payload: json.RawMessage(`"` + errorMsg + `"`),
 	}
 	client.conn.WriteJSON(msg)

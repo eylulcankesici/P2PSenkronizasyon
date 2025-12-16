@@ -87,7 +87,7 @@ func (h *HybridTransportProvider) GetDiscoveredPeers() []*transport.DiscoveredPe
 	peers := make([]*transport.DiscoveredPeer, 0)
 	lanCount := 0
 	wanCount := 0
-	
+
 	if h.lan != nil {
 		lanPeers := h.lan.GetDiscoveredPeers()
 		lanCount = len(lanPeers)
@@ -98,11 +98,11 @@ func (h *HybridTransportProvider) GetDiscoveredPeers() []*transport.DiscoveredPe
 		wanCount = len(wanPeers)
 		peers = append(peers, wanPeers...)
 	}
-	
+
 	if len(peers) > 0 {
 		log.Printf("🔗 HybridTransportProvider: LAN'dan %d, WAN'dan %d peer (toplam: %d)", lanCount, wanCount, len(peers))
 	}
-	
+
 	return peers
 }
 
@@ -113,9 +113,9 @@ func (h *HybridTransportProvider) Connect(ctx context.Context, peer *transport.D
 	} else if peer.TransportType == transport.TransportTypeLAN {
 		transportTypeStr = "LAN"
 	}
-	log.Printf("🔌 HybridTransportProvider.Connect çağrıldı - Peer: %s (%s), Transport: %s", 
+	log.Printf("🔌 HybridTransportProvider.Connect çağrıldı - Peer: %s (%s), Transport: %s",
 		peer.DeviceName, peer.DeviceID[:8], transportTypeStr)
-	
+
 	switch peer.TransportType {
 	case transport.TransportTypeWAN:
 		if h.wan == nil {
@@ -267,8 +267,6 @@ func (h *HybridTransportProvider) OnConnectionEstablished(callback func(transpor
 		})
 	}
 }
-
-
 
 func (h *HybridTransportProvider) OnConnectionLost(callback func(string)) {
 	if h.lan != nil {

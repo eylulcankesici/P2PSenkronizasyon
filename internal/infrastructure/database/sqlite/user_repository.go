@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
-	
+
 	"github.com/aether/sync/internal/domain/entity"
 	"github.com/aether/sync/internal/domain/repository"
 	"github.com/google/uuid"
@@ -28,12 +28,12 @@ func (r *UserRepository) Create(ctx context.Context, user *entity.User) error {
 	if user.ID == "" {
 		user.ID = uuid.New().String()
 	}
-	
+
 	query := `
 		INSERT INTO users (id, profile_name, role, password_hash, is_active, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?)
 	`
-	
+
 	_, err := r.conn.DB().ExecContext(ctx, query,
 		user.ID,
 		user.ProfileName,
@@ -43,11 +43,11 @@ func (r *UserRepository) Create(ctx context.Context, user *entity.User) error {
 		user.CreatedAt,
 		user.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		return fmt.Errorf("kullanıcı oluşturulamadı: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -58,9 +58,9 @@ func (r *UserRepository) GetByID(ctx context.Context, id string) (*entity.User, 
 		FROM users
 		WHERE id = ?
 	`
-	
+
 	user := &entity.User{}
-	
+
 	err := r.conn.DB().QueryRowContext(ctx, query, id).Scan(
 		&user.ID,
 		&user.ProfileName,
@@ -70,14 +70,14 @@ func (r *UserRepository) GetByID(ctx context.Context, id string) (*entity.User, 
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
-	
+
 	if err == sql.ErrNoRows {
 		return nil, entity.ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("kullanıcı getirilemedi: %w", err)
 	}
-	
+
 	return user, nil
 }
 
@@ -88,9 +88,9 @@ func (r *UserRepository) GetByProfileName(ctx context.Context, profileName strin
 		FROM users
 		WHERE profile_name = ?
 	`
-	
+
 	user := &entity.User{}
-	
+
 	err := r.conn.DB().QueryRowContext(ctx, query, profileName).Scan(
 		&user.ID,
 		&user.ProfileName,
@@ -100,14 +100,14 @@ func (r *UserRepository) GetByProfileName(ctx context.Context, profileName strin
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
-	
+
 	if err == sql.ErrNoRows {
 		return nil, entity.ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("kullanıcı getirilemedi: %w", err)
 	}
-	
+
 	return user, nil
 }
 
@@ -118,18 +118,18 @@ func (r *UserRepository) GetAll(ctx context.Context) ([]*entity.User, error) {
 		FROM users
 		ORDER BY created_at DESC
 	`
-	
+
 	rows, err := r.conn.DB().QueryContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("kullanıcılar getirilemedi: %w", err)
 	}
 	defer rows.Close()
-	
+
 	users := make([]*entity.User, 0)
-	
+
 	for rows.Next() {
 		user := &entity.User{}
-		
+
 		err := rows.Scan(
 			&user.ID,
 			&user.ProfileName,
@@ -142,10 +142,10 @@ func (r *UserRepository) GetAll(ctx context.Context) ([]*entity.User, error) {
 		if err != nil {
 			return nil, fmt.Errorf("kullanıcı taranamadı: %w", err)
 		}
-		
+
 		users = append(users, user)
 	}
-	
+
 	return users, nil
 }
 
@@ -157,18 +157,18 @@ func (r *UserRepository) GetAdmins(ctx context.Context) ([]*entity.User, error) 
 		WHERE role = ?
 		ORDER BY created_at DESC
 	`
-	
+
 	rows, err := r.conn.DB().QueryContext(ctx, query, entity.UserRoleAdmin)
 	if err != nil {
 		return nil, fmt.Errorf("admin kullanıcılar getirilemedi: %w", err)
 	}
 	defer rows.Close()
-	
+
 	users := make([]*entity.User, 0)
-	
+
 	for rows.Next() {
 		user := &entity.User{}
-		
+
 		err := rows.Scan(
 			&user.ID,
 			&user.ProfileName,
@@ -181,23 +181,23 @@ func (r *UserRepository) GetAdmins(ctx context.Context) ([]*entity.User, error) 
 		if err != nil {
 			return nil, fmt.Errorf("kullanıcı taranamadı: %w", err)
 		}
-		
+
 		users = append(users, user)
 	}
-	
+
 	return users, nil
 }
 
 // Update kullanıcı bilgilerini günceller
 func (r *UserRepository) Update(ctx context.Context, user *entity.User) error {
 	user.UpdatedAt = time.Now()
-	
+
 	query := `
 		UPDATE users
 		SET profile_name = ?, role = ?, password_hash = ?, is_active = ?, updated_at = ?
 		WHERE id = ?
 	`
-	
+
 	result, err := r.conn.DB().ExecContext(ctx, query,
 		user.ProfileName,
 		user.Role,
@@ -206,41 +206,41 @@ func (r *UserRepository) Update(ctx context.Context, user *entity.User) error {
 		user.UpdatedAt,
 		user.ID,
 	)
-	
+
 	if err != nil {
 		return fmt.Errorf("kullanıcı güncellenemedi: %w", err)
 	}
-	
+
 	rows, err := result.RowsAffected()
 	if err != nil {
 		return err
 	}
-	
+
 	if rows == 0 {
 		return entity.ErrNotFound
 	}
-	
+
 	return nil
 }
 
 // Delete kullanıcıyı siler
 func (r *UserRepository) Delete(ctx context.Context, id string) error {
 	query := `DELETE FROM users WHERE id = ?`
-	
+
 	result, err := r.conn.DB().ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("kullanıcı silinemedi: %w", err)
 	}
-	
+
 	rows, err := result.RowsAffected()
 	if err != nil {
 		return err
 	}
-	
+
 	if rows == 0 {
 		return entity.ErrNotFound
 	}
-	
+
 	return nil
 }
 
@@ -251,25 +251,20 @@ func (r *UserRepository) UpdatePassword(ctx context.Context, id string, password
 		SET password_hash = ?, updated_at = ?
 		WHERE id = ?
 	`
-	
+
 	result, err := r.conn.DB().ExecContext(ctx, query, passwordHash, time.Now(), id)
 	if err != nil {
 		return fmt.Errorf("şifre güncellenemedi: %w", err)
 	}
-	
+
 	rows, err := result.RowsAffected()
 	if err != nil {
 		return err
 	}
-	
+
 	if rows == 0 {
 		return entity.ErrNotFound
 	}
-	
+
 	return nil
 }
-
-
-
-
-

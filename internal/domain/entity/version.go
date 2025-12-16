@@ -7,15 +7,15 @@ import (
 // FileVersion dosyanın bir önceki versiyonunu temsil eder
 // Rollback mekanizması için kullanılır
 type FileVersion struct {
-	ID               string
-	FileID           string
-	VersionNumber    int       // Versiyon numarası (1, 2, 3...)
-	BackupPath       string    // .aether_versions/ içindeki yedek dosyanın yolu
-	OriginalPath     string    // Orijinal dosya yolu
-	Size             int64
-	Hash             string
-	CreatedAt        time.Time // Yedekleme zamanı
-	CreatedByPeerID  string    // Hangi peer tarafından oluşturuldu
+	ID              string
+	FileID          string
+	VersionNumber   int    // Versiyon numarası (1, 2, 3...)
+	BackupPath      string // .aether_versions/ içindeki yedek dosyanın yolu
+	OriginalPath    string // Orijinal dosya yolu
+	Size            int64
+	Hash            string
+	CreatedAt       time.Time // Yedekleme zamanı
+	CreatedByPeerID string    // Hangi peer tarafından oluşturuldu
 }
 
 // NewFileVersion yeni bir FileVersion oluşturur
@@ -37,19 +37,14 @@ func (v *FileVersion) Validate() error {
 	if v.FileID == "" {
 		return ErrInvalidFileID
 	}
-	
+
 	if v.BackupPath == "" || v.OriginalPath == "" {
 		return ErrInvalidPath
 	}
-	
+
 	if v.VersionNumber <= 0 {
 		return ErrInvalidVersionNumber
 	}
-	
+
 	return nil
 }
-
-
-
-
-

@@ -3,9 +3,9 @@ package grpc
 import (
 	"context"
 	"fmt"
-	"log"
 	pb "github.com/aether/sync/api/proto"
 	"github.com/aether/sync/internal/container"
+	"log"
 )
 
 // WatcherHandler WatcherService implementasyonu
@@ -22,7 +22,7 @@ func NewWatcherHandler(cont *container.Container) *WatcherHandler {
 // StartWatching klasör izlemeye başlar
 func (h *WatcherHandler) StartWatching(ctx context.Context, req *pb.StartWatchingRequest) (*pb.Status, error) {
 	log.Printf("📂 Klasör izlemeye alınıyor: %s", req.FolderId[:8])
-	
+
 	// Folder'ı veritabanından al
 	folder, err := h.container.FolderRepository().GetByID(ctx, req.FolderId)
 	if err != nil {
@@ -32,7 +32,7 @@ func (h *WatcherHandler) StartWatching(ctx context.Context, req *pb.StartWatchin
 			Code:    404,
 		}, nil
 	}
-	
+
 	// FileWatcher'a ekle
 	if err := h.container.FileWatcher().AddFolder(folder); err != nil {
 		return &pb.Status{
@@ -41,9 +41,9 @@ func (h *WatcherHandler) StartWatching(ctx context.Context, req *pb.StartWatchin
 			Code:    500,
 		}, nil
 	}
-	
+
 	log.Printf("✅ Klasör izlemeye alındı: %s", folder.LocalPath)
-	
+
 	return &pb.Status{
 		Success: true,
 		Message: "Klasör izlemeye alındı",
@@ -54,7 +54,7 @@ func (h *WatcherHandler) StartWatching(ctx context.Context, req *pb.StartWatchin
 // StopWatching klasör izlemeyi durdurur
 func (h *WatcherHandler) StopWatching(ctx context.Context, req *pb.StopWatchingRequest) (*pb.Status, error) {
 	log.Printf("🛑 Klasör izlemeden çıkarılıyor: %s", req.FolderId[:8])
-	
+
 	// FileWatcher'dan kaldır
 	if err := h.container.FileWatcher().RemoveFolder(req.FolderId); err != nil {
 		return &pb.Status{
@@ -63,9 +63,9 @@ func (h *WatcherHandler) StopWatching(ctx context.Context, req *pb.StopWatchingR
 			Code:    500,
 		}, nil
 	}
-	
+
 	log.Printf("✅ Klasör izlemeden çıkarıldı: %s", req.FolderId[:8])
-	
+
 	return &pb.Status{
 		Success: true,
 		Message: "Klasör izlemeden çıkarıldı",
@@ -76,7 +76,7 @@ func (h *WatcherHandler) StopWatching(ctx context.Context, req *pb.StopWatchingR
 // ListWatchedFolders izlenen klasörleri listeler
 func (h *WatcherHandler) ListWatchedFolders(ctx context.Context, req *pb.ListWatchedFoldersRequest) (*pb.ListWatchedFoldersResponse, error) {
 	folderIDs := h.container.FileWatcher().GetWatchedFolders()
-	
+
 	return &pb.ListWatchedFoldersResponse{
 		FolderIds: folderIDs,
 		Status: &pb.Status{
@@ -91,7 +91,7 @@ func (h *WatcherHandler) ListWatchedFolders(ctx context.Context, req *pb.ListWat
 func (h *WatcherHandler) GetWatchStatus(ctx context.Context, req *pb.GetWatchStatusRequest) (*pb.WatchStatusResponse, error) {
 	// İzlenen klasörleri kontrol et
 	watchedFolders := h.container.FileWatcher().GetWatchedFolders()
-	
+
 	isWatching := false
 	for _, folderID := range watchedFolders {
 		if folderID == req.FolderId {
@@ -99,7 +99,7 @@ func (h *WatcherHandler) GetWatchStatus(ctx context.Context, req *pb.GetWatchSta
 			break
 		}
 	}
-	
+
 	// Folder bilgisini al
 	folder, err := h.container.FolderRepository().GetByID(ctx, req.FolderId)
 	if err != nil {
@@ -114,7 +114,7 @@ func (h *WatcherHandler) GetWatchStatus(ctx context.Context, req *pb.GetWatchSta
 			},
 		}, nil
 	}
-	
+
 	return &pb.WatchStatusResponse{
 		IsWatching: isWatching,
 		FolderId:   req.FolderId,
@@ -139,17 +139,17 @@ func (h *WatcherHandler) GetWatchStatus(ctx context.Context, req *pb.GetWatchSta
 func (h *WatcherHandler) WatchFileEvents(req *pb.WatchFileEventsRequest, stream pb.WatcherService_WatchFileEventsServer) error {
 	listenerID := uuid.New().String()
 	log.Printf("📡 Yeni event listener bağlandı: %s", listenerID)
-	
+
 	eventChan := h.container.EventBroadcaster().Subscribe(listenerID)
 	if eventChan == nil {
 		return fmt.Errorf("event broadcaster kapalı")
 	}
-	
+
 	defer func() {
 		h.container.EventBroadcaster().Unsubscribe(listenerID)
 		log.Printf("📡 Event listener bağlantısı kesildi: %s", listenerID)
 	}()
-	
+
 	for {
 		select {
 		case <-stream.Context().Done():
@@ -158,7 +158,7 @@ func (h *WatcherHandler) WatchFileEvents(req *pb.WatchFileEventsRequest, stream 
 			if !ok {
 				return nil
 			}
-			
+
 			pbEvent := &pb.FileEvent{
 				EventType: convertEventType(event.EventType),
 				FolderId:  event.FolderID,
@@ -167,7 +167,7 @@ func (h *WatcherHandler) WatchFileEvents(req *pb.WatchFileEventsRequest, stream 
 				OldPath:   event.OldPath,
 				Timestamp: event.Timestamp,
 			}
-			
+
 			if err := stream.Send(pbEvent); err != nil {
 				return err
 			}
@@ -190,4 +190,3 @@ func convertEventType(et watcher.EventType) pb.FileEvent_EventType {
 	}
 }
 */
-

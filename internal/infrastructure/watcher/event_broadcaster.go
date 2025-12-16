@@ -33,17 +33,17 @@ func NewEventBroadcaster() *EventBroadcaster {
 func (eb *EventBroadcaster) Subscribe(listenerID string) <-chan *FileEventData {
 	eb.mu.Lock()
 	defer eb.mu.Unlock()
-	
+
 	if eb.closed {
 		return nil
 	}
-	
+
 	// Buffered channel (100 event kapasitesi)
 	ch := make(chan *FileEventData, 100)
 	eb.listeners[listenerID] = ch
-	
+
 	log.Printf("📡 Event broadcaster: Yeni listener eklendi (%s), toplam: %d", listenerID, len(eb.listeners))
-	
+
 	return ch
 }
 
@@ -51,7 +51,7 @@ func (eb *EventBroadcaster) Subscribe(listenerID string) <-chan *FileEventData {
 func (eb *EventBroadcaster) Unsubscribe(listenerID string) {
 	eb.mu.Lock()
 	defer eb.mu.Unlock()
-	
+
 	if ch, exists := eb.listeners[listenerID]; exists {
 		close(ch)
 		delete(eb.listeners, listenerID)
@@ -63,17 +63,17 @@ func (eb *EventBroadcaster) Unsubscribe(listenerID string) {
 func (eb *EventBroadcaster) Broadcast(event *FileEventData) {
 	eb.mu.RLock()
 	defer eb.mu.RUnlock()
-	
+
 	if eb.closed {
 		return
 	}
-	
+
 	if len(eb.listeners) == 0 {
 		return // Hiç listener yok, atla
 	}
-	
+
 	log.Printf("📡 Event broadcasting: type=%v, file=%s -> %d listener", event.EventType, event.FilePath, len(eb.listeners))
-	
+
 	// Tüm listener'lara gönder (non-blocking)
 	for listenerID, ch := range eb.listeners {
 		select {
@@ -90,19 +90,19 @@ func (eb *EventBroadcaster) Broadcast(event *FileEventData) {
 func (eb *EventBroadcaster) Close() {
 	eb.mu.Lock()
 	defer eb.mu.Unlock()
-	
+
 	if eb.closed {
 		return
 	}
-	
+
 	eb.closed = true
-	
+
 	// Tüm listener channel'larını kapat
 	for listenerID, ch := range eb.listeners {
 		close(ch)
 		log.Printf("📡 Event broadcaster: Listener kapatıldı (%s)", listenerID)
 	}
-	
+
 	eb.listeners = make(map[string]chan *FileEventData)
 	log.Println("📡 Event broadcaster kapatıldı")
 }
@@ -113,4 +113,3 @@ func (eb *EventBroadcaster) ListenerCount() int {
 	defer eb.mu.RUnlock()
 	return len(eb.listeners)
 }
-

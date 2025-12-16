@@ -319,13 +319,13 @@ func (r *ChunkRepository) GetOrphanedChunkHashes(ctx context.Context) ([]string,
 		SELECT hash FROM chunks
 		WHERE hash NOT IN (SELECT DISTINCT chunk_hash FROM file_chunks)
 	`
-	
+
 	rows, err := r.conn.DB().QueryContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("orphaned chunk'lar sorgulanamadı: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var hashes []string
 	for rows.Next() {
 		var hash string
@@ -334,7 +334,7 @@ func (r *ChunkRepository) GetOrphanedChunkHashes(ctx context.Context) ([]string,
 		}
 		hashes = append(hashes, hash)
 	}
-	
+
 	return hashes, nil
 }
 
@@ -344,17 +344,17 @@ func (r *ChunkRepository) DeleteOrphanedChunks(ctx context.Context) (int, error)
 		DELETE FROM chunks
 		WHERE hash NOT IN (SELECT DISTINCT chunk_hash FROM file_chunks)
 	`
-	
+
 	result, err := r.conn.DB().ExecContext(ctx, query)
 	if err != nil {
 		return 0, fmt.Errorf("yetim chunk'lar silinemedi: %w", err)
 	}
-	
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return 0, err
 	}
-	
+
 	return int(rowsAffected), nil
 }
 

@@ -199,4 +199,3 @@ func (r *FilePeerSyncRepository) GetPeerIDsByFolderID(ctx context.Context, folde
 
 	return peerIDs, nil
 }
-

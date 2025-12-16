@@ -22,20 +22,20 @@ type TURNClient interface {
 
 // TURNAllocation TURN allocation bilgisi
 type TURNAllocation struct {
-	RelayAddress *net.UDPAddr // TURN relay endpoint
-	MappedAddress *net.UDPAddr // Mapped address
+	RelayAddress  *net.UDPAddr  // TURN relay endpoint
+	MappedAddress *net.UDPAddr  // Mapped address
 	Lifetime      time.Duration // Allocation lifetime
 }
 
 // turnClientImpl TURN client implementasyonu
 type turnClientImpl struct {
-	conn        *net.UDPConn
-	serverAddr  *net.UDPAddr
-	username    string
-	password    string
-	allocation  *TURNAllocation
-	mu          sync.RWMutex
-	closed      bool
+	conn       *net.UDPConn
+	serverAddr *net.UDPAddr
+	username   string
+	password   string
+	allocation *TURNAllocation
+	mu         sync.RWMutex
+	closed     bool
 }
 
 // NewTURNClient yeni TURN client oluşturur
@@ -80,7 +80,7 @@ func (c *turnClientImpl) Allocate(ctx context.Context, server config.TURNServerC
 	}
 
 	c.allocation = allocation
-	log.Printf("✅ TURN allocation başarılı: relay=%s, mapped=%s", 
+	log.Printf("✅ TURN allocation başarılı: relay=%s, mapped=%s",
 		allocation.RelayAddress.String(), allocation.MappedAddress.String())
 
 	return allocation, nil
@@ -91,15 +91,15 @@ func (c *turnClientImpl) requestAllocation(ctx context.Context, conn *net.UDPCon
 	// NOT: Bu basit bir placeholder implementasyon
 	// Gerçek TURN allocation ICE agent ile entegre edilecek
 	// Şimdilik sadece yapıyı hazırlıyoruz
-	
+
 	// TODO: Pion TURN client ile gerçek allocation yapılacak
 	// ICE agent implementasyonunda TURN client'ı kullanacağız
-	
+
 	log.Printf("⚠️ TURN allocation placeholder - gerçek implementasyon ICE agent'ta yapılacak")
-	
+
 	// Placeholder allocation
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	
+
 	return &TURNAllocation{
 		RelayAddress:  serverAddr, // Placeholder
 		MappedAddress: localAddr,
@@ -204,4 +204,3 @@ func parseTURNAddress(url string) (*net.UDPAddr, error) {
 
 	return addr, nil
 }
-

@@ -13,16 +13,16 @@ import (
 type ChunkStorage interface {
 	// Store chunk'ı disk'e kaydeder
 	Store(hash string, data []byte) error
-	
+
 	// Load chunk'ı disk'ten okur
 	Load(hash string) ([]byte, error)
-	
+
 	// Exists chunk'ın disk'te olup olmadığını kontrol eder
 	Exists(hash string) bool
-	
+
 	// Delete chunk'ı disk'ten siler
 	Delete(hash string) error
-	
+
 	// GetPath chunk'ın disk yolunu döndürür
 	GetPath(hash string) string
 }
@@ -166,4 +166,3 @@ func (s *FileSystemChunkStorage) getSubDirectory(hash string) string {
 	subDir := hash[:2]
 	return filepath.Join(s.baseDir, subDir)
 }
-

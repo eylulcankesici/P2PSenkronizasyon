@@ -16,10 +16,10 @@ type LANTransport struct {
 	deviceID   string
 	deviceName string
 	port       int
-	
+
 	discovery *MDNSDiscoveryService
 	connMgr   *TCPConnectionManager
-	
+
 	// Callbacks
 	onPeerDiscovered        func(*transport.DiscoveredPeer)
 	onPeerLost              func(string)
@@ -31,7 +31,7 @@ type LANTransport struct {
 func NewLANTransport(deviceID, deviceName string, port int) *LANTransport {
 	discovery := NewMDNSDiscoveryService(deviceID, deviceName, port)
 	connMgr := NewTCPConnectionManager(port, deviceID, deviceName)
-	
+
 	return &LANTransport{
 		deviceID:   deviceID,
 		deviceName: deviceName,
@@ -44,40 +44,40 @@ func NewLANTransport(deviceID, deviceName string, port int) *LANTransport {
 // Start transport'u başlatır
 func (t *LANTransport) Start(ctx context.Context) error {
 	log.Println("🚀 LAN Transport başlatılıyor...")
-	
+
 	// TCP listener başlat
 	if err := t.connMgr.Listen(ctx, t.port); err != nil {
 		return fmt.Errorf("TCP listener başlatılamadı: %w", err)
 	}
-	
+
 	// mDNS discovery başlat
 	if err := t.discovery.Start(ctx); err != nil {
 		return fmt.Errorf("mDNS discovery başlatılamadı: %w", err)
 	}
-	
+
 	// Callbacks bağla
 	t.discovery.SetOnPeerDiscovered(t.onPeerDiscovered)
 	t.discovery.SetOnPeerLost(t.onPeerLost)
-	
+
 	// Connection lost callback'ini connection manager'a bağla
 	t.connMgr.SetOnConnectionLost(func(peerID string) {
 		if t.onConnectionLost != nil {
 			t.onConnectionLost(peerID)
 		}
 	})
-	
+
 	log.Printf("✅ LAN Transport hazır (device: %s, port: %d)", t.deviceName, t.port)
-	
+
 	return nil
 }
 
 // Stop transport'u durdurur
 func (t *LANTransport) Stop() error {
 	log.Println("🛑 LAN Transport durduruluyor...")
-	
+
 	t.discovery.Stop()
 	t.connMgr.Close()
-	
+
 	log.Println("✅ LAN Transport durduruldu")
 	return nil
 }
@@ -103,33 +103,33 @@ func (t *LANTransport) Connect(ctx context.Context, peer *transport.DiscoveredPe
 	if len(peer.Addresses) == 0 {
 		return nil, fmt.Errorf("peer adresi yok: %s", peer.DeviceID)
 	}
-	
+
 	// Adresleri önceliklendir (IPv4 private önce, sonra diğerleri)
 	sortedAddresses := prioritizeAddresses(peer.Addresses)
-	
+
 	log.Printf("🔌 %d adres deneniyor: %v", len(sortedAddresses), sortedAddresses)
-	
+
 	// Tüm adresleri dene
 	var lastErr error
 	for i, address := range sortedAddresses {
 		log.Printf("  [%d/%d] Adres deneniyor: %s", i+1, len(sortedAddresses), address)
-		
+
 		conn, err := t.connMgr.Connect(ctx, address, peer.DeviceID, peer.DeviceName)
 		if err != nil {
 			log.Printf("  ❌ Adres başarısız: %s - %v", address, err)
 			lastErr = err
 			continue // Bir sonraki adresi dene
 		}
-		
+
 		log.Printf("  ✅ Bağlantı başarılı: %s", address)
-		
+
 		if t.onConnectionEstablished != nil {
 			t.onConnectionEstablished(conn)
 		}
-		
+
 		return conn, nil
 	}
-	
+
 	// Tüm adresler başarısız oldu
 	return nil, fmt.Errorf("tüm adresler başarısız oldu (son hata: %w)", lastErr)
 }
@@ -140,12 +140,12 @@ func (t *LANTransport) Disconnect(peerID string) error {
 	if err := t.connMgr.Disconnect(peerID); err != nil {
 		return err
 	}
-	
+
 	// Callback çağır
 	if t.onConnectionLost != nil {
 		t.onConnectionLost(peerID)
 	}
-	
+
 	return nil
 }
 
@@ -214,7 +214,7 @@ func prioritizeAddresses(addresses []string) []string {
 	var ipv4Private []string
 	var ipv4Other []string
 	var ipv6 []string
-	
+
 	for _, addr := range addresses {
 		host, _, err := net.SplitHostPort(addr)
 		if err != nil {
@@ -222,14 +222,14 @@ func prioritizeAddresses(addresses []string) []string {
 			ipv6 = append(ipv6, addr)
 			continue
 		}
-		
+
 		ip := net.ParseIP(host)
 		if ip == nil {
 			// Parse edilemeyen, sona ekle
 			ipv6 = append(ipv6, addr)
 			continue
 		}
-		
+
 		if ip.To4() != nil {
 			// IPv4
 			if ip.IsPrivate() && !ip.IsLoopback() {
@@ -244,10 +244,9 @@ func prioritizeAddresses(addresses []string) []string {
 			}
 		}
 	}
-	
+
 	// Öncelik sırası: IPv4 private > IPv4 other > IPv6
 	result := append(ipv4Private, ipv4Other...)
 	result = append(result, ipv6...)
 	return result
 }
-

@@ -145,9 +145,9 @@ func (d *WANDiscoveryService) AddPeer(peerID, peerName string, publicIP string, 
 		TransportType: transport.TransportTypeWAN,
 		DiscoveredAt:  time.Now(),
 		Metadata: map[string]string{
-			"public_ip":       publicIP,
-			"wan_mode":        "true",
-			"ice_candidates":  iceCandidatesJSON,
+			"public_ip":      publicIP,
+			"wan_mode":       "true",
+			"ice_candidates": iceCandidatesJSON,
 			// grpc_address metadata'ya eklenecek (invitation code'dan gelecek)
 		},
 	}
@@ -219,7 +219,7 @@ func (d *WANDiscoveryService) AddPeerWithGRPC(peerID, peerName string, publicIP,
 		"wan_mode":       "true",
 		"ice_candidates": iceCandidatesJSON,
 	}
-	
+
 	// gRPC address varsa metadata'ya ekle
 	if grpcAddress != "" {
 		metadata["grpc_address"] = grpcAddress
@@ -302,4 +302,3 @@ func (d *WANDiscoveryService) RemoveInvitationCode(code string) {
 	delete(d.invitationCodes, code)
 	log.Printf("🗑️ Invitation code kaldırıldı: %s", code[:20])
 }
-

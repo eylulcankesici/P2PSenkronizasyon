@@ -63,12 +63,12 @@ func main() {
 		var creationTime int64
 
 		rows.Scan(&hash, &size, &isLocal, &creationTime)
-		
+
 		localStr := "❌"
 		if isLocal {
 			localStr = "✅"
 		}
-		
+
 		fmt.Printf("%-70s %8d KB %5s\n", hash[:64]+"...", size/1024, localStr)
 		chunkCount++
 		totalSize += size
@@ -172,7 +172,7 @@ func main() {
 		if !info.IsDir() {
 			diskChunkCount++
 			diskTotalSize += info.Size()
-			
+
 			// İlk 5 chunk'ı göster
 			if diskChunkCount <= 5 {
 				relPath, _ := filepath.Rel(chunksPath, path)
@@ -217,4 +217,3 @@ func min(a, b int) int {
 	}
 	return b
 }
-

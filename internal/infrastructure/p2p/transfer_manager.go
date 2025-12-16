@@ -18,22 +18,22 @@ type TransferManager struct {
 
 // TransferInfo transfer bilgisi
 type TransferInfo struct {
-	FileID          string
-	FileName        string
-	PeerID          string
-	PeerName        string
-	Direction       pb.TransferDirection // SEND veya RECEIVE
-	State           pb.TransferState      // ACTIVE, COMPLETED, FAILED, CANCELLED
-	TotalChunks     int32
-	CompletedChunks int32
-	TotalBytes      int64
+	FileID           string
+	FileName         string
+	PeerID           string
+	PeerName         string
+	Direction        pb.TransferDirection // SEND veya RECEIVE
+	State            pb.TransferState     // ACTIVE, COMPLETED, FAILED, CANCELLED
+	TotalChunks      int32
+	CompletedChunks  int32
+	TotalBytes       int64
 	TransferredBytes int64
-	StartTime       time.Time
-	EndTime         *time.Time
-	Error           error
-	lastUpdate      time.Time
-	ctx             context.Context // Transfer context'i (iptal için)
-	cancel          context.CancelFunc // Cancel fonksiyonu
+	StartTime        time.Time
+	EndTime          *time.Time
+	Error            error
+	lastUpdate       time.Time
+	ctx              context.Context    // Transfer context'i (iptal için)
+	cancel           context.CancelFunc // Cancel fonksiyonu
 }
 
 // NewTransferManager yeni transfer manager oluşturur
@@ -53,13 +53,13 @@ func (m *TransferManager) StartTransfer(fileID, fileName, peerID, peerName strin
 	if existingTransfer, exists := m.transfers[fileID]; exists {
 		log.Printf("  🗑️🗑️🗑️ ÖNCEKİ TRANSFER BULUNDU VE TEMİZLENİYOR")
 		log.Printf("      Old State: %v, Direction: %v, FileID: %s", existingTransfer.State, existingTransfer.Direction, fileID[:8])
-		
+
 		// Context'i iptal et (eğer hala aktifse)
 		if existingTransfer.cancel != nil {
 			existingTransfer.cancel()
 			log.Printf("      ✓ Context iptal edildi")
 		}
-		
+
 		// Transfer'i map'ten kaldır (yeni transfer başlatılacak)
 		// Her durumda (CANCELLED, FAILED, ACTIVE) temizle - aynı fileID ile yeni transfer başlatılıyor
 		delete(m.transfers, fileID)
@@ -71,28 +71,28 @@ func (m *TransferManager) StartTransfer(fileID, fileName, peerID, peerName strin
 
 	// Cancel context oluştur (yeni context - önceki context ile hiçbir ilişkisi yok)
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	log.Printf("  🆕🆕🆕 YENİ TRANSFER BAŞLATILIYOR")
 	log.Printf("      FileID: %s, FileName: %s", fileID[:8], fileName)
 	log.Printf("      Direction: %v, TotalChunks: %d, TotalBytes: %d", direction, totalChunks, totalBytes)
 
 	m.transfers[fileID] = &TransferInfo{
-		FileID:          fileID,
-		FileName:        fileName,
-		PeerID:          peerID,
-		PeerName:        peerName,
-		Direction:       direction,
-		State:           pb.TransferState_TRANSFER_STATE_ACTIVE,
-		TotalChunks:     totalChunks,
-		CompletedChunks: 0,
-		TotalBytes:      totalBytes,
+		FileID:           fileID,
+		FileName:         fileName,
+		PeerID:           peerID,
+		PeerName:         peerName,
+		Direction:        direction,
+		State:            pb.TransferState_TRANSFER_STATE_ACTIVE,
+		TotalChunks:      totalChunks,
+		CompletedChunks:  0,
+		TotalBytes:       totalBytes,
 		TransferredBytes: 0,
-		StartTime:       time.Now(),
-		lastUpdate:      time.Now(),
-		ctx:             ctx,
-		cancel:          cancel,
+		StartTime:        time.Now(),
+		lastUpdate:       time.Now(),
+		ctx:              ctx,
+		cancel:           cancel,
 	}
-	
+
 	log.Printf("  ✅✅✅ YENİ TRANSFER MAP'E EKLENDİ (ACTIVE STATE): %s", fileID[:8])
 }
 
@@ -110,7 +110,7 @@ func (m *TransferManager) UpdateChunkProgress(fileID string, completedChunks int
 	if transfer.State == pb.TransferState_TRANSFER_STATE_CANCELLED {
 		return
 	}
-	
+
 	// Context iptal edilmişse transfer'i iptal olarak işaretle
 	if transfer.ctx != nil {
 		select {
@@ -153,15 +153,15 @@ func (m *TransferManager) CompleteTransfer(fileID string) {
 	transfer.CompletedChunks = transfer.TotalChunks
 	transfer.TransferredBytes = transfer.TotalBytes
 	transfer.lastUpdate = time.Now()
-	
+
 	// Transfer tamamlandı, map'ten kaldır (yeni transfer için temiz başlangıç)
 	log.Printf("✅ Transfer tamamlandı ve map'ten kaldırılıyor: %s", fileID[:8])
-	
+
 	// Context'i iptal et
 	if transfer.cancel != nil {
 		transfer.cancel()
 	}
-	
+
 	delete(m.transfers, fileID)
 }
 
@@ -180,15 +180,15 @@ func (m *TransferManager) FailTransfer(fileID string, err error) {
 	transfer.State = pb.TransferState_TRANSFER_STATE_FAILED
 	transfer.Error = err
 	transfer.lastUpdate = time.Now()
-	
+
 	// Transfer başarısız oldu, map'ten kaldır (yeni transfer için temiz başlangıç)
 	log.Printf("❌ Transfer başarısız oldu ve map'ten kaldırılıyor: %s, hata: %v", fileID[:8], err)
-	
+
 	// Context'i iptal et
 	if transfer.cancel != nil {
 		transfer.cancel()
 	}
-	
+
 	delete(m.transfers, fileID)
 }
 
@@ -212,7 +212,7 @@ func (m *TransferManager) CancelTransfer(fileID string) {
 	transfer.EndTime = &now
 	transfer.State = pb.TransferState_TRANSFER_STATE_CANCELLED
 	transfer.lastUpdate = time.Now()
-	
+
 	// Transfer'i map'ten hemen kaldır (yeni transfer için yer aç)
 	// Goroutine'in durması için 300ms beklenecek (SyncFileWithPeerTracked içinde)
 	delete(m.transfers, fileID)
@@ -223,7 +223,7 @@ func (m *TransferManager) CancelTransfer(fileID string) {
 func (m *TransferManager) ForceRemoveTransfer(fileID string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	if _, exists := m.transfers[fileID]; exists {
 		delete(m.transfers, fileID)
 		log.Printf("  🗑️ Transfer zorla map'ten kaldırıldı: %s", fileID)
@@ -248,14 +248,14 @@ func (m *TransferManager) GetTransferContext(fileID string) (context.Context, bo
 	if !exists || transfer.ctx == nil {
 		return nil, false
 	}
-	
+
 	// CANCELLED, FAILED veya COMPLETED transfer'ler için context döndürme
 	// Sadece ACTIVE transfer'ler için context döndür
 	if transfer.State != pb.TransferState_TRANSFER_STATE_ACTIVE {
 		log.Printf("  ⚠️ Transfer ACTIVE değil (state: %v), context döndürülmüyor: %s", transfer.State, fileID[:8])
 		return nil, false
 	}
-	
+
 	return transfer.ctx, true
 }
 
@@ -290,17 +290,17 @@ func (m *TransferManager) ListTransfers(ctx context.Context, activeOnly, complet
 // ToProto TransferInfo'yu proto mesajına dönüştürür
 func (t *TransferInfo) ToProto() *pb.TransferInfo {
 	proto := &pb.TransferInfo{
-		FileId:          t.FileID,
-		FileName:        t.FileName,
-		PeerId:          t.PeerID,
-		PeerName:        t.PeerName,
-		Direction:       t.Direction,
-		State:           t.State,
-		TotalChunks:     t.TotalChunks,
-		CompletedChunks: t.CompletedChunks,
-		TotalBytes:      t.TotalBytes,
+		FileId:           t.FileID,
+		FileName:         t.FileName,
+		PeerId:           t.PeerID,
+		PeerName:         t.PeerName,
+		Direction:        t.Direction,
+		State:            t.State,
+		TotalChunks:      t.TotalChunks,
+		CompletedChunks:  t.CompletedChunks,
+		TotalBytes:       t.TotalBytes,
 		TransferredBytes: t.TransferredBytes,
-		StartTime:       timestamppb.New(t.StartTime),
+		StartTime:        timestamppb.New(t.StartTime),
 	}
 
 	// Progress hesapla
@@ -338,11 +338,10 @@ func (m *TransferManager) CleanupOldTransfers(maxAge time.Duration) {
 		if transfer.State == pb.TransferState_TRANSFER_STATE_COMPLETED ||
 			transfer.State == pb.TransferState_TRANSFER_STATE_FAILED ||
 			transfer.State == pb.TransferState_TRANSFER_STATE_CANCELLED {
-			
+
 			if transfer.EndTime != nil && now.Sub(*transfer.EndTime) > maxAge {
 				delete(m.transfers, fileID)
 			}
 		}
 	}
 }
-

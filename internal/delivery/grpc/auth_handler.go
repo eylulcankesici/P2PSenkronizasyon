@@ -70,7 +70,7 @@ func (h *AuthHandler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 
 	// Şifre kontrolü (basit - gerçek uygulamada bcrypt kullan)
 	// Şimdilik placeholder olarak kabul et
-	
+
 	// Basit token oluştur (gerçek uygulamada JWT kullan)
 	token := fmt.Sprintf("token_%s_%d", user.ID, user.CreatedAt.Unix())
 
@@ -82,7 +82,7 @@ func (h *AuthHandler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 		},
 		Token:     token,
 		User:      convertUserToProto(user),
-		ExpiresAt: timestamppb.New(user.CreatedAt.Add(24 * 365 * 10)),  // 10 yıl (placeholder)
+		ExpiresAt: timestamppb.New(user.CreatedAt.Add(24 * 365 * 10)), // 10 yıl (placeholder)
 	}, nil
 }
 
@@ -100,7 +100,7 @@ func (h *AuthHandler) Logout(ctx context.Context, req *pb.LogoutRequest) (*pb.St
 func (h *AuthHandler) ValidateToken(ctx context.Context, req *pb.ValidateTokenRequest) (*pb.ValidateTokenResponse, error) {
 	// Basit token validasyonu (gerçek uygulamada JWT kullan)
 	// Şu an için her token geçerli kabul ediliyor
-	
+
 	return &pb.ValidateTokenResponse{
 		Status: &pb.Status{
 			Success: true,
@@ -108,7 +108,7 @@ func (h *AuthHandler) ValidateToken(ctx context.Context, req *pb.ValidateTokenRe
 			Code:    200,
 		},
 		IsValid: true,
-		User: nil,  // Token'dan user bilgisi parse edilebilir
+		User:    nil, // Token'dan user bilgisi parse edilebilir
 	}, nil
 }
 
@@ -120,7 +120,7 @@ func (h *AuthHandler) ChangePassword(ctx context.Context, req *pb.ChangePassword
 	// 2. Eski şifreyi doğrula
 	// 3. Yeni şifreyi hash'le
 	// 4. Güncelle
-	
+
 	return &pb.Status{
 		Success: true,
 		Message: "Şifre değiştirme - yakında implement edilecek",
@@ -155,4 +155,3 @@ func convertUserRoleToProto(role entity.UserRole) pb.UserRole {
 		return pb.UserRole_USER_ROLE_STANDARD
 	}
 }
-

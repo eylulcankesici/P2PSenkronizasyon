@@ -31,7 +31,7 @@ func (h *FileHandler) GetFile(ctx context.Context, req *pb.GetFileRequest) (*pb.
 		Status: &pb.Status{
 			Success: true,
 			Message: "FileHandler - yakında implement edilecek",
-			Code:    501,  // Not Implemented
+			Code:    501, // Not Implemented
 		},
 	}, nil
 }
@@ -70,7 +70,7 @@ func (h *FileHandler) ListFiles(ctx context.Context, req *pb.ListFilesRequest) (
 // DeleteFile dosya siler
 func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest) (*pb.Status, error) {
 	log.Printf("🗑️ Dosya siliniyor: %s", req.FileId[:8])
-	
+
 	// Önce file bilgisini al (fiziksel path için)
 	file, err := h.container.FileRepository().GetByID(ctx, req.FileId)
 	if err != nil {
@@ -80,18 +80,18 @@ func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest)
 			Code:    404,
 		}, nil
 	}
-	
+
 	// Folder bilgisini al (path oluşturmak için)
 	folder, err := h.container.FolderRepository().GetByID(ctx, file.FolderID)
 	if err != nil {
 		log.Printf("⚠️ Folder bilgisi alınamadı: %v", err)
 		// Devam et, sadece veritabanından sil
 	}
-	
+
 	// Dosya bilgilerini sakla (silme işleminden sonra kullanmak için)
 	folderID := file.FolderID
 	relativePath := file.RelativePath
-	
+
 	// ÖNEMLİ: Dosya silinmeden ÖNCE peer'lara silme bildirimi gönder
 	// (dosya silindikten sonra file_peer_sync kayıtları CASCADE ile silinir)
 	// Bu, hem gönderici hem de alıcı tarafında çift yönlü senkronizasyon için gereklidir
@@ -102,12 +102,12 @@ func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest)
 			// Hata olsa bile silme işlemine devam et
 		}
 	}
-	
+
 	// FİZİKSEL dosyayı SİL mi yoksa KORU mu?
 	// KURAL: Kullanıcı seçimine göre karar ver (req.DeletePhysically)
 	//   - delete_physically = true → Bilgisayardan tamamen kaldır (hem fiziksel dosya hem veritabanından tamamen sil)
 	//   - delete_physically = false → Sadece uygulamadan kaldır (veritabanından tamamen sil, fiziksel dosya korunur)
-	
+
 	if req.DeletePhysically {
 		// Fiziksel dosyayı sil
 		if folder != nil && folder.LocalPath != "" && file.RelativePath != "" {
@@ -120,7 +120,7 @@ func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest)
 				log.Printf("✅ Fiziksel dosya silindi: %s", filePath)
 			}
 		}
-		
+
 		// Veritabanından tamamen sil (HARD DELETE) - CASCADE olduğu için file_chunks ve file_peer_sync de silinir
 		if err := h.container.FileRepository().HardDelete(ctx, req.FileId); err != nil {
 			return &pb.Status{
@@ -130,10 +130,10 @@ func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest)
 			}, nil
 		}
 		log.Printf("✅ Dosya veritabanından tamamen silindi (hard delete): %s", req.FileId[:8])
-		
+
 		// Fiziksel dosya zaten silindi (req.DeletePhysically = true), ignore listesine eklemeye gerek yok
 		// Çünkü fiziksel dosya yok, file watcher CREATE event'i tetiklenmez
-		
+
 		// Yetim chunk'ları temizle (hiçbir dosya tarafından kullanılmayan chunk'lar) - hem disk hem DB'den
 		if deletedCount, err := h.container.ChunkingUseCase().DeleteOrphanedChunks(ctx); err != nil {
 			log.Printf("⚠️ Yetim chunk'lar temizlenemedi: %v", err)
@@ -141,7 +141,7 @@ func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest)
 		} else if deletedCount > 0 {
 			log.Printf("🧹 %d yetim chunk temizlendi (disk + DB)", deletedCount)
 		}
-		
+
 		return &pb.Status{
 			Success: true,
 			Message: "Dosya başarıyla silindi (veritabanı + fiziksel dosya)",
@@ -159,7 +159,7 @@ func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest)
 			}, nil
 		}
 		log.Printf("✅ Dosya veritabanından tamamen silindi (fiziksel dosya korundu): %s", req.FileId[:8])
-		
+
 		// Fiziksel dosya hala disk'te olduğu için, file watcher'ın onu tekrar eklememesi için ignore listesine ekle
 		// (Dosya silindikten sonra file değişkeni kullanılamaz, bu yüzden önceden saklanan değerleri kullan)
 		if relativePath != "" {
@@ -169,7 +169,7 @@ func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest)
 				log.Printf("⚠️ EventHandler nil, ignore listesine eklenemedi: %s", relativePath)
 			}
 		}
-		
+
 		// Yetim chunk'ları temizle (hiçbir dosya tarafından kullanılmayan chunk'lar) - hem disk hem DB'den
 		if deletedCount, err := h.container.ChunkingUseCase().DeleteOrphanedChunks(ctx); err != nil {
 			log.Printf("⚠️ Yetim chunk'lar temizlenemedi: %v", err)
@@ -177,7 +177,7 @@ func (h *FileHandler) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest)
 		} else if deletedCount > 0 {
 			log.Printf("🧹 %d yetim chunk temizlendi (disk + DB)", deletedCount)
 		}
-		
+
 		return &pb.Status{
 			Success: true,
 			Message: "Dosya uygulamadan kaldırıldı (fiziksel dosya korundu)",
@@ -310,4 +310,3 @@ func convertFileToProto(f *entity.File) *pb.File {
 		UpdatedAt:    timestamppb.New(f.UpdatedAt),
 	}
 }
-

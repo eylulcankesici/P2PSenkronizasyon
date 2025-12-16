@@ -81,7 +81,7 @@ type Container struct {
 
 	// Symlink manager (Desktop shortcut oluşturma)
 	symlinkManager *filesystem.SymlinkManager
-	
+
 	// Transfer completion ack channels
 	transferAckChans sync.Map // fileID -> chan struct{}
 }
@@ -728,14 +728,14 @@ func (c *Container) setupPeerDiscoveryCallback() error {
 		// Connection established callback'ini ayarla
 		transportWithCallbacks.OnConnectionEstablished(func(conn transport.Connection) {
 			peerID := conn.GetPeerID()
-			
+
 			// Peer'ı veritabanında bul veya oluştur
 			existingPeer, err := c.peerRepo.GetByID(ctx, peerID)
 			if err != nil || existingPeer == nil {
 				// Yeni peer oluştur (İsim bilinmiyor olabilir, varsayılan ata)
 				peer := entity.NewPeer(peerID, "Unknown Peer")
 				peer.Status = entity.PeerStatusOnline
-				
+
 				if err := c.peerRepo.Create(ctx, peer); err != nil {
 					log.Printf("⚠️ Peer veritabanına kaydedilemedi (Connection Established): %v", err)
 				} else {
@@ -772,7 +772,7 @@ func (c *Container) setupPeerDiscoveryCallback() error {
 		// Peer ID updated callback'ini ayarla
 		transportWithCallbacks.SetOnPeerIDUpdated(func(oldID, newID, newName string) {
 			log.Printf("🔄 Peer ID güncelleniyor: %s -> %s (%s)", oldID, newID, newName)
-			
+
 			// Eski peer'ı bul
 			oldPeer, err := c.peerRepo.GetByID(ctx, oldID)
 			if err != nil || oldPeer == nil {
@@ -808,26 +808,26 @@ func (c *Container) setupPeerDiscoveryCallback() error {
 				if nameToUse == "" {
 					nameToUse = oldPeer.Name
 				}
-				
+
 				newPeer := entity.NewPeer(newID, nameToUse)
 				newPeer.Status = entity.PeerStatusOnline
 				newPeer.KnownAddresses = oldPeer.KnownAddresses
 				newPeer.IsTrusted = oldPeer.IsTrusted
-				
+
 				if err := c.peerRepo.Create(ctx, newPeer); err != nil {
 					log.Printf("⚠️ Yeni peer kaydedilemedi: %v", err)
 					return
 				}
 			}
-			
+
 			// Eski peer'ı sil (veya offline yap, ama ID değiştiği için silmek daha mantıklı)
-			// Repository'de Delete metodu var mı kontrol etmem lazım. 
+			// Repository'de Delete metodu var mı kontrol etmem lazım.
 			// Eğer yoksa offline yapalım.
 			// Şimdilik offline yapıyorum, delete metodu olmayabilir.
 			if err := c.peerRepo.UpdateStatus(ctx, oldID, entity.PeerStatusOffline); err != nil {
 				log.Printf("⚠️ Eski peer durumu güncellenemedi: %v", err)
 			}
-			
+
 			log.Printf("✅ Peer ID güncellendi ve online: %s", newID[:8])
 		})
 	}
@@ -1667,12 +1667,12 @@ func (c *Container) SyncFileWithPeerTracked(ctx context.Context, peerID, fileID 
 				SendTransferFinish(ctx context.Context, fileID string) error
 			}); ok {
 				log.Printf("📤 Transfer finish gönderiliyor ve Ack bekleniyor: %s", fileID[:8])
-				
+
 				// Ack kanalı oluştur
 				ackCh := make(chan struct{}, 1)
 				c.transferAckChans.Store(fileID, ackCh)
 				defer c.transferAckChans.Delete(fileID)
-				
+
 				// Finish mesajı gönder
 				if err := webrtcConn.SendTransferFinish(ctx, fileID); err != nil {
 					log.Printf("⚠️ Transfer finish gönderilemedi: %v", err)
@@ -1898,14 +1898,14 @@ func (c *Container) syncFileToAllPeers(fileID, folderID string) error {
 				}
 			}
 		} else {
-            // Eğer folder'da başka dosya yoksa veya history yoksa, TÜM BAĞLI PEER'LARLA SYNC ET
-            // Bu, "ilk dosya" veya "tekrar eklenen dosya" senaryosu için kritiktir.
-            log.Printf("  ℹ️  Folder history yok, tüm bağlı peer'lar aday olarak ekleniyor (New File Strategy)")
-             for _, conn := range allConnections {
-                pid := conn.GetPeerID()
-                syncedPeerIDsMap[pid] = true
-            }
-        }
+			// Eğer folder'da başka dosya yoksa veya history yoksa, TÜM BAĞLI PEER'LARLA SYNC ET
+			// Bu, "ilk dosya" veya "tekrar eklenen dosya" senaryosu için kritiktir.
+			log.Printf("  ℹ️  Folder history yok, tüm bağlı peer'lar aday olarak ekleniyor (New File Strategy)")
+			for _, conn := range allConnections {
+				pid := conn.GetPeerID()
+				syncedPeerIDsMap[pid] = true
+			}
+		}
 	}
 
 	for _, conn := range allConnections {
@@ -2333,11 +2333,10 @@ func (c *Container) handleIncomingFileDelete(ctx context.Context, peerID, fileID
 	return nil
 }
 
-
 // syncFileRenameToAllPeers dosya adının değiştiğini tüm peer'lara bildirir
 func (c *Container) syncFileRenameToAllPeers(fileID, oldPath, newPath string) error {
 	log.Printf("📝 Dosya yeniden adlandırma bildirimi gönderiliyor: %s -> %s (file: %s)", oldPath, newPath, fileID[:8])
-	
+
 	ctx := context.Background()
 
 	// Dosya ve Folder bilgisini al (SyncMode kontrolü için)
@@ -2345,7 +2344,7 @@ func (c *Container) syncFileRenameToAllPeers(fileID, oldPath, newPath string) er
 	if err != nil {
 		return fmt.Errorf("dosya bilgisi alınamadı: %w", err)
 	}
-	
+
 	folder, err := c.folderRepo.GetByID(ctx, file.FolderID)
 	if err != nil {
 		return fmt.Errorf("folder bilgisi alınamadı: %w", err)
@@ -2366,11 +2365,11 @@ func (c *Container) syncFileRenameToAllPeers(fileID, oldPath, newPath string) er
 	if err != nil {
 		return fmt.Errorf("file-peer sync kayıtları alınamadı: %w", err)
 	}
-	
+
 	peerCount := 0
 	for _, sync := range syncs {
 		peerID := sync.PeerID
-		
+
 		// Bağlı mı kontrol et
 		if conn, exists := c.transportProvider.GetConnection(peerID); exists {
 			// WebRTC mi? (Şu an sadece WebRTC destekliyor)
@@ -2388,36 +2387,36 @@ func (c *Container) syncFileRenameToAllPeers(fileID, oldPath, newPath string) er
 			}
 		}
 	}
-	
+
 	if peerCount > 0 {
 		log.Printf("✅ Dosya rename bildirimi %d peer'a gönderildi", peerCount)
 	} else {
 		log.Printf("⚠️ Dosya rename bildirimi gönderilecek bağlı peer bulunamadı")
 	}
-	
+
 	return nil
 }
 
 // handleIncomingFileRename gelen dosya yeniden adlandırma bildirimini işler
 func (c *Container) handleIncomingFileRename(ctx context.Context, fileID, oldPath, newPath string) error {
 	log.Printf("📝 Incoming file rename: file=%s, old=%s, new=%s", fileID[:8], oldPath, newPath)
-	
+
 	// Dosyayı bul (ID ile)
 	file, err := c.fileRepo.GetByID(ctx, fileID)
 	if err != nil {
 		return fmt.Errorf("dosya bulunamadı: %w", err)
 	}
-	
+
 	// Folder'ı bul
 	folder, err := c.folderRepo.GetByID(ctx, file.FolderID)
 	if err != nil {
 		return fmt.Errorf("folder bulunamadı: %w", err)
 	}
-	
+
 	// Fiziksel yolları oluştur
 	oldAbsPath := filepath.Join(folder.LocalPath, oldPath)
 	newAbsPath := filepath.Join(folder.LocalPath, newPath)
-	
+
 	// 1. Fiziksel RENAME yap
 	// Önce eski dosya var mı kontrol et
 	if _, err := os.Stat(oldAbsPath); os.IsNotExist(err) {
@@ -2432,23 +2431,22 @@ func (c *Container) handleIncomingFileRename(ctx context.Context, fileID, oldPat
 				eh.IgnoreFile(folder.ID, oldPath)
 				eh.IgnoreFile(folder.ID, newPath)
 			}
-			
+
 			if err := os.Rename(oldAbsPath, newAbsPath); err != nil {
 				return fmt.Errorf("fiziksel rename hatası: %w", err)
 			}
 			log.Printf("  ✅ Fiziksel rename başarılı: %s -> %s", oldPath, newPath)
 		}
 	}
-	
+
 	// 2. DB GÜNCELLE
 	file.RelativePath = newPath
 	file.UpdatedAt = time.Now()
-	
+
 	if err := c.fileRepo.Update(ctx, file); err != nil {
 		return fmt.Errorf("DB update hatası: %w", err)
 	}
 	log.Printf("  ✅ DB rename başarılı: %s", fileID[:8])
-	
+
 	return nil
 }
-

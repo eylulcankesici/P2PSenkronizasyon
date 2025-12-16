@@ -16,14 +16,14 @@ const (
 
 // DiscoveredPeer keşfedilen bir peer'ı temsil eder
 type DiscoveredPeer struct {
-	DeviceID    string            // Benzersiz cihaz ID'si
-	DeviceName  string            // Kullanıcı dostu isim
-	Addresses   []string          // Bağlanılabilir adresler (IP:PORT)
-	Port        int               // P2P listen port
-	Version     string            // Aether version
-	Metadata    map[string]string // Ekstra metadata (TXT records)
-	DiscoveredAt time.Time        // Keşfedilme zamanı
-	TransportType TransportType   // Hangi transport ile keşfedildi
+	DeviceID      string            // Benzersiz cihaz ID'si
+	DeviceName    string            // Kullanıcı dostu isim
+	Addresses     []string          // Bağlanılabilir adresler (IP:PORT)
+	Port          int               // P2P listen port
+	Version       string            // Aether version
+	Metadata      map[string]string // Ekstra metadata (TXT records)
+	DiscoveredAt  time.Time         // Keşfedilme zamanı
+	TransportType TransportType     // Hangi transport ile keşfedildi
 }
 
 // FileMetadata dosya meta verilerini temsil eder
@@ -38,10 +38,10 @@ type FileMetadata struct {
 
 // ChunkTransferProgress chunk transfer ilerleme durumu
 type ChunkTransferProgress struct {
-	ChunkHash       string
+	ChunkHash        string
 	BytesTransferred int64
-	TotalBytes      int64
-	IsComplete      bool
+	TotalBytes       int64
+	IsComplete       bool
 }
 
 // Connection bir peer bağlantısını temsil eder
@@ -52,11 +52,11 @@ type Connection interface {
 	RequestChunk(ctx context.Context, chunkHash string) ([]byte, error)
 	SendMetadata(ctx context.Context, metadata *FileMetadata) error
 	RequestMetadata(ctx context.Context, fileID string) (*FileMetadata, error)
-	
+
 	// Connection Management
 	Ping(ctx context.Context) (time.Duration, error) // Latency ölçümü
 	Close() error
-	
+
 	// Connection Info (Read-only)
 	GetPeerID() string
 	GetAddress() string
@@ -74,23 +74,23 @@ type TransportProvider interface {
 	StartDiscovery(ctx context.Context) error
 	StopDiscovery() error
 	GetDiscoveredPeers() []*DiscoveredPeer
-	
+
 	// Connection Operations
 	Connect(ctx context.Context, peer *DiscoveredPeer) (Connection, error)
 	Disconnect(peerID string) error
 	GetConnection(peerID string) (Connection, bool)
 	GetAllConnections() []Connection
-	
+
 	// Lifecycle Management
 	Start(ctx context.Context) error
 	Stop() error
-	
+
 	// Transport Info
 	GetTransportType() TransportType
 	GetListenPort() int
 	GetDeviceID() string
 	GetDeviceName() string
-	
+
 	// Event Callbacks (optional)
 	OnPeerDiscovered(callback func(*DiscoveredPeer))
 	OnPeerLost(callback func(string))
@@ -138,4 +138,3 @@ type DataTransferProtocol interface {
 	EncodeMetadata(metadata *FileMetadata) ([]byte, error)
 	DecodeMetadata(data []byte) (*FileMetadata, error)
 }
-

@@ -18,35 +18,35 @@ type WebRTCPeer struct {
 	peerConnection *webrtc.PeerConnection
 	dataChannel    *webrtc.DataChannel
 	config         webrtc.Configuration
-	
+
 	// State
 	mu          sync.RWMutex
 	connected   bool
 	connectedAt time.Time
-	
+
 	// Callbacks
 	onConnectionStateChange func(webrtc.PeerConnectionState)
 	onDataChannel           func(*webrtc.DataChannel)
 
-	onICEConnectionState    func(webrtc.ICEConnectionState)
-	onICECandidate          func(*webrtc.ICECandidate)
+	onICEConnectionState func(webrtc.ICEConnectionState)
+	onICECandidate       func(*webrtc.ICECandidate)
 }
 
 // NewWebRTCPeer yeni WebRTC peer oluşturur
 func NewWebRTCPeer(config webrtc.Configuration) (*WebRTCPeer, error) {
 	// SettingEngine oluştur ve timeout'ları ayarla
 	settingEngine := webrtc.SettingEngine{}
-	
+
 	// ICE timeout'larını uzat (Manuel signaling için gerekli)
 	// Disconnected: 3 dakika (kullanıcının kodu kopyalaması için)
 	// Failed: 5 dakika
 	// KeepAlive: 2 saniye (default)
 	settingEngine.SetICETimeouts(3*time.Minute, 5*time.Minute, 2*time.Second)
-	
+
 	// SCTP buffer boyutunu artır (256KB chunk'ları gönderebilmek için)
 	// Default 1MB olabilir, biz 16MB yapalım
 	settingEngine.SetSCTPMaxReceiveBufferSize(16 * 1024 * 1024)
-	
+
 	// API oluştur
 	api := webrtc.NewAPI(webrtc.WithSettingEngine(settingEngine))
 
@@ -108,7 +108,7 @@ func NewWebRTCPeer(config webrtc.Configuration) (*WebRTCPeer, error) {
 			return
 		}
 		log.Printf("🧊 ICE Candidate found: %s", c.String())
-		
+
 		if peer.onICECandidate != nil {
 			peer.onICECandidate(c)
 		}
@@ -387,7 +387,6 @@ func DecodeSDP(data []byte) (webrtc.SessionDescription, error) {
 	}, nil
 }
 
-
 // CreateOfferAsync SDP offer oluşturur (ICE gathering beklemez)
 func (p *WebRTCPeer) CreateOfferAsync() (webrtc.SessionDescription, error) {
 	offer, err := p.peerConnection.CreateOffer(nil)
@@ -426,7 +425,7 @@ func (p *WebRTCPeer) AddICECandidateFromJSON(candidateJSON string) error {
 	if err := p.peerConnection.AddICECandidate(candidate); err != nil {
 		return fmt.Errorf("candidate eklenemedi: %w", err)
 	}
-	
+
 	log.Printf("🧊 Remote candidate eklendi: %s", candidate.Candidate)
 	return nil
 }

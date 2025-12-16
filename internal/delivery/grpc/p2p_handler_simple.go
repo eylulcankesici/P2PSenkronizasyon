@@ -32,7 +32,7 @@ func (h *P2PDataHandler) RequestChunk(ctx context.Context, req *pb.ChunkRequest)
 			},
 		}, nil
 	}
-	
+
 	return &pb.ChunkResponse{
 		Status: &pb.Status{
 			Success: true,
@@ -73,4 +73,3 @@ func (h *P2PDataHandler) Ping(ctx context.Context, req *pb.PingRequest) (*pb.Pin
 		LatencyMs: 0,
 	}, nil
 }
-

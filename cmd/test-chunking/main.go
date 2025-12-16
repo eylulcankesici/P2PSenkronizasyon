@@ -71,7 +71,7 @@ func main() {
 	// Dosya kaydı oluştur
 	file := entity.NewFile("test-folder-id", "aether_chunk_test.txt", int64(len(testData)), fileInfo.ModTime())
 	file.ID = "test-file-id-123"
-	
+
 	if err := cont.FileRepository().Create(ctx, file); err != nil {
 		log.Fatal("❌ Dosya kaydı oluşturulamadı:", err)
 	}
@@ -101,7 +101,7 @@ func main() {
 	fmt.Printf("✅ %d chunk başarıyla yüklendi!\n", len(loadedChunks))
 	for i, chunk := range loadedChunks {
 		if i < 3 { // İlk 3 chunk'ı göster
-			fmt.Printf("   • Chunk %d: %s... (%d bytes, local=%v)\n", 
+			fmt.Printf("   • Chunk %d: %s... (%d bytes, local=%v)\n",
 				i, chunk.Hash[:16], chunk.Size, chunk.IsLocal)
 		}
 	}
@@ -159,7 +159,7 @@ func main() {
 	// Aynı dosyayı tekrar ekle (deduplication testi)
 	file2 := entity.NewFile("test-folder-id-2", "aether_chunk_test_copy.txt", int64(len(testData)), fileInfo.ModTime())
 	file2.ID = "test-file-id-456"
-	
+
 	if err := cont.FileRepository().Create(ctx, file2); err != nil {
 		log.Fatal("❌ İkinci dosya kaydı oluşturulamadı:", err)
 	}
@@ -241,7 +241,7 @@ func cleanupTestData(ctx context.Context, cont *container.Container) {
 			cont.FolderRepository().Delete(ctx, folderID)
 		}
 	}
-	
+
 	// Yetim chunk'ları temizle
 	cont.ChunkRepository().DeleteOrphanedChunks(ctx)
 }
@@ -249,14 +249,14 @@ func cleanupTestData(ctx context.Context, cont *container.Container) {
 // createTestData test verisi oluşturur
 func createTestData(size int) []byte {
 	data := make([]byte, size)
-	
+
 	// Her 256 byte'da tekrar eden bir pattern
 	pattern := []byte("AETHER_CHUNKING_TEST_")
-	
+
 	for i := 0; i < size; i++ {
 		data[i] = pattern[i%len(pattern)]
 	}
-	
+
 	return data
 }
 
@@ -266,4 +266,3 @@ func min(a, b int) int {
 	}
 	return b
 }
-

@@ -8,10 +8,10 @@ import (
 type SyncMode string
 
 const (
-	SyncModeUnspecified   SyncMode = ""                // Henüz belirlenmemiş
-	SyncModeBidirectional SyncMode = "bidirectional"   // Çift yönlü senkronizasyon
-	SyncModeSendOnly      SyncMode = "send_only"       // Sadece gönder
-	SyncModeReceiveOnly   SyncMode = "receive_only"    // Sadece al
+	SyncModeUnspecified   SyncMode = ""              // Henüz belirlenmemiş
+	SyncModeBidirectional SyncMode = "bidirectional" // Çift yönlü senkronizasyon
+	SyncModeSendOnly      SyncMode = "send_only"     // Sadece gönder
+	SyncModeReceiveOnly   SyncMode = "receive_only"  // Sadece al
 )
 
 // FolderSource folder'ın nereden geldiğini tanımlar
@@ -61,15 +61,15 @@ func (f *Folder) Validate() error {
 	if f.LocalPath == "" {
 		return ErrInvalidPath
 	}
-	
+
 	// SyncMode boş (unspecified) olabilir veya geçerli bir değer olmalı
 	if f.SyncMode != SyncModeUnspecified &&
-	   f.SyncMode != SyncModeBidirectional && 
-	   f.SyncMode != SyncModeSendOnly && 
-	   f.SyncMode != SyncModeReceiveOnly {
+		f.SyncMode != SyncModeBidirectional &&
+		f.SyncMode != SyncModeSendOnly &&
+		f.SyncMode != SyncModeReceiveOnly {
 		return ErrInvalidSyncMode
 	}
-	
+
 	return nil
 }
 
@@ -90,7 +90,3 @@ func (f *Folder) Deactivate() {
 	f.IsActive = false
 	f.UpdatedAt = time.Now()
 }
-
-
-
-

@@ -97,7 +97,7 @@ func main() {
 	var pageCount, pageSize int64
 	db.QueryRow("PRAGMA page_count").Scan(&pageCount)
 	db.QueryRow("PRAGMA page_size").Scan(&pageSize)
-	
+
 	dbSize := pageCount * pageSize / 1024 // KB
 	fmt.Printf("  • Veritabanı Boyutu: %d KB\n", dbSize)
 
@@ -115,4 +115,3 @@ func main() {
 	fmt.Println()
 	fmt.Println("✅ Temizleme tamamlandı!")
 }
-

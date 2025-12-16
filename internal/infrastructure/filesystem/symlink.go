@@ -25,10 +25,10 @@ func (sm *SymlinkManager) CreateDesktopSymlink(target, name string) (string, err
 	if err != nil {
 		return "", fmt.Errorf("desktop path alınamadı: %w", err)
 	}
-	
+
 	// Symlink path'i
 	symlinkPath := filepath.Join(desktopPath, name)
-	
+
 	// Zaten varsa atla
 	if _, err := os.Lstat(symlinkPath); err == nil {
 		// Mevcut symlink'i kontrol et
@@ -38,12 +38,12 @@ func (sm *SymlinkManager) CreateDesktopSymlink(target, name string) (string, err
 		// Geçersiz symlink, sil ve yeniden oluştur
 		os.Remove(symlinkPath)
 	}
-	
+
 	// Platform'a göre symlink oluştur
 	if err := sm.createSymlink(target, symlinkPath); err != nil {
 		return "", fmt.Errorf("symlink oluşturulamadı: %w", err)
 	}
-	
+
 	return symlinkPath, nil
 }
 
@@ -53,9 +53,9 @@ func (sm *SymlinkManager) RemoveDesktopSymlink(name string) error {
 	if err != nil {
 		return fmt.Errorf("desktop path alınamadı: %w", err)
 	}
-	
+
 	symlinkPath := filepath.Join(desktopPath, name)
-	
+
 	// Symlink var mı kontrol et
 	info, err := os.Lstat(symlinkPath)
 	if err != nil {
@@ -64,14 +64,14 @@ func (sm *SymlinkManager) RemoveDesktopSymlink(name string) error {
 		}
 		return fmt.Errorf("symlink kontrol edilemedi: %w", err)
 	}
-	
+
 	// Symlink veya directory ise sil
 	if info.Mode()&os.ModeSymlink != 0 || info.IsDir() {
 		if err := os.Remove(symlinkPath); err != nil {
 			return fmt.Errorf("symlink silinemedi: %w", err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -141,11 +141,11 @@ func (sm *SymlinkManager) isValidSymlink(link, expectedTarget string) bool {
 		}
 		return false
 	}
-	
+
 	// Target'ı normalize et ve karşılaştır
 	targetAbs, _ := filepath.Abs(target)
 	expectedAbs, _ := filepath.Abs(expectedTarget)
-	
+
 	return targetAbs == expectedAbs
 }
 
@@ -153,4 +153,3 @@ func (sm *SymlinkManager) isValidSymlink(link, expectedTarget string) bool {
 func (sm *SymlinkManager) GetSymlinkTarget(link string) (string, error) {
 	return os.Readlink(link)
 }
-

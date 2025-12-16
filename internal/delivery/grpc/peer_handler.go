@@ -35,13 +35,13 @@ func NewPeerHandler(cont *container.Container) *PeerHandler {
 func (h *PeerHandler) DiscoverPeers(ctx context.Context, req *pb.DiscoverPeersRequest) (*pb.DiscoverPeersResponse, error) {
 	// Sadece keşfedilen peer'ları döndür (henüz bağlanmamış olanlar)
 	discoveredPeers, _ := h.container.PeerDiscoveryUseCase().GetDiscoveredPeers(ctx)
-	
+
 	pbPeers := make([]*pb.Peer, 0, len(discoveredPeers))
 	lanOnly := req.GetLanOnly()
 	wanOnly := req.GetWanOnly()
 
 	log.Printf("🔍 DiscoverPeers çağrıldı - lanOnly: %v, wanOnly: %v, toplam keşfedilen: %d", lanOnly, wanOnly, len(discoveredPeers))
-	
+
 	for _, discoveredPeer := range discoveredPeers {
 		transportTypeStr := "UNKNOWN"
 		if discoveredPeer.TransportType == transport.TransportTypeLAN {
@@ -49,8 +49,8 @@ func (h *PeerHandler) DiscoverPeers(ctx context.Context, req *pb.DiscoverPeersRe
 		} else if discoveredPeer.TransportType == transport.TransportTypeWAN {
 			transportTypeStr = "WAN"
 		}
-		
-		log.Printf("  📡 Peer bulundu: %s (%s) - Transport: %s, Adresler: %v", 
+
+		log.Printf("  📡 Peer bulundu: %s (%s) - Transport: %s, Adresler: %v",
 			discoveredPeer.DeviceName, discoveredPeer.DeviceID[:8], transportTypeStr, discoveredPeer.Addresses)
 
 		if lanOnly && discoveredPeer.TransportType != transport.TransportTypeLAN {
@@ -75,7 +75,7 @@ func (h *PeerHandler) DiscoverPeers(ctx context.Context, req *pb.DiscoverPeersRe
 	}
 
 	log.Printf("📤 DiscoverPeers yanıtı: %d peer döndürülüyor", len(pbPeers))
-	
+
 	return &pb.DiscoverPeersResponse{
 		Status: &pb.Status{
 			Success: true,
@@ -96,7 +96,7 @@ func (h *PeerHandler) ConnectToPeer(ctx context.Context, req *pb.ConnectToPeerRe
 			Code:    500,
 		}, nil
 	}
-	
+
 	return &pb.Status{
 		Success: true,
 		Message: "Bağlantı başarıyla kuruldu",
@@ -114,7 +114,7 @@ func (h *PeerHandler) DisconnectFromPeer(ctx context.Context, req *pb.Disconnect
 			Code:    500,
 		}, nil
 	}
-	
+
 	return &pb.Status{
 		Success: true,
 		Message: "Bağlantı başarıyla kesildi",
@@ -127,22 +127,22 @@ func (h *PeerHandler) ListPeers(ctx context.Context, req *pb.ListPeersRequest) (
 	// Bağlı peer'ları almak için transport provider'dan bağlantıları kontrol et
 	transportProvider := h.container.TransportProvider()
 	connections := transportProvider.GetAllConnections()
-	
+
 	pbPeers := make([]*pb.Peer, 0)
-	
+
 	// Sadece bağlı olan peer'ları ekle
 	for _, conn := range connections {
 		if !conn.IsConnected() {
 			continue
 		}
-		
+
 		// Peer bilgilerini veritabanından al
 		peer, err := h.container.PeerRepository().GetByID(ctx, conn.GetPeerID())
 		if err != nil {
 			// Veritabanında yoksa atla
 			continue
 		}
-		
+
 		pbPeer := &pb.Peer{
 			DeviceId:       peer.DeviceID,
 			Name:           peer.Name,
@@ -150,15 +150,15 @@ func (h *PeerHandler) ListPeers(ctx context.Context, req *pb.ListPeersRequest) (
 			IsTrusted:      peer.IsTrusted,
 			KnownAddresses: peer.KnownAddresses,
 		}
-		
+
 		// last_seen timestamp
 		if !peer.LastSeen.IsZero() {
 			pbPeer.LastSeen = timestamppb.New(peer.LastSeen)
 		}
-		
+
 		pbPeers = append(pbPeers, pbPeer)
 	}
-	
+
 	return &pb.ListPeersResponse{
 		Peers: pbPeers,
 		Pagination: &pb.PaginationResponse{
@@ -188,7 +188,7 @@ func (h *PeerHandler) TrustPeer(ctx context.Context, req *pb.TrustPeerRequest) (
 			Code:    404,
 		}, nil
 	}
-	
+
 	peer.IsTrusted = true
 	if err := h.container.PeerRepository().Update(ctx, peer); err != nil {
 		return &pb.Status{
@@ -197,7 +197,7 @@ func (h *PeerHandler) TrustPeer(ctx context.Context, req *pb.TrustPeerRequest) (
 			Code:    500,
 		}, nil
 	}
-	
+
 	return &pb.Status{
 		Success: true,
 		Message: "Peer güvenilir olarak işaretlendi",
@@ -215,7 +215,7 @@ func (h *PeerHandler) UntrustPeer(ctx context.Context, req *pb.UntrustPeerReques
 			Code:    404,
 		}, nil
 	}
-	
+
 	peer.IsTrusted = false
 	if err := h.container.PeerRepository().Update(ctx, peer); err != nil {
 		return &pb.Status{
@@ -224,7 +224,7 @@ func (h *PeerHandler) UntrustPeer(ctx context.Context, req *pb.UntrustPeerReques
 			Code:    500,
 		}, nil
 	}
-	
+
 	return &pb.Status{
 		Success: true,
 		Message: "Peer güvenilmez olarak işaretlendi",
@@ -244,7 +244,7 @@ func (h *PeerHandler) RemovePeer(ctx context.Context, req *pb.RemovePeerRequest)
 // GetPendingConnections bekleyen bağlantı isteklerini döner (LAN ve WAN)
 func (h *PeerHandler) GetPendingConnections(ctx context.Context, req *pb.GetPendingConnectionsRequest) (*pb.GetPendingConnectionsResponse, error) {
 	pbPendingConns := make([]*pb.PendingConnection, 0)
-	
+
 	// LAN transport'tan pending connections al
 	lanTransport := h.container.LANTransport()
 	if lanTransport != nil {
@@ -261,7 +261,7 @@ func (h *PeerHandler) GetPendingConnections(ctx context.Context, req *pb.GetPend
 			}
 		}
 	}
-	
+
 	// WAN transport'tan pending connections al
 	wanTransport := h.container.WANTransport()
 	if wanTransport != nil {
@@ -275,7 +275,7 @@ func (h *PeerHandler) GetPendingConnections(ctx context.Context, req *pb.GetPend
 			pbPendingConns = append(pbPendingConns, pbPending)
 		}
 	}
-	
+
 	return &pb.GetPendingConnectionsResponse{
 		Status: &pb.Status{
 			Success: true,
@@ -300,7 +300,7 @@ func (h *PeerHandler) AcceptConnection(ctx context.Context, req *pb.AcceptConnec
 			}, nil
 		}
 	}
-	
+
 	// WAN transport'ta dene
 	wanTransport := h.container.WANTransport()
 	if wanTransport != nil {
@@ -316,7 +316,7 @@ func (h *PeerHandler) AcceptConnection(ctx context.Context, req *pb.AcceptConnec
 			}
 		}
 	}
-	
+
 	return &pb.Status{
 		Success: false,
 		Message: fmt.Sprintf("Bağlantı onaylanamadı: peer bulunamadı veya pending connection yok"),
@@ -338,7 +338,7 @@ func (h *PeerHandler) RejectConnection(ctx context.Context, req *pb.RejectConnec
 			}, nil
 		}
 	}
-	
+
 	// WAN transport'ta dene
 	wanTransport := h.container.WANTransport()
 	if wanTransport != nil {
@@ -354,7 +354,7 @@ func (h *PeerHandler) RejectConnection(ctx context.Context, req *pb.RejectConnec
 			}
 		}
 	}
-	
+
 	return &pb.Status{
 		Success: false,
 		Message: fmt.Sprintf("Bağlantı reddedilemedi: peer bulunamadı veya pending connection yok"),
@@ -367,7 +367,7 @@ func AcceptConnectionHelper(lanTransport *lan.LANTransport, deviceID string) err
 	if lanTransport == nil {
 		return fmt.Errorf("LAN transport bulunamadı")
 	}
-	
+
 	connMgr := lanTransport.GetTCPConnectionManager()
 	return connMgr.AcceptConnection(deviceID)
 }
@@ -377,7 +377,7 @@ func RejectConnectionHelper(lanTransport *lan.LANTransport, deviceID string) err
 	if lanTransport == nil {
 		return fmt.Errorf("LAN transport bulunamadı")
 	}
-	
+
 	connMgr := lanTransport.GetTCPConnectionManager()
 	return connMgr.RejectConnection(deviceID)
 }
@@ -391,21 +391,21 @@ func GetPendingConnectionsHelper(lanTransport *lan.LANTransport) ([]interface {
 	if lanTransport == nil {
 		return nil, fmt.Errorf("LAN transport bulunamadı")
 	}
-	
+
 	connMgr := lanTransport.GetTCPConnectionManager()
 	pendingConns := connMgr.GetPendingConnections()
-	
+
 	// PendingConnection'ları interface'e dönüştür
 	result := make([]interface {
 		DeviceID() string
 		DeviceName() string
 		Timestamp() int64
 	}, len(pendingConns))
-	
+
 	for i, p := range pendingConns {
 		result[i] = pendingConnWrapper{p}
 	}
-	
+
 	return result, nil
 }
 
@@ -454,13 +454,10 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 		}, nil
 	}
 
-
-
-
 	// 6 haneli Room ID oluştur
 	rand.Seed(time.Now().UnixNano())
 	roomID := fmt.Sprintf("%06d", rand.Intn(1000000))
-	
+
 	log.Printf("🚀 Signaling başlatılıyor (Room: %s)...", roomID)
 
 	// Signaling başlat
@@ -486,7 +483,7 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 		cfg.Network.TURNServers,
 		cfg.Network.WebRTCPortRange,
 	)
-	
+
 	// WebRTC peer oluştur
 	webrtcPeer, peerErr := wan.NewWebRTCPeer(webrtcConfig)
 	if peerErr != nil {
@@ -515,13 +512,13 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 	// Data Channel açıldığında connection'ı kaydet
 	dc.OnOpen(func() {
 		log.Printf("✅ Data Channel açıldı (Offerer): %s", dc.Label())
-		
+
 		// Geçici olarak roomID'yi device ID olarak kullan
 		tempDeviceID := roomID
-		
+
 		// WebRTC connection oluştur
 		conn := wan.NewWebRTCConnection(tempDeviceID, "Unknown Peer", h.container.GetDeviceName(), webrtcPeer, dc)
-		
+
 		// Connection manager'a kaydet
 		wanTransport.GetWebRTCConnectionManager().RegisterConnection(tempDeviceID, conn)
 	})
@@ -534,7 +531,7 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 			log.Printf("❌ Remote description hatası: %v", err)
 		}
 	}
-	
+
 	signalingClient.OnCandidate = func(candidate string) {
 		log.Printf("📩 Candidate alındı, ekleniyor...")
 		webrtcPeer.AddICECandidateFromJSON(candidate)
@@ -543,14 +540,14 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 	// Peer katıldığında Offer gönder
 	signalingClient.OnReady = func() {
 		log.Printf("👤 Peer odaya katıldı, Offer gönderiliyor...")
-		
+
 		// Offer oluştur (Async - ICE gathering bekleme)
 		offer, offerErr := webrtcPeer.CreateOfferAsync()
 		if offerErr != nil {
 			log.Printf("❌ Offer oluşturulamadı: %v", offerErr)
 			return
 		}
-		
+
 		// Offer gönder
 		if err := signalingClient.SendOffer(offer.SDP); err != nil {
 			log.Printf("❌ Offer gönderilemedi: %v", err)
@@ -558,7 +555,7 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 		}
 		log.Printf("📤 Offer gönderildi")
 	}
-	
+
 	// WebRTC callback'leri - Candidate bulunduğunda gönder
 	webrtcPeer.SetOnICECandidate(func(c *webrtc.ICECandidate) {
 		if c != nil {
@@ -566,7 +563,7 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 			signalingClient.SendCandidate(string(bytes))
 		}
 	})
-	
+
 	// Register pending invitation (Room ID ile)
 	wanTransport.GetWebRTCConnectionManager().RegisterInvitation(roomID, webrtcPeer)
 
@@ -587,11 +584,12 @@ func (h *PeerHandler) CreateInvitation(ctx context.Context, req *pb.CreateInvita
 		},
 	}, nil
 }
+
 // AddWANPeer manuel olarak WAN peer ekler (invitation code olmadan)
 func (h *PeerHandler) AddWANPeer(ctx context.Context, req *pb.AddWANPeerRequest) (*pb.Status, error) {
-	log.Printf("🔵 AddWANPeer FONKSİYONU ÇAĞRILDI - PeerID: %s, PeerName: %s, PublicIP: %s", 
+	log.Printf("🔵 AddWANPeer FONKSİYONU ÇAĞRILDI - PeerID: %s, PeerName: %s, PublicIP: %s",
 		req.PeerId[:8], req.PeerName, req.PublicIp)
-	
+
 	if req.PeerId == "" {
 		return &pb.Status{
 			Success: false,
@@ -652,9 +650,9 @@ func (h *PeerHandler) AddWANPeer(ctx context.Context, req *pb.AddWANPeerRequest)
 
 // ExchangeSDP SDP offer/answer exchange yapar (WAN WebRTC için)
 func (h *PeerHandler) ExchangeSDP(ctx context.Context, req *pb.ExchangeSDPRequest) (*pb.ExchangeSDPResponse, error) {
-	log.Printf("📥 ExchangeSDP çağrıldı - PeerID: %s, SDPType: %s, SDP uzunluk: %d", 
+	log.Printf("📥 ExchangeSDP çağrıldı - PeerID: %s, SDPType: %s, SDP uzunluk: %d",
 		req.PeerId[:8], req.SdpType, len(req.Sdp))
-	
+
 	if req.PeerId == "" {
 		return &pb.ExchangeSDPResponse{
 			Status: &pb.Status{
@@ -791,11 +789,11 @@ func (h *PeerHandler) ExchangeSDP(ctx context.Context, req *pb.ExchangeSDPReques
 		if deviceName == "" {
 			deviceName = req.PeerId[:8] + "..."
 		}
-		
+
 		// Pending connection oluştur (UI'a bildir)
 		connMgr.AddPendingConnection(req.PeerId, deviceName, req.Sdp)
 		log.Printf("🔔 WAN bağlantı isteği oluşturuldu: %s (%s)", deviceName, req.PeerId[:8])
-		
+
 		// Hemen answer döndürme, pending connection olarak işaretle
 		sdpDesc := webrtc.SessionDescription{
 			Type: webrtc.SDPTypeOffer,
@@ -904,7 +902,7 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 	if signalingURL == "" {
 		signalingURL = "ws://localhost:8080/ws"
 	}
-	
+
 	// Signaling client başlat ve odaya katıl
 	signalingClient, err := wanTransport.StartSignaling(signalingURL, invitationCode)
 	if err != nil {
@@ -922,7 +920,7 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 		cfg.Network.TURNServers,
 		cfg.Network.WebRTCPortRange,
 	)
-	
+
 	// WebRTC peer oluştur
 	webrtcPeer, peerErr := wan.NewWebRTCPeer(webrtcConfig)
 	if peerErr != nil {
@@ -936,21 +934,21 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 	// Signaling callback'leri
 	signalingClient.OnOffer = func(sdp string) {
 		log.Printf("📩 Offer alındı, answer oluşturuluyor...")
-		
+
 		// Remote description set et
 		desc := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: sdp}
 		if err := webrtcPeer.SetRemoteDescription(desc); err != nil {
 			log.Printf("❌ Remote description hatası: %v", err)
 			return
 		}
-		
+
 		// Answer oluştur
 		answer, err := webrtcPeer.CreateAnswer(ctx)
 		if err != nil {
 			log.Printf("❌ Answer oluşturma hatası: %v", err)
 			return
 		}
-		
+
 		// Answer gönder
 		if err := signalingClient.SendAnswer(answer.SDP); err != nil {
 			log.Printf("❌ Answer gönderme hatası: %v", err)
@@ -958,12 +956,12 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 		}
 		log.Printf("📤 Answer gönderildi")
 	}
-	
+
 	signalingClient.OnCandidate = func(candidate string) {
 		log.Printf("📩 Candidate alındı, ekleniyor...")
 		webrtcPeer.AddICECandidateFromJSON(candidate)
 	}
-	
+
 	// WebRTC callback'leri - Candidate bulunduğunda gönder
 	webrtcPeer.SetOnICECandidate(func(c *webrtc.ICECandidate) {
 		if c != nil {
@@ -971,32 +969,32 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 			signalingClient.SendCandidate(string(bytes))
 		}
 	})
-	
+
 	// Data Channel handler (Joiner tarafı için)
 	webrtcPeer.SetOnDataChannel(func(dc *webrtc.DataChannel) {
 		log.Printf("✅ Data Channel açıldı (Joiner): %s", dc.Label())
-		
+
 		// Geçici olarak invitation code'u device ID olarak kullan
 		// Handshake sırasında gerçek ID ile güncellenecek
 		tempDeviceID := invitationCode
-		
+
 		// WebRTC connection oluştur
 		conn := wan.NewWebRTCConnection(tempDeviceID, "Unknown Peer", h.container.GetDeviceName(), webrtcPeer, dc)
-		
+
 		// Connection manager'a kaydet
 		wanTransport.GetWebRTCConnectionManager().RegisterConnection(tempDeviceID, conn)
-		
+
 		// Handshake başlat (Joiner olarak biz de kimliğimizi gönderelim)
 		go func() {
 			// Biraz bekle ki karşı taraf hazır olsun
 			time.Sleep(500 * time.Millisecond)
-			
+
 			deviceID, err := h.container.GetDeviceID()
 			if err != nil {
 				log.Printf("❌ Device ID alınamadı: %v", err)
 				return
 			}
-			
+
 			deviceName := h.container.GetDeviceName()
 
 			reqData, err := conn.GetProtocol().EncodeConnectionRequest(
@@ -1012,7 +1010,7 @@ func (h *PeerHandler) AddPeerByInvitation(ctx context.Context, req *pb.AddPeerBy
 			}
 		}()
 	})
-	
+
 	// Invitation'ı kaydet (Referans tutmak için)
 	wanTransport.GetWebRTCConnectionManager().RegisterInvitation(invitationCode, webrtcPeer)
 

@@ -37,15 +37,15 @@ func (f *File) Validate() error {
 	if f.FolderID == "" {
 		return ErrInvalidFolderID
 	}
-	
+
 	if f.RelativePath == "" {
 		return ErrInvalidPath
 	}
-	
+
 	if f.Size < 0 {
 		return ErrInvalidFileSize
 	}
-	
+
 	return nil
 }
 
@@ -66,7 +66,3 @@ func (f *File) MarkAsDeleted() {
 func (f *File) IsModified(modTime time.Time, size int64) bool {
 	return !f.ModTime.Equal(modTime) || f.Size != size
 }
-
-
-
-

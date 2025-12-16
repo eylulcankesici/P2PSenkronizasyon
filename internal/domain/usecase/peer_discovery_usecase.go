@@ -14,20 +14,19 @@ type PeerDiscoveryUseCase interface {
 	StartDiscovery(ctx context.Context) error
 	StopDiscovery() error
 	GetDiscoveredPeers(ctx context.Context) ([]*transport.DiscoveredPeer, error)
-	
+
 	// Connection Management
 	ConnectToPeer(ctx context.Context, peerID string) error
 	DisconnectFromPeer(ctx context.Context, peerID string) error
 	GetConnectedPeers(ctx context.Context) ([]*entity.Peer, error)
-	
+
 	// Peer Management
 	TrustPeer(ctx context.Context, peerID string) error
 	UntrustPeer(ctx context.Context, peerID string) error
 	RemovePeer(ctx context.Context, peerID string) error
-	
+
 	// Info
 	GetPeerInfo(ctx context.Context, peerID string) (*entity.Peer, error)
 	IsPeerConnected(ctx context.Context, peerID string) (bool, error)
 	GetTransportInfo(ctx context.Context) (transportType transport.TransportType, port int, deviceID string)
 }
-

@@ -17,11 +17,11 @@ const (
 type Peer struct {
 	DeviceID       string
 	Name           string
-	KnownAddresses []string   // Bilinen IP:Port adresleri
-	IsTrusted      bool       // Güvenilir peer mi?
-	LastSeen       time.Time  // Son görülme zamanı
+	KnownAddresses []string  // Bilinen IP:Port adresleri
+	IsTrusted      bool      // Güvenilir peer mi?
+	LastSeen       time.Time // Son görülme zamanı
 	Status         PeerStatus
-	PublicKey      string     // P2P kimlik doğrulama için
+	PublicKey      string // P2P kimlik doğrulama için
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
@@ -46,11 +46,11 @@ func (p *Peer) Validate() error {
 	if p.DeviceID == "" {
 		return ErrInvalidDeviceID
 	}
-	
+
 	if p.Name == "" {
 		return ErrInvalidPeerName
 	}
-	
+
 	return nil
 }
 
@@ -99,7 +99,3 @@ func (p *Peer) IsOnline() bool {
 func (p *Peer) IsRecentlySeen(threshold time.Duration) bool {
 	return time.Since(p.LastSeen) <= threshold
 }
-
-
-
-

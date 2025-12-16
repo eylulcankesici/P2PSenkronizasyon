@@ -25,7 +25,7 @@ func NewSyncHandler(cont *container.Container) *SyncHandler {
 // SyncFile dosya senkronize eder
 func (h *SyncHandler) SyncFile(ctx context.Context, req *pb.SyncFileRequest) (*pb.SyncFileResponse, error) {
 	log.Printf("🔄 Dosya senkronize ediliyor: %s -> %d peer", req.FileId, len(req.TargetPeerIds))
-	
+
 	if len(req.TargetPeerIds) == 0 {
 		return &pb.SyncFileResponse{
 			Status: &pb.Status{
@@ -35,7 +35,7 @@ func (h *SyncHandler) SyncFile(ctx context.Context, req *pb.SyncFileRequest) (*p
 			},
 		}, nil
 	}
-	
+
 	// Dosya bilgisini al
 	file, err := h.container.FileRepository().GetByID(ctx, req.FileId)
 	if err != nil {
@@ -47,12 +47,12 @@ func (h *SyncHandler) SyncFile(ctx context.Context, req *pb.SyncFileRequest) (*p
 			},
 		}, nil
 	}
-	
+
 	// Dosyanın chunk'ları var mı kontrol et
 	fileChunks, err := h.container.ChunkRepository().GetFileChunks(ctx, req.FileId)
 	if err != nil || len(fileChunks) == 0 {
 		log.Printf("  📦 Dosya henüz chunk'lanmamış, chunk'lama başlatılıyor: %s", file.RelativePath)
-		
+
 		// Folder bilgisini al (dosya path'i için)
 		folder, err := h.container.FolderRepository().GetByID(ctx, file.FolderID)
 		if err != nil {
@@ -64,10 +64,10 @@ func (h *SyncHandler) SyncFile(ctx context.Context, req *pb.SyncFileRequest) (*p
 				},
 			}, nil
 		}
-		
+
 		// Dosya path'ini oluştur
 		filePath := filepath.Join(folder.LocalPath, file.RelativePath)
-		
+
 		// Dosyayı chunk'la
 		_, _, err = h.container.ChunkingUseCase().ChunkAndStoreFile(ctx, req.FileId, filePath)
 		if err != nil {
@@ -79,23 +79,23 @@ func (h *SyncHandler) SyncFile(ctx context.Context, req *pb.SyncFileRequest) (*p
 				},
 			}, nil
 		}
-		
+
 		log.Printf("  ✅ Dosya chunk'landı: %d chunk", len(fileChunks))
 	}
-	
+
 	// Peer başına sync mode bilgisini map'e çevir (hızlı erişim için)
 	peerSyncModes := make(map[string]*pb.PeerSyncMode)
 	for _, psm := range req.PeerSyncModes {
 		peerSyncModes[psm.PeerId] = psm
 	}
-	
+
 	// Her peer için senkronizasyon başlat
 	successCount := 0
 	var lastError error
-	
+
 	for _, peerID := range req.TargetPeerIds {
 		log.Printf("  📤 Peer'a gönderiliyor: %s", peerID[:8])
-		
+
 		// Peer için sync mode'ları al (varsayılan: BIDIRECTIONAL)
 		senderMode := pb.SyncMode_SYNC_MODE_BIDIRECTIONAL
 		receiverMode := pb.SyncMode_SYNC_MODE_BIDIRECTIONAL
@@ -104,7 +104,7 @@ func (h *SyncHandler) SyncFile(ctx context.Context, req *pb.SyncFileRequest) (*p
 			receiverMode = psm.ReceiverMode
 			log.Printf("  📋 Sync mode'lar: sender=%v, receiver=%v", senderMode, receiverMode)
 		}
-		
+
 		// Transfer durumunu takip ederek senkronize et
 		err := h.container.SyncFileWithPeerTracked(ctx, peerID, req.FileId, senderMode, receiverMode)
 		if err != nil {
@@ -112,11 +112,11 @@ func (h *SyncHandler) SyncFile(ctx context.Context, req *pb.SyncFileRequest) (*p
 			lastError = err
 			continue
 		}
-		
+
 		successCount++
 		log.Printf("  ✅ Peer'a gönderildi: %s", peerID[:8])
 	}
-	
+
 	if successCount == 0 {
 		return &pb.SyncFileResponse{
 			Status: &pb.Status{
@@ -126,7 +126,7 @@ func (h *SyncHandler) SyncFile(ctx context.Context, req *pb.SyncFileRequest) (*p
 			},
 		}, nil
 	}
-	
+
 	return &pb.SyncFileResponse{
 		Status: &pb.Status{
 			Success: true,
@@ -144,7 +144,7 @@ func (h *SyncHandler) SyncFile(ctx context.Context, req *pb.SyncFileRequest) (*p
 // SyncFolder klasörün tüm dosyalarını senkronize eder
 func (h *SyncHandler) SyncFolder(ctx context.Context, req *pb.SyncFolderRequest) (*pb.SyncFolderResponse, error) {
 	log.Printf("🔄 Klasör senkronize ediliyor: %s -> %d peer", req.FolderId, len(req.TargetPeerIds))
-	
+
 	if len(req.TargetPeerIds) == 0 {
 		return &pb.SyncFolderResponse{
 			Status: &pb.Status{
@@ -154,7 +154,7 @@ func (h *SyncHandler) SyncFolder(ctx context.Context, req *pb.SyncFolderRequest)
 			},
 		}, nil
 	}
-	
+
 	// Folder bilgisini al
 	folder, err := h.container.FolderRepository().GetByID(ctx, req.FolderId)
 	if err != nil {
@@ -166,7 +166,7 @@ func (h *SyncHandler) SyncFolder(ctx context.Context, req *pb.SyncFolderRequest)
 			},
 		}, nil
 	}
-	
+
 	// Klasördeki tüm dosyaları al
 	files, err := h.container.FileRepository().GetByFolderID(ctx, req.FolderId)
 	if err != nil {
@@ -178,9 +178,9 @@ func (h *SyncHandler) SyncFolder(ctx context.Context, req *pb.SyncFolderRequest)
 			},
 		}, nil
 	}
-	
+
 	log.Printf("  📁 %d dosya bulundu", len(files))
-	
+
 	if len(files) == 0 {
 		return &pb.SyncFolderResponse{
 			Status: &pb.Status{
@@ -192,22 +192,22 @@ func (h *SyncHandler) SyncFolder(ctx context.Context, req *pb.SyncFolderRequest)
 			SyncedFiles: 0,
 		}, nil
 	}
-	
+
 	// Her dosyayı her peer'a gönder
 	totalFiles := len(files)
 	syncedFiles := 0
 	var totalBytes int64
 	var lastError error
-	
+
 	for _, file := range files {
 		// Dosyanın chunk'ları var mı kontrol et
 		fileChunks, err := h.container.ChunkRepository().GetFileChunks(ctx, file.ID)
 		if err != nil || len(fileChunks) == 0 {
 			log.Printf("  📦 Dosya chunk'lanıyor: %s", file.RelativePath)
-			
+
 			// Dosya path'ini oluştur
 			filePath := filepath.Join(folder.LocalPath, file.RelativePath)
-			
+
 			// Dosyayı chunk'la
 			_, _, err = h.container.ChunkingUseCase().ChunkAndStoreFile(ctx, file.ID, filePath)
 			if err != nil {
@@ -215,18 +215,18 @@ func (h *SyncHandler) SyncFolder(ctx context.Context, req *pb.SyncFolderRequest)
 				continue
 			}
 		}
-		
+
 		// Peer başına sync mode bilgisini map'e çevir (hızlı erişim için)
 		peerSyncModes := make(map[string]*pb.PeerSyncMode)
 		for _, psm := range req.PeerSyncModes {
 			peerSyncModes[psm.PeerId] = psm
 		}
-		
+
 		// Her peer'a gönder
 		fileSynced := false
 		for _, peerID := range req.TargetPeerIds {
 			log.Printf("  📤 Dosya gönderiliyor: %s -> %s", file.RelativePath, peerID[:8])
-			
+
 			// Peer için sync mode'ları al (varsayılan: BIDIRECTIONAL)
 			senderMode := pb.SyncMode_SYNC_MODE_BIDIRECTIONAL
 			receiverMode := pb.SyncMode_SYNC_MODE_BIDIRECTIONAL
@@ -234,7 +234,7 @@ func (h *SyncHandler) SyncFolder(ctx context.Context, req *pb.SyncFolderRequest)
 				senderMode = psm.SenderMode
 				receiverMode = psm.ReceiverMode
 			}
-			
+
 			// Transfer durumunu takip ederek senkronize et
 			err := h.container.SyncFileWithPeerTracked(ctx, peerID, file.ID, senderMode, receiverMode)
 			if err != nil {
@@ -245,13 +245,13 @@ func (h *SyncHandler) SyncFolder(ctx context.Context, req *pb.SyncFolderRequest)
 				totalBytes += file.Size
 			}
 		}
-		
+
 		if fileSynced {
 			syncedFiles++
 			log.Printf("  ✅ Dosya senkronize edildi: %s", file.RelativePath)
 		}
 	}
-	
+
 	// Folder'ın sync mode'unu güncelle (eğer henüz belirlenmemişse veya güncelleme gerekliyse)
 	if len(req.PeerSyncModes) > 0 {
 		// Tüm peer'lar için aynı sender mode mu kontrol et
@@ -263,7 +263,7 @@ func (h *SyncHandler) SyncFolder(ctx context.Context, req *pb.SyncFolderRequest)
 				break
 			}
 		}
-		
+
 		var newSyncMode entity.SyncMode
 		if allSameMode {
 			// Tüm peer'lar için aynı sender mode → folder'ın sync mode'unu bu mode'a güncelle
@@ -272,7 +272,7 @@ func (h *SyncHandler) SyncFolder(ctx context.Context, req *pb.SyncFolderRequest)
 			// Farklı sender mode'lar varsa → BIDIRECTIONAL kullan (en güvenli seçenek)
 			newSyncMode = entity.SyncModeBidirectional
 		}
-		
+
 		// Folder'ın sync mode'unu güncelle (eğer değiştiyse veya henüz belirlenmemişse)
 		if folder.SyncMode == entity.SyncModeUnspecified || folder.SyncMode != newSyncMode {
 			folder.SyncMode = newSyncMode
@@ -283,7 +283,7 @@ func (h *SyncHandler) SyncFolder(ctx context.Context, req *pb.SyncFolderRequest)
 			}
 		}
 	}
-	
+
 	var statusMessage string
 	if syncedFiles == totalFiles {
 		statusMessage = fmt.Sprintf("Tüm dosyalar senkronize edildi (%d/%d)", syncedFiles, totalFiles)
@@ -293,7 +293,7 @@ func (h *SyncHandler) SyncFolder(ctx context.Context, req *pb.SyncFolderRequest)
 			statusMessage += fmt.Sprintf(": %v", lastError)
 		}
 	}
-	
+
 	return &pb.SyncFolderResponse{
 		Status: &pb.Status{
 			Success: syncedFiles > 0,

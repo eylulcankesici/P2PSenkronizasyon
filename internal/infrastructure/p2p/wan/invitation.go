@@ -21,11 +21,11 @@ type InvitationData struct {
 	DeviceID      string         `json:"device_id"`
 	DeviceName    string         `json:"device_name"`
 	PublicIP      string         `json:"public_ip"`
-	GRPCAddress   string         `json:"grpc_address"`   // gRPC server adresi (public IP:port) - opsiyonel, SDP exchange için gerekli değil
+	GRPCAddress   string         `json:"grpc_address"` // gRPC server adresi (public IP:port) - opsiyonel, SDP exchange için gerekli değil
 	NATType       string         `json:"nat_type"`
 	ICECandidates []ICECandidate `json:"ice_candidates,omitempty"`
 	SDPOffer      string         `json:"sdp_offer,omitempty"`  // SDP offer (opsiyonel)
-	SDPAnswer     string         `json:"sdp_answer,omitempty"`  // SDP answer (opsiyonel)
+	SDPAnswer     string         `json:"sdp_answer,omitempty"` // SDP answer (opsiyonel)
 	CreatedAt     time.Time      `json:"created_at"`
 	ExpiresAt     time.Time      `json:"expires_at"`
 	Version       string         `json:"version"`
@@ -41,7 +41,7 @@ type InvitationService struct {
 // Eğer nil ise ortak master key kullanılır (tüm cihazlar için aynı)
 func NewInvitationService(deviceID string, encryptionKey []byte) *InvitationService {
 	key := encryptionKey
-	
+
 	// Eğer key yoksa ortak master key kullan (tüm cihazlar için aynı)
 	// NOT: Production'da bu key config'den veya environment variable'dan alınmalı
 	if len(key) != 32 {
@@ -50,7 +50,7 @@ func NewInvitationService(deviceID string, encryptionKey []byte) *InvitationServ
 		hasher.Write([]byte("aether-invitation-master-key-v1"))
 		key = hasher.Sum(nil) // 32 bytes
 	}
-	
+
 	// Key hash'ini logla (Debugging için)
 	keyHash := sha256.Sum256(key)
 	log.Printf("🔑 InvitationService Key Hash: %x", keyHash[:8])
@@ -65,7 +65,7 @@ func (s *InvitationService) GenerateInvitationCode(
 	deviceID, deviceName, publicIP, grpcAddress, natType string,
 	iceCandidates []ICECandidate,
 	expiryDuration time.Duration,
-	sdpOffer string,  // SDP offer (opsiyonel)
+	sdpOffer string, // SDP offer (opsiyonel)
 	sdpAnswer string, // SDP answer (opsiyonel)
 ) (string, error) {
 	// 1. Invitation data oluştur
@@ -139,7 +139,7 @@ func (s *InvitationService) ParseInvitationCode(code string) (*InvitationData, e
 	code = strings.ReplaceAll(code, "\r", "")
 	code = strings.ReplaceAll(code, " ", "")
 	code = strings.ReplaceAll(code, "\t", "")
-	
+
 	// URL'den code parametresini çıkar (eğer tam URL ise)
 	if strings.Contains(code, "aether://invite?code=") {
 		// URL formatından code'u çıkar
@@ -155,7 +155,7 @@ func (s *InvitationService) ParseInvitationCode(code string) (*InvitationData, e
 			}
 		}
 	}
-	
+
 	// Debug: Code'un başını ve sonunu logla
 	start := code
 	if len(start) > 10 {
@@ -166,11 +166,11 @@ func (s *InvitationService) ParseInvitationCode(code string) (*InvitationData, e
 		end = end[len(end)-10:]
 	}
 	log.Printf("🔍 Parsed Code Start: %s... End: ...%s (Length: %d)", start, end, len(code))
-	
+
 	// 1. Base64 decode (Robust: Farklı encoding'leri dene)
 	var encrypted []byte
 	var err error
-	
+
 	// Denenecek decoder'lar (sırayla)
 	// RawURLEncoding: Padding'siz URL-safe (tercih edilen)
 	// URLEncoding: Padding'li URL-safe
@@ -182,26 +182,26 @@ func (s *InvitationService) ParseInvitationCode(code string) (*InvitationData, e
 		base64.RawStdEncoding,
 		base64.StdEncoding,
 	}
-	
+
 	for _, enc := range encodings {
 		encrypted, err = enc.DecodeString(code)
 		if err == nil {
 			break
 		}
 	}
-	
+
 	if err != nil {
 		preview := code
 		if len(preview) > 50 {
 			preview = preview[:50] + "..."
 		}
-		
+
 		// Özel hata mesajları
 		if len(code)%4 == 1 {
 			return nil, fmt.Errorf("invitation code eksik/hatalı (uzunluk: %d, mod 4 = 1). Kopyalama sırasında karakterler eksik kalmış olabilir. Lütfen tüm kodu kopyaladığınızdan emin olun.", len(code))
 		}
-		
-		return nil, fmt.Errorf("invitation code decode hatası (uzunluk: %d, önizleme: %s): %w", 
+
+		return nil, fmt.Errorf("invitation code decode hatası (uzunluk: %d, önizleme: %s): %w",
 			len(code), preview, err)
 	}
 
@@ -304,4 +304,3 @@ func (s *InvitationService) decrypt(ciphertext []byte) ([]byte, error) {
 func (s *InvitationService) GenerateInvitationLink(code string) string {
 	return fmt.Sprintf("aether://invite?code=%s", code)
 }
-

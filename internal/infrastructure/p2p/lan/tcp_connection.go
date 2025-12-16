@@ -24,19 +24,19 @@ type TCPConnection struct {
 	conn          net.Conn
 	protocol      *Protocol
 	transportType transport.TransportType
-	
+
 	connectedAt time.Time
 	latency     time.Duration
-	
+
 	sendMu sync.Mutex
 	recvMu sync.Mutex
-	
+
 	ctx    context.Context
 	cancel context.CancelFunc
-	
+
 	// Chunk handler
 	chunkHandler func(chunkHash string) ([]byte, error)
-	
+
 	// Manager referansı (connection request işlemek için)
 	manager *TCPConnectionManager
 }
@@ -59,7 +59,7 @@ func NewTCPConnectionWithManager(peerID, address string, conn net.Conn, manager 
 // autoStartMessageLoop false ise messageLoop başlatılmaz, manuel başlatılmalı (client-side)
 func NewTCPConnectionWithManagerAndAutoStart(peerID, address string, conn net.Conn, manager *TCPConnectionManager, autoStartMessageLoop bool) *TCPConnection {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	tcpConn := &TCPConnection{
 		peerID:        peerID,
 		address:       address,
@@ -71,7 +71,7 @@ func NewTCPConnectionWithManagerAndAutoStart(peerID, address string, conn net.Co
 		cancel:        cancel,
 		manager:       manager,
 	}
-	
+
 	// Server-side için otomatik başlat (manager var VE autoStartMessageLoop true)
 	// Client-side için manuel başlatılacak (autoStartMessageLoop false)
 	if autoStartMessageLoop && manager != nil {
@@ -82,7 +82,7 @@ func NewTCPConnectionWithManagerAndAutoStart(peerID, address string, conn net.Co
 			tcpConn.messageLoop()
 		}()
 	}
-	
+
 	return tcpConn
 }
 
@@ -112,30 +112,30 @@ func (c *TCPConnection) SendChunkWithFileInfo(ctx context.Context, chunkHash str
 		return ctx.Err()
 	default:
 	}
-	
+
 	c.sendMu.Lock()
 	defer c.sendMu.Unlock()
-	
+
 	// Context iptal kontrolü (lock aldıktan sonra tekrar kontrol)
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
 	default:
 	}
-	
+
 	// Chunk response mesajı encode et (folder adı ve sync mode ile)
 	frame, err := c.protocol.EncodeChunkResponseWithFileInfo(chunkHash, data, fileID, chunkIndex, totalChunks, fileName, folderName, senderSyncMode, receiverSyncMode)
 	if err != nil {
 		return fmt.Errorf("chunk encode hatası: %w", err)
 	}
-	
+
 	// Context iptal kontrolü (frame göndermeden önce)
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
 	default:
 	}
-	
+
 	// Frame boyutunu gönder (4 bytes)
 	frameLen := uint32(len(frame))
 	if err := c.writeUint32(frameLen); err != nil {
@@ -145,10 +145,10 @@ func (c *TCPConnection) SendChunkWithFileInfo(ctx context.Context, chunkHash str
 		}
 		return fmt.Errorf("frame length yazılamadı: %w", err)
 	}
-	
+
 	// ⚠️ FRAME LENGTH YAZILDIKTAN SONRA CONTEXT KONTROLÜ YAPMA!
 	// Frame'i mutlaka tamamla, yoksa TCP stream bozulur (yarım frame kalır)
-	
+
 	// Frame'i gönder (context kontrolü YOK - frame tamamlanmalı!)
 	if _, err := c.conn.Write(frame); err != nil {
 		// Context iptal edilmişse özel hata döndür
@@ -157,14 +157,14 @@ func (c *TCPConnection) SendChunkWithFileInfo(ctx context.Context, chunkHash str
 		}
 		return fmt.Errorf("frame yazılamadı: %w", err)
 	}
-	
+
 	// ✅ Frame tamamlandı, şimdi context kontrolü güvenli
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
 	default:
 	}
-	
+
 	return nil
 }
 
@@ -176,16 +176,16 @@ func (c *TCPConnection) SendFileDelete(ctx context.Context, fileID string) error
 		return ctx.Err()
 	default:
 	}
-	
+
 	c.sendMu.Lock()
 	defer c.sendMu.Unlock()
-	
+
 	// FileDelete mesajı encode et
 	frame, err := c.protocol.EncodeFileDelete(fileID)
 	if err != nil {
 		return fmt.Errorf("file delete encode hatası: %w", err)
 	}
-	
+
 	// Frame boyutunu gönder (4 bytes)
 	frameLen := uint32(len(frame))
 	if err := c.writeUint32(frameLen); err != nil {
@@ -194,7 +194,7 @@ func (c *TCPConnection) SendFileDelete(ctx context.Context, fileID string) error
 		}
 		return fmt.Errorf("frame length yazılamadı: %w", err)
 	}
-	
+
 	// Frame'i gönder
 	if _, err := c.conn.Write(frame); err != nil {
 		if ctx.Err() != nil {
@@ -202,58 +202,58 @@ func (c *TCPConnection) SendFileDelete(ctx context.Context, fileID string) error
 		}
 		return fmt.Errorf("frame yazılamadı: %w", err)
 	}
-	
+
 	return nil
 }
 
 // RequestChunk chunk talep eder
 func (c *TCPConnection) RequestChunk(ctx context.Context, chunkHash string) ([]byte, error) {
 	c.sendMu.Lock()
-	
+
 	// Chunk request mesajı encode et
 	frame, err := c.protocol.EncodeChunkRequest(chunkHash)
 	if err != nil {
 		c.sendMu.Unlock()
 		return nil, fmt.Errorf("request encode hatası: %w", err)
 	}
-	
+
 	// Frame boyutunu gönder
 	frameLen := uint32(len(frame))
 	if err := c.writeUint32(frameLen); err != nil {
 		c.sendMu.Unlock()
 		return nil, fmt.Errorf("frame length yazılamadı: %w", err)
 	}
-	
+
 	// Frame'i gönder
 	if _, err := c.conn.Write(frame); err != nil {
 		c.sendMu.Unlock()
 		return nil, fmt.Errorf("frame yazılamadı: %w", err)
 	}
-	
+
 	c.sendMu.Unlock()
-	
+
 	// Response bekle
 	c.recvMu.Lock()
 	defer c.recvMu.Unlock()
-	
+
 	// Frame boyutunu oku
 	respLen, err := c.readUint32()
 	if err != nil {
 		return nil, fmt.Errorf("response length okunamadı: %w", err)
 	}
-	
+
 	// Frame'i oku
 	respFrame := make([]byte, respLen)
 	if _, err := io.ReadFull(c.conn, respFrame); err != nil {
 		return nil, fmt.Errorf("response frame okunamadı: %w", err)
 	}
-	
+
 	// Decode et
 	_, chunkData, err := c.protocol.DecodeChunkResponse(respFrame)
 	if err != nil {
 		return nil, fmt.Errorf("response decode hatası: %w", err)
 	}
-	
+
 	return chunkData, nil
 }
 
@@ -261,24 +261,24 @@ func (c *TCPConnection) RequestChunk(ctx context.Context, chunkHash string) ([]b
 func (c *TCPConnection) SendMetadata(ctx context.Context, metadata *transport.FileMetadata) error {
 	c.sendMu.Lock()
 	defer c.sendMu.Unlock()
-	
+
 	// Metadata mesajı encode et
 	frame, err := c.protocol.EncodeMetadata(metadata)
 	if err != nil {
 		return fmt.Errorf("metadata encode hatası: %w", err)
 	}
-	
+
 	// Frame boyutunu gönder
 	frameLen := uint32(len(frame))
 	if err := c.writeUint32(frameLen); err != nil {
 		return fmt.Errorf("frame length yazılamadı: %w", err)
 	}
-	
+
 	// Frame'i gönder
 	if _, err := c.conn.Write(frame); err != nil {
 		return fmt.Errorf("frame yazılamadı: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -286,24 +286,24 @@ func (c *TCPConnection) SendMetadata(ctx context.Context, metadata *transport.Fi
 func (c *TCPConnection) SendTransferCancel(ctx context.Context, fileID, reason string) error {
 	c.sendMu.Lock()
 	defer c.sendMu.Unlock()
-	
+
 	// Transfer cancel mesajı encode et
 	frame, err := c.protocol.EncodeTransferCancel(fileID, reason)
 	if err != nil {
 		return fmt.Errorf("transfer cancel encode hatası: %w", err)
 	}
-	
+
 	// Frame boyutunu gönder (4 bytes)
 	frameLen := uint32(len(frame))
 	if err := c.writeUint32(frameLen); err != nil {
 		return fmt.Errorf("frame length yazılamadı: %w", err)
 	}
-	
+
 	// Frame'i gönder
 	if _, err := c.conn.Write(frame); err != nil {
 		return fmt.Errorf("frame yazılamadı: %w", err)
 	}
-	
+
 	log.Printf("  🛑 Transfer iptal bildirimi gönderildi: %s (reason: %s)", fileID[:8], reason)
 	return nil
 }
@@ -317,57 +317,57 @@ func (c *TCPConnection) RequestMetadata(ctx context.Context, fileID string) (*tr
 // Ping ping gönderir ve latency ölçer
 func (c *TCPConnection) Ping(ctx context.Context) (time.Duration, error) {
 	start := time.Now()
-	
+
 	c.sendMu.Lock()
-	
+
 	// Ping mesajı encode et
 	frame, err := c.protocol.EncodePing(c.peerID)
 	if err != nil {
 		c.sendMu.Unlock()
 		return 0, fmt.Errorf("ping encode hatası: %w", err)
 	}
-	
+
 	// Frame boyutunu gönder
 	frameLen := uint32(len(frame))
 	if err := c.writeUint32(frameLen); err != nil {
 		c.sendMu.Unlock()
 		return 0, fmt.Errorf("frame length yazılamadı: %w", err)
 	}
-	
+
 	// Frame'i gönder
 	if _, err := c.conn.Write(frame); err != nil {
 		c.sendMu.Unlock()
 		return 0, fmt.Errorf("frame yazılamadı: %w", err)
 	}
-	
+
 	c.sendMu.Unlock()
-	
+
 	// Pong bekle
 	c.recvMu.Lock()
 	defer c.recvMu.Unlock()
-	
+
 	// Frame boyutunu oku
 	respLen, err := c.readUint32()
 	if err != nil {
 		return 0, fmt.Errorf("pong length okunamadı: %w", err)
 	}
-	
+
 	// Frame'i oku
 	respFrame := make([]byte, respLen)
 	if _, err := io.ReadFull(c.conn, respFrame); err != nil {
 		return 0, fmt.Errorf("pong frame okunamadı: %w", err)
 	}
-	
+
 	latency := time.Since(start)
 	c.latency = latency
-	
+
 	return latency, nil
 }
 
 // messageLoop gelen mesajları işler
 func (c *TCPConnection) messageLoop() {
 	log.Printf("🔄 Message loop başladı (peer: %s)", c.peerID[:8])
-	
+
 	for {
 		select {
 		case <-c.ctx.Done():
@@ -393,11 +393,11 @@ func (c *TCPConnection) messageLoop() {
 				}
 				return
 			}
-			
-		// Log kapatıldı - spam önleme (chunk mesajları için çok fazla log oluşuyor)
-		// Sadece gerekli durumlarda (hata vs.) log gösterilecek
-		
-		// Frame'i oku
+
+			// Log kapatıldı - spam önleme (chunk mesajları için çok fazla log oluşuyor)
+			// Sadece gerekli durumlarda (hata vs.) log gösterilecek
+
+			// Frame'i oku
 			frame := make([]byte, frameLen)
 			if _, err := io.ReadFull(c.conn, frame); err != nil {
 				// EOF veya bağlantı kapatıldığında normal bir durum
@@ -412,7 +412,7 @@ func (c *TCPConnection) messageLoop() {
 				}
 				return
 			}
-			
+
 			// Decode et
 			messageType, payload, err := c.protocol.DecodeFrame(frame)
 			if err != nil {
@@ -425,16 +425,16 @@ func (c *TCPConnection) messageLoop() {
 				log.Printf("   Frame (ilk %d byte): %x", debugLen, frame[:debugLen])
 				continue
 			}
-			
-		// Sadece chunk olmayan mesajlar için log göster (spam önleme)
-		if messageType != MessageTypeChunkResponse && messageType != MessageTypeChunkRequest {
-			log.Printf("✅ Frame decode başarılı: type=0x%04x, payload=%d bytes (peer: %s)", messageType, len(payload), c.peerID[:8])
-		}
-		
-		// Mesaj tipine göre işle
-		if err := c.handleMessage(messageType, payload); err != nil {
-			log.Printf("⚠️ Mesaj işleme hatası (%s): %v", c.peerID[:8], err)
-		}
+
+			// Sadece chunk olmayan mesajlar için log göster (spam önleme)
+			if messageType != MessageTypeChunkResponse && messageType != MessageTypeChunkRequest {
+				log.Printf("✅ Frame decode başarılı: type=0x%04x, payload=%d bytes (peer: %s)", messageType, len(payload), c.peerID[:8])
+			}
+
+			// Mesaj tipine göre işle
+			if err := c.handleMessage(messageType, payload); err != nil {
+				log.Printf("⚠️ Mesaj işleme hatası (%s): %v", c.peerID[:8], err)
+			}
 		}
 	}
 }
@@ -479,15 +479,15 @@ func (c *TCPConnection) handleChunkRequest(payload []byte) error {
 		return fmt.Errorf("chunk request decode hatası: %w", err)
 	}
 	chunkHash := req.ChunkHash
-	
+
 	log.Printf("📥 Chunk request alındı: %s", chunkHash[:8])
-	
+
 	// Chunk handler yoksa hata döndür
 	if c.chunkHandler == nil {
 		log.Printf("⚠️ Chunk handler tanımlı değil")
 		return fmt.Errorf("chunk handler tanımlı değil")
 	}
-	
+
 	// Chunk'ı al
 	chunkData, err := c.chunkHandler(chunkHash)
 	if err != nil {
@@ -495,28 +495,28 @@ func (c *TCPConnection) handleChunkRequest(payload []byte) error {
 		// Hata durumunda boş chunk gönder
 		chunkData = []byte{}
 	}
-	
+
 	// Response gönder
 	c.sendMu.Lock()
 	defer c.sendMu.Unlock()
-	
+
 	response, err := c.protocol.EncodeChunkResponse(chunkHash, chunkData)
 	if err != nil {
 		return fmt.Errorf("chunk response encode hatası: %w", err)
 	}
-	
+
 	// Frame boyutunu gönder
 	if err := c.writeUint32(uint32(len(response))); err != nil {
 		return fmt.Errorf("frame length yazılamadı: %w", err)
 	}
-	
+
 	// Frame'i gönder
 	if _, err := c.conn.Write(response); err != nil {
 		return fmt.Errorf("frame yazılamadı: %w", err)
 	}
-	
+
 	log.Printf("✅ Chunk response gönderildi: %s (%d bytes)", chunkHash[:8], len(chunkData))
-	
+
 	return nil
 }
 
@@ -527,30 +527,30 @@ func (c *TCPConnection) handleChunkResponse(payload []byte) error {
 	if err := proto.Unmarshal(payload, resp); err != nil {
 		return fmt.Errorf("chunk response decode hatası: %w", err)
 	}
-	
+
 	// Log azaltıldı - sadece her 50 chunk'ta bir log (spam önleme)
 	if resp.ChunkIndex%50 == 0 || resp.ChunkIndex == 0 || resp.ChunkIndex == resp.TotalChunks-1 {
-		log.Printf("📥 Chunk response alındı: %s (%d bytes), FileId: '%s', FileName: '%s', FolderName: '%s', ChunkIndex: %d, TotalChunks: %d", 
+		log.Printf("📥 Chunk response alındı: %s (%d bytes), FileId: '%s', FileName: '%s', FolderName: '%s', ChunkIndex: %d, TotalChunks: %d",
 			resp.ChunkHash[:8], len(resp.ChunkData), resp.FileId, resp.FileName, resp.FolderName, resp.ChunkIndex, resp.TotalChunks)
 	}
-	
+
 	// Eğer file_id varsa, push-based sync demektir
 	if resp.FileId != "" {
 		// Log azaltıldı - sadece her 50 chunk'ta bir log
 		if resp.ChunkIndex%50 == 0 || resp.ChunkIndex == 0 || resp.ChunkIndex == resp.TotalChunks-1 {
 			log.Printf("  📁 Dosya sync: %s, fileName: %s, folderName: %s, chunk %d/%d", resp.FileId[:8], resp.FileName, resp.FolderName, resp.ChunkIndex+1, resp.TotalChunks)
 		}
-		
+
 		// Manager varsa ve chunk received callback varsa çağır (folder name ve sync mode ile)
 		if c.manager != nil && c.manager.onChunkReceived != nil {
 			return c.manager.onChunkReceived(c.peerID, resp.FileId, resp.ChunkHash, resp.ChunkData, int(resp.ChunkIndex), int(resp.TotalChunks), resp.FileName, resp.FolderName, resp.SenderSyncMode, resp.ReceiverSyncMode)
 		}
-		
+
 		log.Printf("  ⚠️ Chunk received callback tanımlı değil, chunk kaydedilemiyor")
 	} else {
 		log.Printf("  ⚠️ FileId boş, push-based sync aktif değil")
 	}
-	
+
 	return nil
 }
 
@@ -561,12 +561,12 @@ func (c *TCPConnection) handleTransferCancel(payload []byte) error {
 	if err := proto.Unmarshal(payload, notif); err != nil {
 		return fmt.Errorf("transfer cancel unmarshal hatası: %w", err)
 	}
-	
+
 	fileID := notif.FileId
 	reason := notif.Reason
-	
+
 	log.Printf("🛑 Transfer iptal bildirimi alındı: file_id=%s, reason=%s (peer: %s)", fileID[:8], reason, c.peerID[:8])
-	
+
 	// Manager varsa ve onTransferCancel callback'i varsa, transfer'i iptal et
 	if c.manager != nil && c.manager.onTransferCancel != nil {
 		c.manager.onTransferCancel(c.peerID, fileID)
@@ -574,7 +574,7 @@ func (c *TCPConnection) handleTransferCancel(payload []byte) error {
 	} else {
 		log.Printf("  ⚠️ Transfer iptal callback'i tanımlı değil (manager: %v, callback: %v): %s", c.manager != nil, c.manager != nil && c.manager.onTransferCancel != nil, fileID[:8])
 	}
-	
+
 	return nil
 }
 
@@ -584,15 +584,15 @@ func (c *TCPConnection) handleFileDelete(payload []byte) error {
 	deleteMsg := struct {
 		FileID string `json:"file_id"`
 	}{}
-	
+
 	if err := json.Unmarshal(payload, &deleteMsg); err != nil {
 		return fmt.Errorf("file delete unmarshal hatası: %w", err)
 	}
-	
+
 	fileID := deleteMsg.FileID
-	
+
 	log.Printf("🗑️ Dosya silme bildirimi alındı: file_id=%s (peer: %s)", fileID[:8], c.peerID[:8])
-	
+
 	// Manager varsa ve onFileDelete callback'i varsa, dosyayı sil
 	if c.manager != nil && c.manager.onFileDelete != nil {
 		c.manager.onFileDelete(c.peerID, fileID)
@@ -600,7 +600,7 @@ func (c *TCPConnection) handleFileDelete(payload []byte) error {
 	} else {
 		log.Printf("  ⚠️ Dosya silme callback'i tanımlı değil: %s", fileID[:8])
 	}
-	
+
 	return nil
 }
 
@@ -611,28 +611,28 @@ func (c *TCPConnection) handlePing(payload []byte) error {
 	if err := proto.Unmarshal(payload, req); err != nil {
 		return fmt.Errorf("ping decode hatası: %w", err)
 	}
-	
+
 	log.Printf("🏓 Ping alındı, pong gönderiliyor...")
-	
+
 	// Pong gönder
 	c.sendMu.Lock()
 	defer c.sendMu.Unlock()
-	
+
 	response, err := c.protocol.EncodePong(c.peerID, 0)
 	if err != nil {
 		return fmt.Errorf("pong encode hatası: %w", err)
 	}
-	
+
 	// Frame boyutunu gönder
 	if err := c.writeUint32(uint32(len(response))); err != nil {
 		return fmt.Errorf("frame length yazılamadı: %w", err)
 	}
-	
+
 	// Frame'i gönder
 	if _, err := c.conn.Write(response); err != nil {
 		return fmt.Errorf("frame yazılamadı: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -646,7 +646,7 @@ func (c *TCPConnection) handleConnectionRequest(payload []byte) error {
 // handleConnectionRequestInManager connection request'i manager üzerinden işler
 func (m *TCPConnectionManager) handleConnectionRequestInManager(tcpConn *TCPConnection, deviceID, deviceName string) {
 	log.Printf("🔔 Bağlantı isteği alındı: %s (%s)", deviceName, deviceID[:8])
-	
+
 	// Pending connection oluştur
 	pending := &PendingConnection{
 		DeviceID:   deviceID,
@@ -655,17 +655,17 @@ func (m *TCPConnectionManager) handleConnectionRequestInManager(tcpConn *TCPConn
 		Timestamp:  time.Now(),
 		ResponseCh: make(chan bool, 1),
 	}
-	
+
 	// Pending listesine ekle
 	m.mu.Lock()
 	m.pendingConns[deviceID] = pending
 	m.mu.Unlock()
-	
+
 	// Callback çağır (UI'a bildir)
 	if m.onConnectionRequested != nil {
 		m.onConnectionRequested(deviceID, deviceName)
 	}
-	
+
 	// UI'dan yanıt bekle (30 saniye timeout)
 	go func() {
 		select {
@@ -673,7 +673,7 @@ func (m *TCPConnectionManager) handleConnectionRequestInManager(tcpConn *TCPConn
 			m.mu.Lock()
 			delete(m.pendingConns, deviceID)
 			m.mu.Unlock()
-			
+
 			if accepted {
 				// Accept gönder
 				tcpConn.sendMu.Lock()
@@ -683,14 +683,14 @@ func (m *TCPConnectionManager) handleConnectionRequestInManager(tcpConn *TCPConn
 					tcpConn.sendMu.Unlock()
 					return
 				}
-				
+
 				// Frame boyutunu gönder
 				if err := tcpConn.writeUint32(uint32(len(response))); err != nil {
 					log.Printf("⚠️ Frame length yazılamadı: %v", err)
 					tcpConn.sendMu.Unlock()
 					return
 				}
-				
+
 				// Frame'i gönder
 				if _, err := tcpConn.conn.Write(response); err != nil {
 					log.Printf("⚠️ Frame yazılamadı: %v", err)
@@ -698,22 +698,22 @@ func (m *TCPConnectionManager) handleConnectionRequestInManager(tcpConn *TCPConn
 					return
 				}
 				tcpConn.sendMu.Unlock()
-				
+
 				// Connection pool'a ekle
 				m.mu.Lock()
 				m.connections[deviceID] = tcpConn
 				m.mu.Unlock()
-				
+
 				// Chunk handler'ı bağla (varsa)
 				if m.chunkHandlerCallback != nil {
 					tcpConn.SetChunkHandler(m.chunkHandlerCallback)
 				}
-				
+
 				// Callback çağır
 				if m.onConnectionEstablished != nil {
 					m.onConnectionEstablished(tcpConn)
 				}
-				
+
 				log.Printf("✅ Bağlantı kabul edildi: %s", deviceName)
 			} else {
 				// Reject gönder
@@ -725,7 +725,7 @@ func (m *TCPConnectionManager) handleConnectionRequestInManager(tcpConn *TCPConn
 					tcpConn.Close()
 					return
 				}
-				
+
 				// Frame boyutunu gönder
 				if err := tcpConn.writeUint32(uint32(len(response))); err != nil {
 					log.Printf("⚠️ Frame length yazılamadı: %v", err)
@@ -733,7 +733,7 @@ func (m *TCPConnectionManager) handleConnectionRequestInManager(tcpConn *TCPConn
 					tcpConn.Close()
 					return
 				}
-				
+
 				// Frame'i gönder
 				if _, err := tcpConn.conn.Write(response); err != nil {
 					log.Printf("⚠️ Frame yazılamadı: %v", err)
@@ -742,7 +742,7 @@ func (m *TCPConnectionManager) handleConnectionRequestInManager(tcpConn *TCPConn
 					return
 				}
 				tcpConn.sendMu.Unlock()
-				
+
 				tcpConn.Close()
 				log.Printf("❌ Bağlantı reddedildi: %s", deviceName)
 			}
@@ -751,13 +751,13 @@ func (m *TCPConnectionManager) handleConnectionRequestInManager(tcpConn *TCPConn
 			m.mu.Lock()
 			delete(m.pendingConns, deviceID)
 			m.mu.Unlock()
-			
+
 			tcpConn.sendMu.Lock()
 			response, _ := tcpConn.protocol.EncodeConnectionReject("İstek zaman aşımına uğradı")
 			tcpConn.writeUint32(uint32(len(response)))
 			tcpConn.conn.Write(response)
 			tcpConn.sendMu.Unlock()
-			
+
 			tcpConn.Close()
 			log.Printf("⏱️ Bağlantı isteği zaman aşımına uğradı: %s", deviceName)
 		}
@@ -767,31 +767,31 @@ func (m *TCPConnectionManager) handleConnectionRequestInManager(tcpConn *TCPConn
 // SendConnectionRequest connection request gönderir (client-side)
 func (c *TCPConnection) SendConnectionRequest(deviceID, deviceName string) error {
 	log.Printf("📤 Connection request hazırlanıyor: %s (%s)", deviceName, deviceID[:8])
-	
+
 	c.sendMu.Lock()
 	defer c.sendMu.Unlock()
-	
+
 	request, err := c.protocol.EncodeConnectionRequest(deviceID, deviceName)
 	if err != nil {
 		return fmt.Errorf("connection request encode hatası: %w", err)
 	}
-	
+
 	log.Printf("📦 Connection request frame hazır: %d bytes", len(request))
-	
+
 	// Frame boyutunu gönder
 	if err := c.writeUint32(uint32(len(request))); err != nil {
 		return fmt.Errorf("frame length yazılamadı: %w", err)
 	}
-	
+
 	log.Printf("✅ Frame length yazıldı: %d", len(request))
-	
+
 	// Frame'i gönder
 	if n, err := c.conn.Write(request); err != nil {
 		return fmt.Errorf("frame yazılamadı: %w", err)
 	} else {
 		log.Printf("✅ Frame yazıldı: %d bytes", n)
 	}
-	
+
 	log.Printf("📤 Bağlantı isteği gönderildi: %s", deviceName)
 	return nil
 }
@@ -803,19 +803,19 @@ func (c *TCPConnection) WaitForConnectionResponse(timeout time.Duration) error {
 	if err != nil {
 		return fmt.Errorf("response length okunamadı: %w", err)
 	}
-	
+
 	// Frame'i oku
 	frame := make([]byte, frameLen)
 	if _, err := io.ReadFull(c.conn, frame); err != nil {
 		return fmt.Errorf("response frame okunamadı: %w", err)
 	}
-	
+
 	// Decode et
 	messageType, payload, err := c.protocol.DecodeFrame(frame)
 	if err != nil {
 		return fmt.Errorf("response decode hatası: %w", err)
 	}
-	
+
 	// Accept mesajı mı?
 	if messageType == MessageTypeConnectionAccept {
 		// Payload'u decode et
@@ -833,7 +833,7 @@ func (c *TCPConnection) WaitForConnectionResponse(timeout time.Duration) error {
 		log.Printf("✅ Bağlantı kabul edildi")
 		return nil
 	}
-	
+
 	// Reject mesajı mı?
 	if messageType == MessageTypeConnectionReject {
 		// Payload'u decode et
@@ -847,7 +847,7 @@ func (c *TCPConnection) WaitForConnectionResponse(timeout time.Duration) error {
 		}
 		return fmt.Errorf("bağlantı reddedildi: %s", resp.Message)
 	}
-	
+
 	return fmt.Errorf("beklenmeyen mesaj tipi: 0x%04x", messageType)
 }
 
@@ -900,7 +900,7 @@ func (c *TCPConnection) writeUint32(val uint32) error {
 	buf[1] = byte(val >> 16)
 	buf[2] = byte(val >> 8)
 	buf[3] = byte(val)
-	
+
 	_, err := c.conn.Write(buf)
 	return err
 }
@@ -911,7 +911,7 @@ func (c *TCPConnection) readUint32() (uint32, error) {
 	if _, err := io.ReadFull(c.conn, buf); err != nil {
 		return 0, err
 	}
-	
+
 	val := uint32(buf[0])<<24 | uint32(buf[1])<<16 | uint32(buf[2])<<8 | uint32(buf[3])
 	return val, nil
 }
@@ -932,14 +932,14 @@ type TCPConnectionManager struct {
 	port       int
 	deviceID   string
 	deviceName string
-	
-	connections     map[string]*TCPConnection
-	pendingConns    map[string]*PendingConnection
-	mu              sync.RWMutex
-	
+
+	connections  map[string]*TCPConnection
+	pendingConns map[string]*PendingConnection
+	mu           sync.RWMutex
+
 	ctx    context.Context
 	cancel context.CancelFunc
-	
+
 	// Callbacks
 	onConnectionEstablished func(transport.Connection)
 	onConnectionRequested   func(deviceID, deviceName string)
@@ -953,7 +953,7 @@ type TCPConnectionManager struct {
 // NewTCPConnectionManager yeni TCP connection manager oluşturur
 func NewTCPConnectionManager(port int, deviceID, deviceName string) *TCPConnectionManager {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	return &TCPConnectionManager{
 		port:         port,
 		deviceID:     deviceID,
@@ -971,31 +971,31 @@ func (m *TCPConnectionManager) Listen(ctx context.Context, port int) error {
 	if err != nil {
 		return fmt.Errorf("TCP listen hatası: %w", err)
 	}
-	
+
 	m.listener = listener
 	m.port = port
-	
+
 	log.Printf("✅ TCP listener başlatıldı: port %d", port)
-	
+
 	// Accept loop
 	go m.acceptLoop()
-	
+
 	return nil
 }
 
 // Connect peer'a TCP bağlantısı kurar
 func (m *TCPConnectionManager) Connect(ctx context.Context, address string, peerID string, deviceName string) (transport.Connection, error) {
 	log.Printf("🔌 TCP bağlantısı deneniyor: %s (peer: %s)", address, peerID[:8])
-	
+
 	// TCP dial
 	conn, err := net.DialTimeout("tcp", address, 5*time.Second)
 	if err != nil {
 		log.Printf("❌ TCP connect hatası: %v (address: %s)", err, address)
 		return nil, fmt.Errorf("TCP connect hatası: %w", err)
 	}
-	
+
 	log.Printf("✅ TCP bağlantısı kuruldu: %s", address)
-	
+
 	// Client handshake yap
 	log.Printf("🤝 Handshake başlatılıyor...")
 	peerHandshake, err := PerformClientHandshake(conn, m.deviceID, m.deviceName)
@@ -1004,20 +1004,20 @@ func (m *TCPConnectionManager) Connect(ctx context.Context, address string, peer
 		conn.Close()
 		return nil, fmt.Errorf("handshake başarısız: %w", err)
 	}
-	
+
 	log.Printf("✅ Handshake başarılı: %s (%s)", peerHandshake.DeviceName, peerHandshake.DeviceID[:8])
-	
+
 	// Handshake'den gelen peer ID ile parametredeki eşleşiyor mu?
 	if peerHandshake.DeviceID != peerID {
 		conn.Close()
 		return nil, fmt.Errorf("peer ID uyuşmazlığı: expected=%s, got=%s", peerID, peerHandshake.DeviceID)
 	}
-	
+
 	// TCPConnection oluştur (manager referansı ile - client-side connection da manager'a bağlı olmalı)
 	// Böylece bağlantı kapandığında handleConnectionLost çağrılabilir
 	// autoStartMessageLoop=false çünkü önce connection request gönderip response bekleyeceğiz
 	tcpConn := NewTCPConnectionWithManagerAndAutoStart(peerID, address, conn, m, false)
-	
+
 	// Connection request gönder (messageLoop başlamadan önce)
 	log.Printf("🔧 SendConnectionRequest çağrılıyor...")
 	if err := tcpConn.SendConnectionRequest(m.deviceID, m.deviceName); err != nil {
@@ -1026,23 +1026,23 @@ func (m *TCPConnectionManager) Connect(ctx context.Context, address string, peer
 		return nil, fmt.Errorf("connection request gönderilemedi: %w", err)
 	}
 	log.Printf("✅ SendConnectionRequest tamamlandı")
-	
+
 	// Connection response bekle (5 saniye timeout)
 	if err := tcpConn.WaitForConnectionResponse(5 * time.Second); err != nil {
 		tcpConn.Close()
 		return nil, fmt.Errorf("connection response alınamadı: %w", err)
 	}
-	
+
 	// Response alındıktan sonra messageLoop'u başlat
 	tcpConn.startMessageLoop()
-	
+
 	// Connection pool'a ekle
 	m.mu.Lock()
 	m.connections[peerID] = tcpConn
 	m.mu.Unlock()
-	
+
 	log.Printf("🔗 TCP bağlantı kuruldu ve kabul edildi: %s (%s) - %s", peerHandshake.DeviceName, peerID[:8], address)
-	
+
 	return tcpConn, nil
 }
 
@@ -1064,7 +1064,7 @@ func (m *TCPConnectionManager) acceptLoop() {
 				log.Printf("⚠️ Accept hatası: %v", err)
 				continue
 			}
-			
+
 			// Handle connection
 			go m.handleIncomingConnection(conn)
 		}
@@ -1074,7 +1074,7 @@ func (m *TCPConnectionManager) acceptLoop() {
 // handleIncomingConnection incoming connection'ı işler
 func (m *TCPConnectionManager) handleIncomingConnection(conn net.Conn) {
 	log.Printf("📥 Incoming connection: %s", conn.RemoteAddr().String())
-	
+
 	// Server handshake yap
 	peerHandshake, err := PerformServerHandshake(conn, m.deviceID, m.deviceName)
 	if err != nil {
@@ -1082,28 +1082,28 @@ func (m *TCPConnectionManager) handleIncomingConnection(conn net.Conn) {
 		conn.Close()
 		return
 	}
-	
+
 	// Handshake'i doğrula
 	if err := ValidateHandshake(peerHandshake); err != nil {
 		log.Printf("⚠️ Handshake validation başarısız (%s): %v", conn.RemoteAddr(), err)
 		conn.Close()
 		return
 	}
-	
-	log.Printf("✅ Handshake başarılı: %s (%s) @ %s", 
+
+	log.Printf("✅ Handshake başarılı: %s (%s) @ %s",
 		peerHandshake.DeviceName, peerHandshake.DeviceID[:8], conn.RemoteAddr())
-	
+
 	// TCPConnection oluştur (manager ile)
 	tcpConn := NewTCPConnectionWithManager(peerHandshake.DeviceID, conn.RemoteAddr().String(), conn, m)
-	
+
 	// Connection request bekle (messageLoop içinde işlenecek)
 	// Connection request geldiğinde handleConnectionRequestInManager çağrılacak
 	// Bu connection'ı özel bir şekilde işlemek için messageLoop'a manager referansı verilmeli
 	// Şimdilik basit bir yaklaşım: connection request'i manuel olarak bekle
-	
+
 	// Connection'ı geçici olarak sakla (handleConnectionRequestInManager'da işlenecek)
 	// MessageLoop connection request'i aldığında manager'a bildirecek
-	
+
 	// Connection'ı aktif tut - connection request geldiğinde handleConnectionRequestInManager çağrılacak
 	<-tcpConn.ctx.Done()
 	log.Printf("🔌 Peer bağlantısı kapandı: %s", peerHandshake.DeviceID[:8])
@@ -1117,18 +1117,18 @@ func (m *TCPConnectionManager) Disconnect(peerID string) error {
 		delete(m.connections, peerID)
 	}
 	m.mu.Unlock()
-	
+
 	if !exists {
 		return fmt.Errorf("bağlantı bulunamadı: %s", peerID)
 	}
-	
+
 	log.Printf("🔌 Bağlantı kesiliyor: %s", peerID[:8])
-	
+
 	// Bağlantıyı kapat (messageLoop sonlandırılacak)
 	if err := conn.Close(); err != nil {
 		return fmt.Errorf("bağlantı kapatılamadı: %w", err)
 	}
-	
+
 	log.Printf("✅ Bağlantı kapatıldı: %s", peerID[:8])
 	return nil
 }
@@ -1136,19 +1136,19 @@ func (m *TCPConnectionManager) Disconnect(peerID string) error {
 // Close manager'ı kapat
 func (m *TCPConnectionManager) Close() error {
 	m.cancel()
-	
+
 	if m.listener != nil {
 		m.listener.Close()
 	}
-	
+
 	// Tüm bağlantıları kapat
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	for _, conn := range m.connections {
 		conn.Close()
 	}
-	
+
 	return nil
 }
 
@@ -1156,7 +1156,7 @@ func (m *TCPConnectionManager) Close() error {
 func (m *TCPConnectionManager) GetConnection(peerID string) (transport.Connection, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	conn, exists := m.connections[peerID]
 	return conn, exists
 }
@@ -1165,12 +1165,12 @@ func (m *TCPConnectionManager) GetConnection(peerID string) (transport.Connectio
 func (m *TCPConnectionManager) GetAllConnections() []transport.Connection {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	connections := make([]transport.Connection, 0, len(m.connections))
 	for _, conn := range m.connections {
 		connections = append(connections, conn)
 	}
-	
+
 	return connections
 }
 
@@ -1182,7 +1182,7 @@ func (m *TCPConnectionManager) setOnConnectionEstablished(callback func(transpor
 // SetChunkHandler chunk handler callback'ini set eder
 func (m *TCPConnectionManager) SetChunkHandler(handler func(chunkHash string) ([]byte, error)) {
 	m.chunkHandlerCallback = handler
-	
+
 	// Mevcut connection'lara handler'ı bağla
 	m.mu.RLock()
 	for _, conn := range m.connections {
@@ -1225,7 +1225,7 @@ func (m *TCPConnectionManager) handleConnectionLost(peerID string) {
 		log.Printf("🔌 Connection map'ten kaldırıldı: %s", peerID[:8])
 	}
 	m.mu.Unlock()
-	
+
 	if exists {
 		// Callback çağır
 		if m.onConnectionLost != nil {
@@ -1238,7 +1238,7 @@ func (m *TCPConnectionManager) handleConnectionLost(peerID string) {
 func (m *TCPConnectionManager) GetPendingConnections() []*PendingConnection {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	pending := make([]*PendingConnection, 0, len(m.pendingConns))
 	for _, p := range m.pendingConns {
 		pending = append(pending, p)
@@ -1251,11 +1251,11 @@ func (m *TCPConnectionManager) AcceptConnection(deviceID string) error {
 	m.mu.RLock()
 	pending, exists := m.pendingConns[deviceID]
 	m.mu.RUnlock()
-	
+
 	if !exists {
 		return fmt.Errorf("bekleyen bağlantı isteği bulunamadı: %s", deviceID)
 	}
-	
+
 	// Response channel'a true gönder
 	select {
 	case pending.ResponseCh <- true:
@@ -1270,11 +1270,11 @@ func (m *TCPConnectionManager) RejectConnection(deviceID string) error {
 	m.mu.RLock()
 	pending, exists := m.pendingConns[deviceID]
 	m.mu.RUnlock()
-	
+
 	if !exists {
 		return fmt.Errorf("bekleyen bağlantı isteği bulunamadı: %s", deviceID)
 	}
-	
+
 	// Response channel'a false gönder
 	select {
 	case pending.ResponseCh <- false:
@@ -1283,4 +1283,3 @@ func (m *TCPConnectionManager) RejectConnection(deviceID string) error {
 		return fmt.Errorf("bağlantı isteği zaten işlenmiş")
 	}
 }
-

@@ -114,9 +114,9 @@ func (a *iceAgentImpl) StartGathering(ctx context.Context) error {
 		NetworkTypes: []ice.NetworkType{ice.NetworkTypeUDP4}, // Şimdilik sadece UDP4
 		Urls:         iceURLs,
 		CandidateTypes: []ice.CandidateType{
-			ice.CandidateTypeHost,        // Local IP
+			ice.CandidateTypeHost,            // Local IP
 			ice.CandidateTypeServerReflexive, // STUN
-			ice.CandidateTypeRelay,       // TURN
+			ice.CandidateTypeRelay,           // TURN
 		},
 		PortMin: uint16(a.portRange.Min),
 		PortMax: uint16(a.portRange.Max),
@@ -206,15 +206,15 @@ func (a *iceAgentImpl) SetRemoteCandidates(candidates []ICECandidate) error {
 	// Remote candidate'ları Pion ICE formatına çevir
 	// NOT: Gerçek implementasyonda SDP formatından parse edilecek
 	// Şimdilik ICECandidate struct'ından ice.Candidate oluşturulması gerekir
-	// Ancak Pion ICE API'si direkt candidate eklemeyi desteklemiyor, 
+	// Ancak Pion ICE API'si direkt candidate eklemeyi desteklemiyor,
 	// bunun yerine SDP exchange veya manual candidate ekleme gerekiyor
-	
+
 	// ICE agent'ın remote candidate'ları alması için SDP exchange gerekiyor
-	// Şimdilik basit bir placeholder - gerçek implementasyonda 
+	// Şimdilik basit bir placeholder - gerçek implementasyonda
 	// SetRemoteCredentials + SDP offer/answer exchange yapılacak
 
 	log.Printf("📥 %d remote candidate alındı (SDP exchange ile eklenecek)", len(candidates))
-	
+
 	// NOT: Remote candidate'lar ICE agent'a SDP üzerinden eklenir
 	// Bu metod şimdilik bilgilendirme amaçlı
 	return nil
@@ -244,19 +244,19 @@ func (a *iceAgentImpl) StartConnection(ctx context.Context, remoteCandidates []I
 	// 1. Remote peer'dan SDP offer alınmalı (veya biz offer göndermeliyiz)
 	// 2. SDP'deki remote candidate'lar ICE agent'a eklenmeli
 	// 3. ICE connection attempt başlatılmalı
-	// 
+	//
 	// Şimdilik minimal bir implementasyon - gerçek bağlantı için
 	// WebRTC peer connection veya manuel ICE connection handling gerekiyor
 
 	// ICE connection attempt başlat
 	// NOT: Pion ICE API'si direkt connection attempt'i desteklemiyor
 	// WebRTC peer connection veya manual handling gerekiyor
-	// 
+	//
 	// Şimdilik placeholder connection döndürüyoruz
 	// Gerçek implementasyonda WebRTC peer connection ile entegre edilecek
 
 	log.Printf("⚠️ ICE connection başlatıldı (minimal implementasyon)")
-	
+
 	// Placeholder connection - gerçek bağlantı WebRTC peer connection ile yapılacak
 	return &ICEConnection{
 		Connected: false, // Bağlantı henüz kurulmadı (WebRTC peer connection ile kurulacak)
@@ -295,4 +295,3 @@ func parseICEURL(urlString string) (*ice.URL, error) {
 
 	return url, nil
 }
-

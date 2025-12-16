@@ -98,17 +98,17 @@ func loggingInterceptor(
 	handler grpc.UnaryHandler,
 ) (interface{}, error) {
 	start := time.Now()
-	
+
 	// Handler'ı çağır
 	resp, err := handler(ctx, req)
-	
+
 	// Polling çağrılarını loglardan hariç tut (spam önleme)
 	if info.FullMethod == "/aether.api.TransferService/ListTransfers" ||
 		info.FullMethod == "/aether.api.PeerService/GetPendingConnections" {
 		// Sessizce dön (log yok)
 		return resp, err
 	}
-	
+
 	// Log
 	duration := time.Since(start)
 	if err != nil {
@@ -116,9 +116,6 @@ func loggingInterceptor(
 	} else {
 		log.Printf("✓ %s - %v", info.FullMethod, duration)
 	}
-	
+
 	return resp, err
 }
-
-
-

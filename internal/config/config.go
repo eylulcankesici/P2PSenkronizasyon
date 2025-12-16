@@ -106,8 +106,8 @@ func Load() (*Config, error) {
 
 			// WAN varsayılan ayarları (pasif)
 			EnableWAN:             getEnvOrDefaultBool("AETHER_ENABLE_WAN", false), // Ortam değişkeni ile açılabilir
-			TURNServers:           getTURNServers(), // Public TURN server'lar (test için)
-			EnableTLS:             true, // WAN için TLS varsayılan açık
+			TURNServers:           getTURNServers(),                                // Public TURN server'lar (test için)
+			EnableTLS:             true,                                            // WAN için TLS varsayılan açık
 			TLSInsecureSkipVerify: false,
 			EnableRelay:           false,
 			WebRTCPortRange: PortRange{
@@ -234,11 +234,11 @@ func getEnvOrDefaultBool(key string, defaultValue bool) bool {
 func getTURNServers() []TURNServerConfig {
 	// Ortam değişkeni ile kontrol et
 	usePublicTURN := getEnvOrDefaultBool("AETHER_USE_PUBLIC_TURN", true)
-	
+
 	if !usePublicTURN {
 		return []TURNServerConfig{}
 	}
-	
+
 	// Test için ücretsiz public TURN server'lar
 	// NOT: Production'da kendi TURN server'ınızı kullanın
 	// Kaynak: https://www.metered.ca/tools/openrelay/

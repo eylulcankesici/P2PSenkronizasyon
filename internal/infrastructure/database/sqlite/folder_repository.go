@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
-	
+
 	"github.com/aether/sync/internal/domain/entity"
 	"github.com/aether/sync/internal/domain/repository"
 	"github.com/google/uuid"
@@ -28,12 +28,12 @@ func (r *FolderRepository) Create(ctx context.Context, folder *entity.Folder) er
 	if folder.ID == "" {
 		folder.ID = uuid.New().String()
 	}
-	
+
 	query := `
 		INSERT INTO folders (id, name, local_path, sync_mode, source, last_scan_time, device_id)
 		VALUES (?, ?, ?, ?, ?, ?, ?)
 	`
-	
+
 	// time.Time'ı Unix timestamp'e çevir
 	var lastScanTime int64
 	if !folder.LastScanTime.IsZero() {
@@ -41,13 +41,13 @@ func (r *FolderRepository) Create(ctx context.Context, folder *entity.Folder) er
 	} else {
 		lastScanTime = time.Now().Unix()
 	}
-	
+
 	// Source default value
 	source := string(folder.Source)
 	if source == "" {
 		source = string(entity.FolderSourceUser)
 	}
-	
+
 	_, err := r.conn.DB().ExecContext(ctx, query,
 		folder.ID,
 		folder.LocalPath, // name olarak local_path kullan
@@ -57,11 +57,11 @@ func (r *FolderRepository) Create(ctx context.Context, folder *entity.Folder) er
 		lastScanTime,
 		"local-device", // device_id geçici
 	)
-	
+
 	if err != nil {
 		return fmt.Errorf("klasör oluşturulamadı: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -72,11 +72,11 @@ func (r *FolderRepository) GetByID(ctx context.Context, id string) (*entity.Fold
 		FROM folders
 		WHERE id = ?
 	`
-	
+
 	folder := &entity.Folder{}
 	var lastScanTime sql.NullInt64
 	var source string
-	
+
 	err := r.conn.DB().QueryRowContext(ctx, query, id).Scan(
 		&folder.ID,
 		&folder.LocalPath,
@@ -85,24 +85,24 @@ func (r *FolderRepository) GetByID(ctx context.Context, id string) (*entity.Fold
 		&lastScanTime,
 		&folder.IsActive,
 	)
-	
+
 	folder.Source = entity.FolderSource(source)
-	
+
 	if err == sql.ErrNoRows {
 		return nil, entity.ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("klasör getirilemedi: %w", err)
 	}
-	
+
 	// Unix timestamp'i time.Time'a çevir
 	if lastScanTime.Valid && lastScanTime.Int64 > 0 {
 		folder.LastScanTime = time.Unix(lastScanTime.Int64, 0)
 	}
-	
+
 	folder.CreatedAt = time.Now()
 	folder.UpdatedAt = time.Now()
-	
+
 	return folder, nil
 }
 
@@ -113,11 +113,11 @@ func (r *FolderRepository) GetByPath(ctx context.Context, path string) (*entity.
 		FROM folders
 		WHERE local_path = ?
 	`
-	
+
 	folder := &entity.Folder{}
 	var lastScanTime sql.NullInt64
 	var source string
-	
+
 	err := r.conn.DB().QueryRowContext(ctx, query, path).Scan(
 		&folder.ID,
 		&folder.LocalPath,
@@ -126,24 +126,24 @@ func (r *FolderRepository) GetByPath(ctx context.Context, path string) (*entity.
 		&lastScanTime,
 		&folder.IsActive,
 	)
-	
+
 	folder.Source = entity.FolderSource(source)
-	
+
 	if err == sql.ErrNoRows {
 		return nil, entity.ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("klasör getirilemedi: %w", err)
 	}
-	
+
 	// Unix timestamp'i time.Time'a çevir
 	if lastScanTime.Valid && lastScanTime.Int64 > 0 {
 		folder.LastScanTime = time.Unix(lastScanTime.Int64, 0)
 	}
-	
+
 	folder.CreatedAt = time.Now()
 	folder.UpdatedAt = time.Now()
-	
+
 	return folder, nil
 }
 
@@ -153,20 +153,20 @@ func (r *FolderRepository) GetAll(ctx context.Context) ([]*entity.Folder, error)
 		SELECT id, local_path, sync_mode, source, last_scan_time, is_active
 		FROM folders
 	`
-	
+
 	rows, err := r.conn.DB().QueryContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("klasörler getirilemedi: %w", err)
 	}
 	defer rows.Close()
-	
+
 	folders := make([]*entity.Folder, 0)
-	
+
 	for rows.Next() {
 		folder := &entity.Folder{}
 		var lastScanTime sql.NullInt64
 		var source string
-		
+
 		err := rows.Scan(
 			&folder.ID,
 			&folder.LocalPath,
@@ -175,23 +175,23 @@ func (r *FolderRepository) GetAll(ctx context.Context) ([]*entity.Folder, error)
 			&lastScanTime,
 			&folder.IsActive,
 		)
-		
+
 		folder.Source = entity.FolderSource(source)
 		if err != nil {
 			return nil, fmt.Errorf("klasör taranamadı: %w", err)
 		}
-		
+
 		// Unix timestamp'i time.Time'a çevir
 		if lastScanTime.Valid && lastScanTime.Int64 > 0 {
 			folder.LastScanTime = time.Unix(lastScanTime.Int64, 0)
 		}
-		
+
 		folder.CreatedAt = time.Now()
 		folder.UpdatedAt = time.Now()
-		
+
 		folders = append(folders, folder)
 	}
-	
+
 	return folders, nil
 }
 
@@ -208,7 +208,7 @@ func (r *FolderRepository) Update(ctx context.Context, folder *entity.Folder) er
 		SET local_path = ?, sync_mode = ?, source = ?, last_scan_time = ?, is_active = ?
 		WHERE id = ?
 	`
-	
+
 	// time.Time'ı Unix timestamp'e çevir
 	var lastScanTime int64
 	if !folder.LastScanTime.IsZero() {
@@ -216,7 +216,7 @@ func (r *FolderRepository) Update(ctx context.Context, folder *entity.Folder) er
 	} else {
 		lastScanTime = time.Now().Unix()
 	}
-	
+
 	result, err := r.conn.DB().ExecContext(ctx, query,
 		folder.LocalPath,
 		folder.SyncMode,
@@ -225,41 +225,41 @@ func (r *FolderRepository) Update(ctx context.Context, folder *entity.Folder) er
 		folder.IsActive,
 		folder.ID,
 	)
-	
+
 	if err != nil {
 		return fmt.Errorf("klasör güncellenemedi: %w", err)
 	}
-	
+
 	rows, err := result.RowsAffected()
 	if err != nil {
 		return err
 	}
-	
+
 	if rows == 0 {
 		return entity.ErrNotFound
 	}
-	
+
 	return nil
 }
 
 // Delete klasörü siler
 func (r *FolderRepository) Delete(ctx context.Context, id string) error {
 	query := `DELETE FROM folders WHERE id = ?`
-	
+
 	result, err := r.conn.DB().ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("klasör silinemedi: %w", err)
 	}
-	
+
 	rows, err := result.RowsAffected()
 	if err != nil {
 		return err
 	}
-	
+
 	if rows == 0 {
 		return entity.ErrNotFound
 	}
-	
+
 	return nil
 }
 
@@ -270,23 +270,21 @@ func (r *FolderRepository) UpdateScanTime(ctx context.Context, id string) error 
 		SET last_scan_time = ?
 		WHERE id = ?
 	`
-	
+
 	nowUnix := time.Now().Unix()
 	result, err := r.conn.DB().ExecContext(ctx, query, nowUnix, id)
 	if err != nil {
 		return fmt.Errorf("tarama zamanı güncellenemedi: %w", err)
 	}
-	
+
 	rows, err := result.RowsAffected()
 	if err != nil {
 		return err
 	}
-	
+
 	if rows == 0 {
 		return entity.ErrNotFound
 	}
-	
+
 	return nil
 }
-
-

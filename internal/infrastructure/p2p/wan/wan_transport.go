@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
+	pb "github.com/aether/sync/api/proto"
 	"github.com/aether/sync/internal/config"
 	"github.com/aether/sync/internal/domain/transport"
 	"github.com/aether/sync/internal/infrastructure/p2p/signaling"
-	pb "github.com/aether/sync/api/proto"
 )
 
 // WANTransport WAN üzerinden P2P transport
@@ -22,13 +22,13 @@ type WANTransport struct {
 	port       int
 
 	// WAN components
-	stunClient  STUNClient
-	turnClient  TURNClient
-	iceAgent    ICEAgent
-	discovery   *WANDiscoveryService
+	stunClient STUNClient
+	turnClient TURNClient
+	iceAgent   ICEAgent
+	discovery  *WANDiscoveryService
 
-	connMgr     *WebRTCConnectionManager
-	signaling   *signaling.SignalingClient
+	connMgr   *WebRTCConnectionManager
+	signaling *signaling.SignalingClient
 
 	// Config
 	wanConfig config.NetworkConfig
@@ -42,7 +42,7 @@ type WANTransport struct {
 	onPeerIDUpdated         func(oldID, newID, newName string)
 
 	// State
-	mu     sync.RWMutex
+	mu      sync.RWMutex
 	started bool
 }
 
@@ -419,7 +419,6 @@ func (t *WANTransport) GetICECandidates() ([]ICECandidate, error) {
 
 	return t.iceAgent.GetLocalCandidates()
 }
-
 
 // SetOnPeerIDUpdated peer ID updated callback'ini ayarlar
 func (t *WANTransport) SetOnPeerIDUpdated(callback func(oldID, newID, newName string)) {
