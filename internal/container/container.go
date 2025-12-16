@@ -1261,8 +1261,27 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 					// Folder adından tutarlı bir ID üret (aynı folder adı → aynı ID)
 					hash := sha256.Sum256([]byte(folderName))
 					folderID = hex.EncodeToString(hash[:])[:32] // İlk 32 karakter
-					syncDir = filepath.Join(syncBaseDir, receivedFolderName)
-					log.Printf("  ✅ Sender'dan gelen folder adı kullanılıyor (yeni folder): %s (ID: %s)", receivedFolderName, folderID[:8])
+					// Hash-based ID de bulunamadı, son çare olarak isme göre arama yap
+					log.Printf("  ⚠️ Hash-based ID de bulunamadı (%s) - isme göre arama yapılıyor...", folderID[:8])
+					
+					allFolders, err := c.folderRepo.GetAll(ctx)
+					if err == nil {
+						for _, f := range allFolders {
+							if filepath.Base(f.LocalPath) == receivedFolderName {
+								folderID = f.ID
+								syncDir = f.LocalPath
+								folder = f
+								log.Printf("  ✅ Fallback folder bulundu (Name-based): %s (ID: %s)", receivedFolderName, folderID[:8])
+								break
+							}
+						}
+					}
+
+					if folder == nil {
+						// Hala bulunamadıysa, hash-based ID ile yeni oluştur (eski logic)
+						log.Printf("  ⚠️ Folder bulunamadı, yeni oluşturulacak (Hash-based): %s", receivedFolderName)
+						syncDir = filepath.Join(syncBaseDir, receivedFolderName)
+					}
 				}
 			} else if file != nil && file.FolderID != "" {
 				// Veritabanındaki folder bilgisini kullan (fallback)
