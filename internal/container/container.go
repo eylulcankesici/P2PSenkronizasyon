@@ -1857,7 +1857,7 @@ func (c *Container) syncFileToAllPeers(fileID, folderID string) error {
 
 	// Eğer dosya hiç sync edilmemişse ve folder BIDIRECTIONAL ise, folder'daki diğer dosyaların sync edildiği peer'ları bul
 	if len(existingSyncs) == 0 && (folder.SyncMode == entity.SyncModeBidirectional || folder.SyncMode == entity.SyncModeSendOnly) {
-		log.Printf("  🔍 Dosya daha önce sync edilmemiş, aynı folder'daki diğer dosyaların sync edildiği peer'lar aranıyor: folder=%s", folderID[:8])
+		log.Printf("  🔍 Dosya daha önce sync edilmemiş (yeni/tekrar eklenen), aynı folder'daki diğer dosyaların sync edildiği peer'lar aranıyor: folder=%s", folderID[:8])
 
 		folderPeerIDs, err := c.filePeerSyncRepo.GetPeerIDsByFolderID(ctx, folderID)
 		if err != nil {
@@ -1885,15 +1885,23 @@ func (c *Container) syncFileToAllPeers(fileID, folderID string) error {
 					}
 				}
 			}
-		}
+		} else {
+            // Eğer folder'da başka dosya yoksa veya history yoksa, TÜM BAĞLI PEER'LARLA SYNC ET
+            // Bu, "ilk dosya" veya "tekrar eklenen dosya" senaryosu için kritiktir.
+            log.Printf("  ℹ️  Folder history yok, tüm bağlı peer'lar aday olarak ekleniyor (New File Strategy)")
+             for _, conn := range allConnections {
+                pid := conn.GetPeerID()
+                syncedPeerIDsMap[pid] = true
+            }
+        }
 	}
 
 	for _, conn := range allConnections {
 		peerID := conn.GetPeerID()
 
-		// Dosya bu peer ile sync edilebilir mi? (daha önce sync edilmiş veya pre-sync kaydı oluşturulmuş)
+		// Dosya bu peer ile sync edilebilir mi?
 		if !syncedPeerIDsMap[peerID] {
-			log.Printf("  ℹ️  Dosya bu peer ile sync edilemez (daha önce sync edilmemiş ve folder'daki diğer dosyalar da sync edilmemiş): file=%s, peer=%s", fileID[:8], peerID[:8])
+			log.Printf("  ℹ️  Dosya bu peer ile sync edilemez (kısıtlı sync): file=%s, peer=%s", fileID[:8], peerID[:8])
 			continue
 		}
 
