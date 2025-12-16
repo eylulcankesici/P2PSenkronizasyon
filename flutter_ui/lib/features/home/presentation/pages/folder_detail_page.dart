@@ -236,11 +236,6 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                               text: syncModeText, 
                               style: TextStyle(color: Colors.blue[700], fontWeight: FontWeight.w500)
                             ),
-                            const TextSpan(text: ' : '),
-                            TextSpan(
-                              text: peer.deviceId.substring(0, 8), 
-                              style: TextStyle(color: Colors.grey[600], fontFamily: 'monospace')
-                            ),
                           ],
                         ),
                       ),
