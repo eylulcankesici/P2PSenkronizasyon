@@ -2338,8 +2338,30 @@ func (c *Container) handleIncomingFileDelete(ctx context.Context, peerID, fileID
 func (c *Container) syncFileRenameToAllPeers(fileID, oldPath, newPath string) error {
 	log.Printf("📝 Dosya yeniden adlandırma bildirimi gönderiliyor: %s -> %s (file: %s)", oldPath, newPath, fileID[:8])
 	
-	// Dosyanın hangi peer'larda olduğunu bul (file_peer_sync)
 	ctx := context.Background()
+
+	// Dosya ve Folder bilgisini al (SyncMode kontrolü için)
+	file, err := c.fileRepo.GetByID(ctx, fileID)
+	if err != nil {
+		return fmt.Errorf("dosya bilgisi alınamadı: %w", err)
+	}
+	
+	folder, err := c.folderRepo.GetByID(ctx, file.FolderID)
+	if err != nil {
+		return fmt.Errorf("folder bilgisi alınamadı: %w", err)
+	}
+
+	// Sync mode kontrolü
+	if folder.SyncMode == entity.SyncModeUnspecified {
+		log.Printf("  ℹ️  Folder sync mode henüz belirlenmemiş, rename bildirimi atlanıyor: %s", folder.ID[:8])
+		return nil
+	}
+	if folder.SyncMode == entity.SyncModeReceiveOnly {
+		log.Printf("  ℹ️  Folder receive-only mode'da, rename bildirimi atlanıyor: %s", folder.ID[:8])
+		return nil
+	}
+
+	// Dosyanın hangi peer'larda olduğunu bul (file_peer_sync)
 	syncs, err := c.filePeerSyncRepo.GetByFileID(ctx, fileID)
 	if err != nil {
 		return fmt.Errorf("file-peer sync kayıtları alınamadı: %w", err)
