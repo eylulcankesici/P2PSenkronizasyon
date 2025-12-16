@@ -2576,12 +2576,33 @@ func (c *Container) handleIncomingFolderCreate(ctx context.Context, peerID, fold
 			folder, err = c.folderRepo.GetByID(ctx, fallbackID)
 			if err == nil && folder != nil {
 				folderID = fallbackID // ID'yi güncelle
-				log.Printf("  ✅ Fallback folder bulundu: %s", folderID[:8])
+				log.Printf("  ✅ Fallback folder bulundu (Hash-based): %s", folderID[:8])
 			} else {
-				// Hala bulunamadıysa, son çare olarak bu isimde bir Received folder var mı?
-				// Şu an için yoksa hata dönüyoruz, çünkü folder'ı sıfırdan oluşturmak
-				// "New Folder Request" kapsamına girer.
-				return fmt.Errorf("folder bulunamadı (fallback denendi): %w", err)
+				log.Printf("  ⚠️ Hash-based ID de bulunamadı (%s) - son çare olarak isme göre arama yapılıyor...", fallbackID[:8])
+
+				// Son fallback: Tüm klasörleri getir ve isme göre eşleştir
+				allFolders, err := c.folderRepo.GetAll(ctx)
+				if err != nil {
+					log.Printf("  ❌ Klasör listesi alınamadı: %v", err)
+					return fmt.Errorf("folder bulunamadı ve liste alınamadı: %w", err)
+				}
+
+				foundByName := false
+				for _, f := range allFolders {
+					if filepath.Base(f.LocalPath) == folderName {
+						folder = f
+						folderID = f.ID
+						foundByName = true
+						log.Printf("  ✅ Fallback folder bulundu (Name-based): %s (ID: %s)", folderName, folderID[:8])
+						break
+					}
+				}
+
+				if !foundByName {
+					// Hala bulunamadıysa, son çare olarak bu isimde bir Received folder var mı?
+					// Şu an için yoksa hata dönüyoruz.
+					return fmt.Errorf("folder bulunamadı (ID/Hash/Name denendi): %s", folderName)
+				}
 			}
 		} else {
 			return fmt.Errorf("folder bulunamadı ve folderName boş: %w", err)
