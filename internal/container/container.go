@@ -671,6 +671,14 @@ func (c *Container) initUseCases() error {
 					log.Printf("  ℹ️  User folder ve tek yönlü senkronizasyon, fiziksel dosya korunuyor")
 				}
 			})
+			
+			// Klasör oluşturma callback'ini bağla
+			connMgr.SetOnFolderCreate(func(peerID, folderID, relativePath string) {
+				if err := c.handleIncomingFolderCreate(context.Background(), peerID, folderID, relativePath); err != nil {
+					log.Printf("⚠️ Incoming folder create handling error (WAN): %v", err)
+				}
+			})
+
 			log.Println("✓ Dosya silme callback bağlandı (WAN)")
 		}
 	}
