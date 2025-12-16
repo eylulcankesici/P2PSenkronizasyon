@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -31,6 +32,7 @@ type EventHandler struct {
 	onFileChanged      func(fileID, folderID string) error                    // Tüm dosya için sync (CREATE)
 	onChunksChanged    func(fileID, folderID string, changedChunks []int) error // Sadece değişen chunk'lar için sync (MODIFY)
 	onFileDeleted      func(fileID, folderID string) error                    // Dosya silindi sync (DELETE)
+	onFileRenamed      func(fileID, oldPath, newPath string) error            // Dosya yeniden adlandırıldı sync (RENAME)
 	
 	// Event broadcaster (UI için)
 	eventBroadcaster *EventBroadcaster
@@ -38,6 +40,10 @@ type EventHandler struct {
 	// Ignore listesi (kullanıcı tarafından silinen dosyalar - file watcher tarafından tekrar eklenmemeli)
 	// map[string]time.Time - "folderID:relativePath" -> expiryTime
 	ignoredFiles sync.Map 
+	
+	// Rename tespiti için (OldPath -> Timestamp)
+	// Rename işlemi genellikle: RENAME(old) -> CREATE(new) şeklinde gelir
+	pendingRenames sync.Map // map[string]time.Time (key: "folderID:oldRelativePath")
 }
 
 // NewEventHandler yeni EventHandler oluşturur
@@ -57,6 +63,7 @@ func NewEventHandler(
 		pendingEvents:    make(map[string]*FileEvent),
 		eventTimers:      make(map[string]*time.Timer),
 		eventBroadcaster: eventBroadcaster,
+		// pendingRenames: init yapılmaz, sync.Map
 	}
 }
 
@@ -77,9 +84,8 @@ func (h *EventHandler) HandleEvent(event *FileEvent) error {
 		return h.handleDelete(event)
 		
 	case EventTypeRename:
-		// Rename = Delete + Create olarak işlenir
-		log.Printf("📝 Rename event: %s (folder: %s)", event.Path, event.FolderID[:8])
-		return nil
+		// Rename event'i geldiğinde old path'i sakla ve Create event'ini bekle
+		return h.handleRename(event)
 		
 	default:
 		return fmt.Errorf("bilinmeyen event tipi: %s", event.Type)
@@ -160,6 +166,71 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 	}
 	
 	log.Printf("📄 CREATE: %s (folder: %s)", event.Path, event.FolderID[:8])
+	
+	// RENAME KONTROLÜ: Yakın zamanda rename edilmiş bir dosya var mı?
+	// Folder içindeki tüm pending rename'leri kontrol et
+	var renamedFromFileID string
+	var renamedFromPath string
+	
+	h.pendingRenames.Range(func(key, value any) bool {
+		k := key.(string)
+		t := value.(time.Time)
+		
+		// 1 saniye içinde rename edilmiş olmalı
+		if time.Since(t) > 1*time.Second {
+			h.pendingRenames.Delete(k)
+			return true // continue
+		}
+		
+		// Key format: "folderID:path"
+		parts := strings.SplitN(k, ":", 2)
+		if len(parts) != 2 || parts[0] != event.FolderID {
+			return true // continue
+		}
+		oldPath := parts[1]
+		
+		// Eğer dosya boyutları/modtime tutuyorsa veya sadece isim benzerliği varsa eşleştirilebilir
+		// Şimdilik sadece zaman yakınlığına güveniyoruz (kullanıcı rename yaptı)
+		
+		// Veritabanında eski dosyayı bul
+		oldFile, err := h.fileRepo.GetByPath(ctx, event.FolderID, oldPath)
+		if err == nil && oldFile != nil {
+			renamedFromFileID = oldFile.ID
+			renamedFromPath = oldPath
+			h.pendingRenames.Delete(k) // Eşleşti, sil
+			return false // break
+		}
+		
+		return true
+	})
+	
+	// EĞER RENAME TESPİT EDİLDİYSE: Dosyayı güncelle
+	if renamedFromFileID != "" {
+		log.Printf("♻️ RENAME tespit edildi: %s -> %s", renamedFromPath, event.Path)
+		
+		// Eski dosyayı güncelle
+		oldFile, err := h.fileRepo.GetByID(ctx, renamedFromFileID)
+		if err == nil {
+			oldFile.RelativePath = event.Path
+			oldFile.UpdatedAt = time.Now()
+			// Eğer silinmişse geri getir
+			if oldFile.IsDeleted {
+				oldFile.IsDeleted = false
+			}
+			
+			if err := h.fileRepo.Update(ctx, oldFile); err != nil {
+				log.Printf("⚠️ Rename update hatası: %v", err)
+			} else {
+				// Rename sync tetikle
+				if h.onFileRenamed != nil {
+					if err := h.onFileRenamed(oldFile.ID, renamedFromPath, event.Path); err != nil {
+						log.Printf("⚠️ Rename sync hatası: %v", err)
+					}
+				}
+				return nil // Create işlemi tamamlandı (rename olarak)
+			}
+		}
+	}
 	
 	// File entity oluştur
 	file := entity.NewFile(
@@ -424,6 +495,11 @@ func (h *EventHandler) SetOnFileDeleted(callback func(fileID, folderID string) e
 	h.onFileDeleted = callback
 }
 
+// SetOnFileRenamed file renamed callback'i ayarlar
+func (h *EventHandler) SetOnFileRenamed(callback func(fileID, oldPath, newPath string) error) {
+	h.onFileRenamed = callback
+}
+
 // IgnoreFile dosyayı ignore listesine ekler (kullanıcı tarafından silindi, file watcher tekrar eklememeli)
 // 3 saniye boyunca ignore edilir (tekrar eklenirse döngü oluşmasın diye)
 func (h *EventHandler) IgnoreFile(folderID, relativePath string) {
@@ -437,5 +513,35 @@ func (h *EventHandler) UnignoreFile(folderID, relativePath string) {
 	ignoreKey := fmt.Sprintf("%s:%s", folderID, relativePath)
 	h.ignoredFiles.Delete(ignoreKey)
 	log.Printf("✅ Dosya ignore listesinden çıkarıldı: %s (folder: %s)", relativePath, folderID[:8])
+}
+
+// handleRename rename event'ini işler (Pending listesine ekler)
+func (h *EventHandler) handleRename(event *FileEvent) error {
+	log.Printf("📝 RENAME (Old Path detected): %s (folder: %s)", event.Path, event.FolderID[:8])
+	
+	key := fmt.Sprintf("%s:%s", event.FolderID, event.Path)
+	h.pendingRenames.Store(key, time.Now())
+	
+	// Fallback mechanism: 2 saniye sonra kontrol et, hala pending ise Delete olarak işle
+	time.AfterFunc(2 * time.Second, func() {
+		if _, ok := h.pendingRenames.Load(key); ok {
+			// Hala pending'de duruyor, demek ki Create gelmedi. Bu bir DELETE olabilir.
+			h.pendingRenames.Delete(key)
+			log.Printf("⚠️ Rename timeout -> DELETE olarak işleniyor: %s", event.Path)
+			
+			// Manuel DELETE event oluştur
+			deleteEvent := &FileEvent{
+				Type:     EventTypeDelete,
+				Path:     event.Path,
+				AbsPath:  event.AbsPath,
+				FolderID: event.FolderID,
+			}
+			if err := h.handleDelete(deleteEvent); err != nil {
+				log.Printf("⚠️ Rename->Delete fallback hatası: %v", err)
+			}
+		}
+	})
+	
+	return nil
 }
 

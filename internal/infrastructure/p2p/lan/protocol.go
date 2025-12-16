@@ -40,6 +40,7 @@ const (
 	MessageTypeFragment        = 0x000C // WebRTC için parçalanmış mesaj
 	MessageTypeTransferFinish  = 0x000D // Transfer tamamlandı bildirimi
 	MessageTypeTransferFinishAck = 0x000E // Transfer tamamlandı onayı
+	MessageTypeFileRename      = 0x000F // Dosya yeniden adlandırma (peer-to-peer)
 	
 	// Frame sizes
 	HeaderSize = 16 // Magic(4) + Version(2) + Type(2) + Length(4) + CRC(4)
@@ -602,4 +603,52 @@ func (p *Protocol) DecodeConnectionRejectPayload(payload []byte) (string, error)
 	}
 	
 	return resp.Message, nil
+}
+
+// DecodeTransferFinishAck transfer finish ack mesajını decode eder
+func (p *Protocol) DecodeTransferFinishAck(payload []byte) (string, error) {
+	msg := struct {
+		FileID string `json:"file_id"`
+	}{}
+	
+	if err := json.Unmarshal(payload, &msg); err != nil {
+		return "", fmt.Errorf("transfer finish ack unmarshal hatası: %w", err)
+	}
+	
+	return msg.FileID, nil
+}
+
+// EncodeFileRename dosya yeniden adlandırma mesajını encode eder
+func (p *Protocol) EncodeFileRename(fileID, oldPath, newPath string) ([]byte, error) {
+	msg := struct {
+		FileID  string `json:"file_id"`
+		OldPath string `json:"old_path"`
+		NewPath string `json:"new_path"`
+	}{
+		FileID:  fileID,
+		OldPath: oldPath,
+		NewPath: newPath,
+	}
+	
+	payload, err := json.Marshal(msg)
+	if err != nil {
+		return nil, fmt.Errorf("file rename marshal hatası: %w", err)
+	}
+	
+	return p.EncodeFrame(MessageTypeFileRename, payload)
+}
+
+// DecodeFileRename dosya yeniden adlandırma mesajını decode eder
+func (p *Protocol) DecodeFileRename(payload []byte) (string, string, string, error) {
+	msg := struct {
+		FileID  string `json:"file_id"`
+		OldPath string `json:"old_path"`
+		NewPath string `json:"new_path"`
+	}{}
+	
+	if err := json.Unmarshal(payload, &msg); err != nil {
+		return "", "", "", fmt.Errorf("file rename unmarshal hatası: %w", err)
+	}
+	
+	return msg.FileID, msg.OldPath, msg.NewPath, nil
 }

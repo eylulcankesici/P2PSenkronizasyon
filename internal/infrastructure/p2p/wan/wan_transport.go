@@ -457,6 +457,13 @@ func (t *WANTransport) SetOnFileDelete(callback func(peerID, fileID string)) {
 	}
 }
 
+// SetOnFileRename dosya yeniden adlandırma callback'ini ayarlar
+func (t *WANTransport) SetOnFileRename(callback func(peerID, fileID, oldPath, newPath string)) {
+	if t.connMgr != nil {
+		t.connMgr.SetOnFileRename(callback)
+	}
+}
+
 // StartSignaling signaling başlatır
 func (t *WANTransport) StartSignaling(serverURL, roomID string) (*signaling.SignalingClient, error) {
 	client := signaling.NewSignalingClient(serverURL)

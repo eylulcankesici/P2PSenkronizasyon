@@ -53,14 +53,16 @@ type WebRTCConnectionManager struct {
 	onConnectionLost        func(peerID string)
 	onConnectionRequested   func(deviceID, deviceName string)
 	
-	// Chunk callbacks
-	chunkHandler     func(chunkHash string) ([]byte, error)
-	onChunkReceived  func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error
-	onTransferCancel func(peerID, fileID string)
-	onFileDelete     func(peerID, fileID string)
-	onPeerIDUpdated  func(oldID, newID, newName string)
-	onTransferFinish func(peerID, fileID string)
+	// Callbacks
+	onMessageReceived func(peerID string, data []byte)
+	onChunkReceived   func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error
+	onFileDelete      func(peerID, fileID string)
+	onFileRename      func(peerID, fileID, oldPath, newPath string)
+	onTransferCancel  func(peerID, fileID string)
+	onTransferFinish  func(peerID, fileID string)
 	onTransferFinishAck func(peerID, fileID string)
+	chunkHandler      func(chunkHash string) ([]byte, error)
+	onPeerIDUpdated  func(oldID, newID, newName string)
 }
 
 // PendingConnection WAN için bekleyen bağlantı isteği
@@ -140,8 +142,7 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 		// Data channel oluştur (eğer yoksa)
 		// NOT: Genellikle Offerer oluşturur, ama biz Answerer isek ve pendingPeer varsa
 		// zaten session kurulmuştur. Data channel'ı kontrol etmemiz gerekebilir.
-		// Ancak pendingPeer struct'ında data channel yok, WebRTCPeer içinde var mı?
-		// WebRTCPeer wrapper'ında data channel saklanmıyor, sadece Pion PeerConnection var.
+		// Ancak pendingPeer struct'ında data channel yok, WebRTCPeer içinde var.
 		// Bu durumda yeni bir data channel oluşturmayı deneyebiliriz veya OnDataChannel bekleyebiliriz.
 		// Pion'da OnDataChannel callback'i zaten ayarlı (NewWebRTCPeer içinde).
 		
@@ -161,6 +162,9 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 		}
 		if m.onChunkReceived != nil {
 			webrtcConn.SetOnChunkReceived(m.onChunkReceived)
+		}
+		if m.onFileRename != nil {
+			webrtcConn.SetOnFileRename(m.onFileRename)
 		}
 		
 		// Handshake isteği gönder
@@ -256,6 +260,9 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 	}
 	if m.onFileDelete != nil {
 		webrtcConn.SetOnFileDelete(m.onFileDelete)
+	}
+	if m.onFileRename != nil {
+		webrtcConn.SetOnFileRename(m.onFileRename)
 	}
 
 	// SDP offer oluştur
@@ -497,6 +504,11 @@ func (m *WebRTCConnectionManager) SetOnFileDelete(callback func(peerID, fileID s
 	m.onFileDelete = callback
 }
 
+// SetOnFileRename dosya yeniden adlandırma callback'ini ayarlar
+func (m *WebRTCConnectionManager) SetOnFileRename(callback func(peerID, fileID, oldPath, newPath string)) {
+	m.onFileRename = callback
+}
+
 // SetOnConnectionLost connection lost callback'ini ayarlar
 func (m *WebRTCConnectionManager) SetOnConnectionLost(callback func(peerID string)) {
 	m.onConnectionLost = callback
@@ -732,6 +744,9 @@ func (m *WebRTCConnectionManager) RegisterConnection(deviceID string, conn *WebR
 	if m.onFileDelete != nil {
 		conn.SetOnFileDelete(m.onFileDelete)
 	}
+	if m.onFileRename != nil {
+		conn.SetOnFileRename(m.onFileRename)
+	}
 	if m.onTransferFinish != nil {
 		conn.SetOnTransferFinish(m.onTransferFinish)
 	}
@@ -842,6 +857,9 @@ func (m *WebRTCConnectionManager) HandleAnswer(deviceID, deviceName, answerSDP s
 		if m.onFileDelete != nil {
 			conn.SetOnFileDelete(m.onFileDelete)
 		}
+		if m.onFileRename != nil {
+			conn.SetOnFileRename(m.onFileRename)
+		}
 		
 		// Connection'ı kaydet
 		m.mu.Lock()
@@ -918,6 +936,7 @@ type WebRTCConnection struct {
 	onChunkReceived  func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error
 	onTransferCancel func(peerID, fileID string)
 	onFileDelete     func(peerID, fileID string)
+	onFileRename     func(peerID, fileID, oldPath, newPath string)
 	onConnectionRequested func(deviceID, deviceName string)
 	onConnectionAccepted  func(deviceID, deviceName string)
 	onTransferFinish      func(peerID, fileID string)
@@ -1069,6 +1088,8 @@ func (c *WebRTCConnection) handleIncomingMessage(data []byte) {
 		c.handleChunkRequest(payload)
 	case lan.MessageTypeFileDelete:
 		c.handleFileDelete(payload)
+	case lan.MessageTypeFileRename:
+		c.handleFileRename(payload)
 	case lan.MessageTypeTransferCancel:
 		c.handleTransferCancel(payload)
 	case lan.MessageTypePing:
@@ -1159,6 +1180,19 @@ func (c *WebRTCConnection) handleFileDelete(payload []byte) {
 	
 	if c.onFileDelete != nil {
 		c.onFileDelete(c.peerID, fileID)
+	}
+}
+
+// handleFileRename dosya yeniden adlandırma mesajını işler
+func (c *WebRTCConnection) handleFileRename(payload []byte) {
+	fileID, oldPath, newPath, err := c.protocol.DecodeFileRename(payload)
+	if err != nil {
+		log.Printf("⚠️ File rename decode hatası: %v", err)
+		return
+	}
+	
+	if c.onFileRename != nil {
+		c.onFileRename(c.peerID, fileID, oldPath, newPath)
 	}
 }
 
@@ -1303,6 +1337,37 @@ func (c *WebRTCConnection) SendFileDelete(ctx context.Context, fileID string) er
 	log.Printf("🗑️ SendFileDelete sent frame: %x (len=%d)", frame, len(frame))
 
 	log.Printf("🗑️ Dosya silme bildirimi gönderildi (WebRTC): %s", fileID[:8])
+	return nil
+	return nil
+}
+
+// SendFileRename dosya yeniden adlandırma bildirimini gönderir
+func (c *WebRTCConnection) SendFileRename(ctx context.Context, fileID, oldPath, newPath string) error {
+	c.mu.RLock()
+	dc := c.dataChannel
+	connected := c.connected
+	c.mu.RUnlock()
+
+	if !connected || dc == nil {
+		return fmt.Errorf("bağlantı kurulu değil veya data channel yok")
+	}
+
+	if dc.ReadyState() != webrtc.DataChannelStateOpen {
+		return fmt.Errorf("data channel açık değil: %s", dc.ReadyState().String())
+	}
+
+	// File rename encode et
+	frame, err := c.protocol.EncodeFileRename(fileID, oldPath, newPath)
+	if err != nil {
+		return fmt.Errorf("file rename encode edilemedi: %w", err)
+	}
+
+	// Data channel üzerinden gönder
+	if err := dc.Send(frame); err != nil {
+		return fmt.Errorf("file rename gönderilemedi: %w", err)
+	}
+
+	log.Printf("📝 Dosya rename bildirimi gönderildi (WebRTC): %s (%s -> %s)", fileID[:8], oldPath, newPath)
 	return nil
 }
 
@@ -1585,6 +1650,11 @@ func (c *WebRTCConnection) SetOnTransferCancel(callback func(peerID, fileID stri
 // SetOnFileDelete callback'i ayarlar
 func (c *WebRTCConnection) SetOnFileDelete(callback func(peerID, fileID string)) {
 	c.onFileDelete = callback
+}
+
+// SetOnFileRename callback'i ayarlar
+func (c *WebRTCConnection) SetOnFileRename(callback func(peerID, fileID, oldPath, newPath string)) {
+	c.onFileRename = callback
 }
 
 // SetOnTransferFinish callback'i ayarlar

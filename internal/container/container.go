@@ -903,6 +903,13 @@ func (c *Container) initP2PTransport() error {
 			}
 		})
 
+		// WAN File rename callback
+		tempWAN.SetOnFileRename(func(peerID, fileID, oldPath, newPath string) {
+			if err := c.handleIncomingFileRename(context.Background(), fileID, oldPath, newPath); err != nil {
+				log.Printf("⚠️ Incoming file rename handling error: %v", err)
+			}
+		})
+
 		if err := tempWAN.Start(ctx); err != nil {
 			log.Printf("⚠️ WAN transport başlatılamadı: %v (yalnızca LAN ile devam ediliyor)", err)
 		} else {
@@ -1748,6 +1755,12 @@ func (c *Container) initFileWatcher() error {
 		return c.DeleteFileFromAllPeers(fileID, folderID)
 	})
 
+	// File renamed callback (RENAME için)
+	eventHandler.SetOnFileRenamed(func(fileID, oldPath, newPath string) error {
+		// Dosya adı değiştiğinde tüm peer'lara rename bildirimi gönder
+		return c.syncFileRenameToAllPeers(fileID, oldPath, newPath)
+	})
+
 	// Error handler
 	c.fileWatcher.OnError(func(err error) {
 		log.Printf("⚠️ File watcher hatası: %v", err)
@@ -1797,7 +1810,6 @@ func (c *Container) SymlinkManager() *filesystem.SymlinkManager {
 	return c.symlinkManager
 }
 
-// syncFileToAllPeers dosyayı tüm peer'lara sync eder (otomatik sync için)
 func (c *Container) syncFileToAllPeers(fileID, folderID string) error {
 	ctx := context.Background()
 
@@ -2320,3 +2332,101 @@ func (c *Container) handleIncomingFileDelete(ctx context.Context, peerID, fileID
 
 	return nil
 }
+
+
+// syncFileRenameToAllPeers dosya adının değiştiğini tüm peer'lara bildirir
+func (c *Container) syncFileRenameToAllPeers(fileID, oldPath, newPath string) error {
+	log.Printf("📝 Dosya yeniden adlandırma bildirimi gönderiliyor: %s -> %s (file: %s)", oldPath, newPath, fileID[:8])
+	
+	// Dosyanın hangi peer'larda olduğunu bul (file_peer_sync)
+	ctx := context.Background()
+	syncs, err := c.filePeerSyncRepo.GetByFileID(ctx, fileID)
+	if err != nil {
+		return fmt.Errorf("file-peer sync kayıtları alınamadı: %w", err)
+	}
+	
+	peerCount := 0
+	for _, sync := range syncs {
+		peerID := sync.PeerID
+		
+		// Bağlı mı kontrol et
+		if conn, exists := c.transportProvider.GetConnection(peerID); exists {
+			// WebRTC mi? (Şu an sadece WebRTC destekliyor)
+			if webrtcConn, ok := conn.(interface {
+				SendFileRename(ctx context.Context, fileID, oldPath, newPath string) error
+			}); ok {
+				if err := webrtcConn.SendFileRename(context.Background(), fileID, oldPath, newPath); err != nil {
+					log.Printf("⚠️ Rename bildirimi gönderilemedi (peer: %s): %v", peerID[:8], err)
+				} else {
+					log.Printf("  ✅ Rename bildirimi gönderildi: peer=%s", peerID[:8])
+					peerCount++
+				}
+			} else {
+				log.Printf("⚠️ Bağlantı tipi rename desteklemiyor: peer=%s", peerID[:8])
+			}
+		}
+	}
+	
+	if peerCount > 0 {
+		log.Printf("✅ Dosya rename bildirimi %d peer'a gönderildi", peerCount)
+	} else {
+		log.Printf("⚠️ Dosya rename bildirimi gönderilecek bağlı peer bulunamadı")
+	}
+	
+	return nil
+}
+
+// handleIncomingFileRename gelen dosya yeniden adlandırma bildirimini işler
+func (c *Container) handleIncomingFileRename(ctx context.Context, fileID, oldPath, newPath string) error {
+	log.Printf("📝 Incoming file rename: file=%s, old=%s, new=%s", fileID[:8], oldPath, newPath)
+	
+	// Dosyayı bul (ID ile)
+	file, err := c.fileRepo.GetByID(ctx, fileID)
+	if err != nil {
+		return fmt.Errorf("dosya bulunamadı: %w", err)
+	}
+	
+	// Folder'ı bul
+	folder, err := c.folderRepo.GetByID(ctx, file.FolderID)
+	if err != nil {
+		return fmt.Errorf("folder bulunamadı: %w", err)
+	}
+	
+	// Fiziksel yolları oluştur
+	oldAbsPath := filepath.Join(folder.LocalPath, oldPath)
+	newAbsPath := filepath.Join(folder.LocalPath, newPath)
+	
+	// 1. Fiziksel RENAME yap
+	// Önce eski dosya var mı kontrol et
+	if _, err := os.Stat(oldAbsPath); os.IsNotExist(err) {
+		log.Printf("⚠️ Eski dosya zaten yok, sadece DB güncellenecek: %s", oldAbsPath)
+	} else {
+		// Yeni dosya zaten var mı?
+		if _, err := os.Stat(newAbsPath); err == nil {
+			log.Printf("⚠️ Yeni dosya zaten var, üzerine yazılmayacak: %s", newAbsPath)
+		} else {
+			// Watcher'ın bunu ignore etmesi için:
+			if eh := c.eventHandler; eh != nil {
+				eh.IgnoreFile(folder.ID, oldPath)
+				eh.IgnoreFile(folder.ID, newPath)
+			}
+			
+			if err := os.Rename(oldAbsPath, newAbsPath); err != nil {
+				return fmt.Errorf("fiziksel rename hatası: %w", err)
+			}
+			log.Printf("  ✅ Fiziksel rename başarılı: %s -> %s", oldPath, newPath)
+		}
+	}
+	
+	// 2. DB GÜNCELLE
+	file.RelativePath = newPath
+	file.UpdatedAt = time.Now()
+	
+	if err := c.fileRepo.Update(ctx, file); err != nil {
+		return fmt.Errorf("DB update hatası: %w", err)
+	}
+	log.Printf("  ✅ DB rename başarılı: %s", fileID[:8])
+	
+	return nil
+}
+
