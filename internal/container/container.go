@@ -1814,10 +1814,11 @@ func (c *Container) initFileWatcher() error {
 		return c.DeleteFileFromAllPeers(fileID, folderID)
 	})
 
+
 	// Folder deleted callback (DELETE için)
-	eventHandler.SetOnFolderDeleted(func(folderID string) error {
+	eventHandler.SetOnFolderDeleted(func(folderID, folderPath string) error {
 		// Klasör silindiğinde tüm peer'lara silme bildirimi gönder
-		c.syncFolderDeleteToAllPeers(folderID)
+		c.syncFolderDeleteToAllPeers(folderID, folderPath)
 		return nil
 	})
 
@@ -2710,7 +2711,7 @@ func (c *Container) handleIncomingFolderCreate(ctx context.Context, peerID, fold
 }
 
 // syncFolderDeleteToAllPeers klasör silme işlemini tüm peer'lara bildirir
-func (c *Container) syncFolderDeleteToAllPeers(folderID string) {
+func (c *Container) syncFolderDeleteToAllPeers(folderID, relativePath string) {
 	if c.transportProvider == nil {
 		return
 	}
@@ -2721,13 +2722,13 @@ func (c *Container) syncFolderDeleteToAllPeers(folderID string) {
 		go func(conn transport.Connection) {
 			// Type assertion ile SendFolderDelete metoduna eriş
 			if tcpConn, ok := conn.(*lan.TCPConnection); ok {
-				if err := tcpConn.SendFolderDelete(folderID); err != nil {
+				if err := tcpConn.SendFolderDelete(folderID, relativePath); err != nil {
 					log.Printf("⚠️ Folder delete (LAN) gönderilemedi (%s): %v", folderID[:8], err)
 				}
 			} else if wanConn, ok := conn.(*wan.WebRTCConnection); ok {
 				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 				defer cancel()
-				if err := wanConn.SendFolderDelete(ctx, folderID); err != nil {
+				if err := wanConn.SendFolderDelete(ctx, folderID, relativePath); err != nil {
 					log.Printf("⚠️ Folder delete (WAN) gönderilemedi (%s): %v", folderID[:8], err)
 				}
 			}
@@ -2736,18 +2737,75 @@ func (c *Container) syncFolderDeleteToAllPeers(folderID string) {
 }
 
 // handleIncomingFolderDelete gelen klasör silme bildirimini işler
-func (c *Container) handleIncomingFolderDelete(peerID, folderFileID string) error {
+func (c *Container) handleIncomingFolderDelete(peerID, folderFileID, relativePath string) error {
 	ctx := context.Background()
-	log.Printf("Received FolderDelete from %s for folderFileID: %s", peerID[:8], folderFileID[:8])
+	log.Printf("Received FolderDelete from %s for folderFileID: %s, Path: %s", peerID[:8], folderFileID[:8], relativePath)
 
-	// 1. Silinecek klasörü DB'den bul
+	// 1. Silinecek klasörü DB'den bul (Önce ID ile)
 	file, err := c.fileRepo.GetByID(ctx, folderFileID)
 	if err != nil {
 		if err == entity.ErrNotFound {
-			log.Printf("ℹ️ Silinecek klasör zaten yok: %s", folderFileID)
-			return nil
-		}
-		return fmt.Errorf("klasör DB'den getirilemedi: %w", err)
+			// ID ile bulunamadı, PATH ile dene
+			log.Printf("ℹ️ ID ile klasör bulunamadı (%s), Path ile deneniyor: %s", folderFileID, relativePath)
+			if relativePath == "" {
+				log.Printf("ℹ️ Relative path boş, silinecek klasör bulunamadı")
+				return nil
+			}
+
+			// Root klasörleri tara ve path ile eşleşeni bul
+			// Not: FolderID'si bilinmediği için biraz zor.
+			// İdeal çözüm: relativePath içinde root folder isminden sonraki kısmı kullanarak aramak.
+			// Ancak burada sadece relativePath (örn: aaabbb/~$nemezart.docx değil, folder ise aaabbb/hehe) geliyor.
+			// FolderID, root folder'ın ID'si değil, silinecek klasörün ID'si.
+			// Yani DB'de Path ile aramak için, parent folder ID'sine veya full path'e ihtiyaç var.
+            // Fakat bizim FileRepo.GetByPath(folderID, relativePath) metodu var.
+            // Ama buradaki folderID, parent'ın ID'si olmalı. Bizde o yok.
+
+            // Çözüm: Tüm root folder'lar altında bu relativePath'e sahip dosya var mı diye bakılabilir ama pahalı.
+            // Alternatif: file tablosunda relative_path = ? olanları bul.
+            // Ancak relative_path unique değil (farklı rootlarda aynı path olabilir).
+            
+            // Eğer relativePath "aaabbb\hehe" ise, ve biz "yorma" (root) içindeysek...
+            // Payload'da root folder name yok.
+            // Protokolde sadece folder_id ve relative_path var.
+            
+            // Bu durumda: ID eşleşmiyorsa ve path varsa, 
+            // DB'de `relative_path` ve `is_directory=1` olan kayıtları bulup,
+            // bunlardan peer ile eşleşen (Sync ettiğimiz) bir kayıt var mı bakmak lazım.
+            // Veya daha basit: ID yoksa, o ID'ye ait silme işlemini yapamıyoruz demektir.
+            // Ama senaryoda: Karşı taraf yeni oluşturdu (farklı ID), biz de oluşturduk (farklı ID).
+            // Path'ler aynı.
+            // O zaman Path ile bulmalıyız.
+            
+            // FileRepo'ya FindByRelativePath And IsDirectory eklemek gerekebilir.
+            // Şimdilik Container seviyesinde bir hack yapabiliriz:
+            // Tüm folderları listele, her birinin altında bu path var mı bak.
+            
+            folders, err := c.folderRepo.GetAll(ctx)
+            if err != nil {
+                 log.Printf("⚠️ Klasörler listelenemedi: %v", err)
+                 return nil
+            }
+            
+            var targetFile *entity.File
+            for _, rootFolder := range folders {
+                f, err := c.fileRepo.GetByPath(ctx, rootFolder.ID, relativePath)
+                if err == nil && f != nil && f.IsDirectory {
+                    targetFile = f
+                    break
+                }
+            }
+            
+            if targetFile != nil {
+                log.Printf("✅ Path ile klasör bulundu: ID=%s (Root: %s)", targetFile.ID, targetFile.FolderID)
+                file = targetFile
+            } else {
+                 log.Printf("ℹ️ Path ile de klasör bulunamadı: %s", relativePath)
+                 return nil
+            }
+		} else {
+		    return fmt.Errorf("klasör DB'den getirilemedi: %w", err)
+        }
 	}
 
 	if !file.IsDirectory {

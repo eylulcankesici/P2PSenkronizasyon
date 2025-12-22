@@ -155,22 +155,25 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 		// Data channel varsa onu kullan, yoksa nil geç (OnDataChannel ile beklenecek)
 		webrtcConn := NewWebRTCConnection(peer.DeviceID, peer.DeviceName, m.deviceName, pendingPeer, dc)
 
-		// Callback'leri bağla
-		webrtcConn.SetOnConnectionRequested(func(deviceID, deviceName string) {
-			m.AddPendingConnection(deviceID, deviceName, "")
-		})
-		if m.chunkHandler != nil {
-			webrtcConn.SetChunkHandler(m.chunkHandler)
-		}
-		if m.onChunkReceived != nil {
-			webrtcConn.SetOnChunkReceived(m.onChunkReceived)
-		}
-		if m.onFileRename != nil {
-			webrtcConn.SetOnFileRename(m.onFileRename)
-		}
-		if m.onFolderCreate != nil {
-			webrtcConn.SetOnFolderCreate(m.onFolderCreate)
-		}
+	// Callback'leri bağla
+	webrtcConn.SetOnConnectionRequested(func(deviceID, deviceName string) {
+		m.AddPendingConnection(deviceID, deviceName, "")
+	})
+	if m.chunkHandler != nil {
+		webrtcConn.SetChunkHandler(m.chunkHandler)
+	}
+	if m.onChunkReceived != nil {
+		webrtcConn.SetOnChunkReceived(m.onChunkReceived)
+	}
+	if m.onFileRename != nil {
+		webrtcConn.SetOnFileRename(m.onFileRename)
+	}
+	if m.onFolderCreate != nil {
+		webrtcConn.SetOnFolderCreate(m.onFolderCreate)
+	}
+	if m.onFolderDelete != nil {
+		webrtcConn.SetOnFolderDelete(m.onFolderDelete)
+	}
 		if m.onFolderDelete != nil {
 			webrtcConn.SetOnFileDelete(m.onFolderDelete)
 		}
@@ -972,7 +975,7 @@ type WebRTCConnection struct {
 	onTransferFinish      func(peerID, fileID string)
 	onTransferFinishAck   func(peerID, fileID string)
 	onFolderCreate        func(peerID, folderID, folderName, relativePath string)
-	onFolderDelete        func(peerID, folderID string)
+	onFolderDelete        func(peerID, folderID, relativePath string)
 
 	// Fragmentation
 	fragmentBuffer map[string]*fragmentAssembler
@@ -1408,7 +1411,7 @@ func (c *WebRTCConnection) SendFileRename(ctx context.Context, fileID, oldPath, 
 }
 
 // SendFolderDelete klasör silme bildirimini gönderir
-func (c *WebRTCConnection) SendFolderDelete(ctx context.Context, folderID string) error {
+func (c *WebRTCConnection) SendFolderDelete(ctx context.Context, folderID, relativePath string) error {
 	c.mu.RLock()
 	dc := c.dataChannel
 	connected := c.connected
@@ -1424,7 +1427,8 @@ func (c *WebRTCConnection) SendFolderDelete(ctx context.Context, folderID string
 
 	// Payload hazırla
 	payload := map[string]string{
-		"folder_id": folderID,
+		"folder_id":     folderID,
+		"relative_path": relativePath,
 	}
 
 	payloadBytes, err := json.Marshal(payload)
@@ -2059,7 +2063,7 @@ func (c *WebRTCConnection) SetOnFolderCreate(callback func(peerID, folderID, fol
 	c.onFolderCreate = callback
 }
 
-func (c *WebRTCConnection) SetOnFolderDelete(callback func(peerID, folderID string)) {
+func (c *WebRTCConnection) SetOnFolderDelete(callback func(peerID, folderID, relativePath string)) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.onFolderDelete = callback

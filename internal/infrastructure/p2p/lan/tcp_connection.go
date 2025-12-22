@@ -1011,7 +1011,7 @@ type TCPConnectionManager struct {
 	onTransferCancel        func(peerID, fileID string) // Transfer iptal bildirimi callback'i
 	onFileDelete            func(peerID, fileID string) // Dosya silme bildirimi callback'i
 	onFolderCreate          func(peerID, folderID, folderName, relativePath string) // Klasör oluşturma bildirimi callback'i
-	onFolderDelete          func(peerID, folderID string)                           // Klasör silme bildirimi callback'i
+	onFolderDelete          func(peerID, folderID, relativePath string)             // Klasör silme bildirimi callback'i
 }
 
 // NewTCPConnectionManager yeni TCP connection manager oluşturur
@@ -1286,7 +1286,7 @@ func (m *TCPConnectionManager) SetOnFolderCreate(callback func(peerID, folderID,
 }
 
 // SetOnFolderDelete klasör silme callback'ini ayarlar
-func (m *TCPConnectionManager) SetOnFolderDelete(callback func(peerID, folderID string)) {
+func (m *TCPConnectionManager) SetOnFolderDelete(callback func(peerID, folderID, relativePath string)) {
 	m.onFolderDelete = callback
 }
 
@@ -1359,13 +1359,14 @@ func (m *TCPConnectionManager) RejectConnection(deviceID string) error {
 }
 
 // SendFolderDelete klasör silme bildirimi gönderir
-func (c *TCPConnection) SendFolderDelete(folderID string) error {
+func (c *TCPConnection) SendFolderDelete(folderID, relativePath string) error {
 	c.sendMu.Lock()
 	defer c.sendMu.Unlock()
 
 	// Payload oluştur
 	payload := map[string]string{
-		"folder_id": folderID,
+		"folder_id":     folderID,
+		"relative_path": relativePath,
 	}
 	
 	payloadBytes, err := json.Marshal(payload)

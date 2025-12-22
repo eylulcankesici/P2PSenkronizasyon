@@ -33,7 +33,7 @@ type EventHandler struct {
 	onChunksChanged func(fileID, folderID string, changedChunks []int) error // Sadece değişen chunk'lar için sync (MODIFY)
 	onFileDeleted   func(fileID, folderID string) error                      // Dosya silindi sync (DELETE)
 	onFileRenamed   func(fileID, oldPath, newPath string) error              // Dosya yeniden adlandırıldı sync (RENAME)
-	onFolderDeleted func(folderID string) error                              // Klasör silindi sync (DELETE)
+	onFolderDeleted func(folderID, folderPath string) error                  // Klasör silindi sync (DELETE)
 
 	// Event broadcaster (UI için)
 	eventBroadcaster *EventBroadcaster
@@ -529,7 +529,7 @@ func (h *EventHandler) handleDelete(event *FileEvent) error {
 		// Klasör silme bildirimi gönder
 		if h.onFolderDeleted != nil {
 			log.Printf("📂 Klasör silindi - karşı tarafa bildirim gönderiliyor: %s", event.Path)
-			if err := h.onFolderDeleted(fileID); err != nil {
+			if err := h.onFolderDeleted(fileID, event.Path); err != nil {
 				log.Printf("⚠️ Klasör silme sync hatası (%s): %v", event.Path, err)
 			}
 		}
@@ -612,7 +612,7 @@ func (h *EventHandler) SetOnFileRenamed(callback func(fileID, oldPath, newPath s
 }
 
 // SetOnFolderDeleted folder deleted callback'i ayarlar
-func (h *EventHandler) SetOnFolderDeleted(callback func(folderID string) error) {
+func (h *EventHandler) SetOnFolderDeleted(callback func(folderID, folderPath string) error) {
 	h.onFolderDeleted = callback
 }
 
