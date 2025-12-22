@@ -373,9 +373,10 @@ func (h *EventHandler) handleModify(event *FileEvent) error {
 		return fmt.Errorf("dosya bilgisi alınamadı: %w", err)
 	}
 
-	// Dizinse atla
+	// Dizinse, içeriğini tara (Window quirk: dosya silinince bazen sadece klasör modify eventi geliyor)
 	if fileInfo.IsDir() {
-		return nil
+		log.Printf("📂 Folder MODIFIED (Scanning for changes): %s", event.Path)
+		return h.scanDirectory(ctx, event.FolderID, event.Path, event.AbsPath)
 	}
 
 	log.Printf("📝 MODIFY: %s (folder: %s)", event.Path, event.FolderID[:8])
@@ -598,7 +599,144 @@ func (h *EventHandler) SetOnFileRenamed(callback func(fileID, oldPath, newPath s
 	h.onFileRenamed = callback
 }
 
-// IgnoreFile dosyayı ignore listesine ekler (kullanıcı tarafından silindi, file watcher tekrar eklememeli)
+// scanDirectory klasör içeriğini tarar ve DB ile karşılaştırarak eksik/yeni dosyaları tespit eder
+func (h *EventHandler) scanDirectory(ctx context.Context, folderID, relativePath, absPath string) error {
+	log.Printf("🔍 Directory Scan Started: %s (Abs: %s)", relativePath, absPath)
+
+	// 1. Disk üzerindeki dosyaları listele
+	entries, err := os.ReadDir(absPath)
+	if err != nil {
+		return fmt.Errorf("klasör okunamadı: %w", err)
+	}
+
+	diskFiles := make(map[string]bool)
+	for _, entry := range entries {
+		// Sadece dosyaları dikkate al (klasörler recursive izleniyor)
+		if !entry.IsDir() {
+			diskFiles[entry.Name()] = true
+		}
+	}
+
+	// 2. DB'deki dosyaları çek
+	allDbFiles, err := h.fileRepo.GetByFolderID(ctx, folderID)
+	if err != nil {
+		return fmt.Errorf("DB dosyaları alınamadı: %w", err)
+	}
+
+	// Bu klasör altındaki dosyaları filtrele
+	// relativePath: "tesssst" -> Dosyalar: "tesssst/file.txt"
+	targetPrefix := relativePath
+	if targetPrefix == "." {
+		targetPrefix = ""
+	} else if targetPrefix != "" {
+		targetPrefix = targetPrefix + string(os.PathSeparator)
+	}
+
+	foundInDb := 0
+	deletedCount := 0
+
+	// 3. Karşılaştırma döngüsü
+	for _, dbFile := range allDbFiles {
+		// Sadece bu klasörün DOĞRUDAN altındaki dosyalarla ilgileniyoruz
+		if !strings.HasPrefix(dbFile.RelativePath, targetPrefix) {
+			continue
+		}
+		remainder := strings.TrimPrefix(dbFile.RelativePath, targetPrefix)
+		if strings.Contains(remainder, string(os.PathSeparator)) {
+			continue // Alt klasör dosyası
+		}
+		if dbFile.IsDirectory {
+			continue
+		}
+
+		foundInDb++
+
+		// A) SİLİNMİŞ DOSYA: DB'de var ama Diskte yok
+		if !diskFiles[remainder] {
+			log.Printf("🗑️ Scan detected missing file: %s", dbFile.RelativePath)
+			deleteEvent := &FileEvent{
+				Type:     EventTypeDelete,
+				FolderID: folderID,
+				Path:     dbFile.RelativePath,
+				AbsPath:  filepath.Join(absPath, remainder),
+			}
+			if err := h.handleDelete(deleteEvent); err != nil {
+				log.Printf("⚠️ Scan delete handler error: %v", err)
+			}
+			deletedCount++
+		} else {
+			// B) DEĞİŞMİŞ DOSYA: DB'de var ve Diskte de var -> Değişiklik kontrolü
+			// Disk bilgilerini al (yukarıda ReadDir yaptık ama Stat gerekebilir veya DirEntry info yeterli mi?)
+			// DirEntry Info() cached olabilir, taze Stat daha güvenli.
+			fullPath := filepath.Join(absPath, remainder)
+			info, err := os.Stat(fullPath)
+			if err != nil {
+				log.Printf("⚠️ Stat failed for comparison: %s", fullPath)
+				continue
+			}
+
+			// UnixMilli karşılaştırması veya Size
+			// Not: ModTime hassasiyeti (Windows vs SQL) fark edebilir. 
+			// 1-2 saniyelik tolerans veya sadece ciddi fark varsa?
+			// Aether chunking tabanlı olduğu için, içerik değişmişse chunk hashler değişir.
+			// Ama burada modification event tetiklemek istiyoruz.
+			
+			timeDiff := info.ModTime().Sub(dbFile.ModTime)
+			if timeDiff < 0 { timeDiff = -timeDiff }
+
+			if info.Size() != dbFile.Size || timeDiff > 2*time.Second {
+				log.Printf("📝 Scan detected modified file: %s (Size: %d vs %d, TimeDiff: %v)", 
+					dbFile.RelativePath, info.Size(), dbFile.Size, timeDiff)
+				
+				modifyEvent := &FileEvent{
+					Type:     EventTypeModify,
+					FolderID: folderID,
+					Path:     dbFile.RelativePath,
+					AbsPath:  fullPath,
+					Timestamp: time.Now(),
+				}
+				if err := h.handleModify(modifyEvent); err != nil {
+					log.Printf("⚠️ Scan modify handler error: %v", err)
+				}
+			}
+			
+			// Bu dosyayı "işlendi" olarak işaretle (Yeni dosya kontrolü için map'ten çıkarabiliriz ama loop içindeyiz)
+			// diskFiles map'inden çıkaralım, geriye kalanlar YENİ olacak.
+			delete(diskFiles, remainder)
+		}
+	}
+
+	// 4. YENİ DOSYA: Diskte var ama DB'de yok (diskFiles map'inde kalanlar)
+	// (Rename sonucu oluşan "yeni isim" de buraya düşer)
+	for fileName := range diskFiles {
+		fullPath := filepath.Join(absPath, fileName)
+		relativePathForNew := fileName
+		if targetPrefix != "" {
+			relativePathForNew = targetPrefix + fileName 
+			// targetPrefix already has separator if not empty? 
+			// Wait, logic above: targetPrefix = relativePath + Separator.
+			// But diskFiles keys are just entry.Name().
+			// Example: targetPrefix="subdir/", fileName="new.txt" -> "subdir/new.txt". Correct.
+		}
+
+		log.Printf("📄 Scan detected NEW file: %s", relativePathForNew)
+		
+		createEvent := &FileEvent{
+			Type:     EventTypeCreate,
+			FolderID: folderID,
+			Path:     relativePathForNew,
+			AbsPath:  fullPath,
+			Timestamp: time.Now(),
+		}
+		
+		if err := h.handleCreate(createEvent); err != nil {
+			log.Printf("⚠️ Scan create handler error: %v", err)
+		}
+	}
+
+	log.Printf("✅ Scan Completed: %s (Deleted: %d, New/Checked: See logs)", relativePath, deletedCount)
+	return nil
+}
 // 3 saniye boyunca ignore edilir (tekrar eklenirse döngü oluşmasın diye)
 func (h *EventHandler) IgnoreFile(folderID, relativePath string) {
 	ignoreKey := fmt.Sprintf("%s:%s", folderID, relativePath)
