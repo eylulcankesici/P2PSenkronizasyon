@@ -171,6 +171,9 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 		if m.onFolderCreate != nil {
 			webrtcConn.SetOnFolderCreate(m.onFolderCreate)
 		}
+		if m.onFolderDelete != nil {
+			webrtcConn.SetOnFileDelete(m.onFolderDelete)
+		}
 
 		// Handshake isteği gönder
 		go func() {
@@ -765,6 +768,9 @@ func (m *WebRTCConnectionManager) RegisterConnection(deviceID string, conn *WebR
 	if m.onFolderCreate != nil {
 		conn.SetOnFolderCreate(m.onFolderCreate)
 	}
+	if m.onFolderDelete != nil {
+		conn.SetOnFolderDelete(m.onFolderDelete)
+	}
 	if m.onTransferFinish != nil {
 		conn.SetOnTransferFinish(m.onTransferFinish)
 	}
@@ -881,6 +887,9 @@ func (m *WebRTCConnectionManager) HandleAnswer(deviceID, deviceName, answerSDP s
 		if m.onFolderCreate != nil {
 			conn.SetOnFolderCreate(m.onFolderCreate)
 		}
+		if m.onFolderDelete != nil {
+			conn.SetOnFileDelete(m.onFolderDelete)
+		}
 
 		// Connection'ı kaydet
 		m.mu.Lock()
@@ -963,6 +972,7 @@ type WebRTCConnection struct {
 	onTransferFinish      func(peerID, fileID string)
 	onTransferFinishAck   func(peerID, fileID string)
 	onFolderCreate        func(peerID, folderID, folderName, relativePath string)
+	onFolderDelete        func(peerID, folderID string)
 
 	// Fragmentation
 	fragmentBuffer map[string]*fragmentAssembler
@@ -2047,6 +2057,12 @@ func (c *WebRTCConnection) SetOnFolderCreate(callback func(peerID, folderID, fol
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.onFolderCreate = callback
+}
+
+func (c *WebRTCConnection) SetOnFolderDelete(callback func(peerID, folderID string)) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.onFolderDelete = callback
 }
 
 // handleFolderCreate gelen klasör oluşturma mesajını işler
