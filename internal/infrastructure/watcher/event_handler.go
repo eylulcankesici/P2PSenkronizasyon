@@ -490,6 +490,21 @@ func (h *EventHandler) handleDelete(event *FileEvent) error {
 
 	log.Printf("🗑️ DELETE: %s (folder: %s)", event.Path, event.FolderID[:8])
 
+	// Ignore listesi kontrol et (File Watcher echo önleme)
+	ignoreKey := fmt.Sprintf("%s:%s", event.FolderID, event.Path)
+	if val, ok := h.ignoredFiles.Load(ignoreKey); ok {
+		expiry := val.(time.Time)
+		if time.Now().Before(expiry) {
+			log.Printf("🚫 DELETE ignored (kullanıcı/sistem tarafından zaten silindi, expires in %v): %s", time.Until(expiry), event.Path)
+			return nil
+		} else {
+			log.Printf("✅ DELETE not ignored (expiry passed): %s", event.Path)
+			h.ignoredFiles.Delete(ignoreKey)
+		}
+	} else {
+		log.Printf("✅ DELETE not ignored (not in ignore list): %s", event.Path)
+	}
+
 	// Veritabanında dosyayı bul
 	file, err := h.fileRepo.GetByPath(ctx, event.FolderID, event.Path)
 	if err != nil {
