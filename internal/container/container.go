@@ -2104,6 +2104,17 @@ func (c *Container) syncChangedChunksToAllPeers(fileID, folderID string, changed
 		}
 	}
 
+	// EĞER HALA SYNC EDİLECEK PEER YOKSA (harita boşsa):
+	// Demek ki bu dosya (ve folder'daki diğer dosyalar) daha önce hiç sync edilmemiş.
+	// Bu durumda, bağlı olan TÜM peer'lara sync etmeyi denemeliyiz (Fallback).
+	if len(syncedPeerIDsMap) == 0 {
+		log.Printf("  ℹ️  Delta Sync: Folder history yok, tüm bağlı peer'lar aday olarak ekleniyor")
+		for _, conn := range allConnections {
+			pid := conn.GetPeerID()
+			syncedPeerIDsMap[pid] = true
+		}
+	}
+
 	// Otomatik sync için: gönderen mod = folder'ın sync mode'u, alıcı mod = BIDIRECTIONAL (varsayılan)
 	senderModeProto := convertEntitySyncModeToProto(folder.SyncMode)
 	receiverModeProto := pb.SyncMode_SYNC_MODE_BIDIRECTIONAL

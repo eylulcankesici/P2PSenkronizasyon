@@ -41,6 +41,8 @@ message Folder {
   bool is_active = 5;
   google.protobuf.Timestamp created_at = 6;
   google.protobuf.Timestamp updated_at = 7;
+  int64 size_bytes = 8;
+  int32 file_count = 9;
 }
 
 message CreateFolderRequest {
