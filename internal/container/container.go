@@ -567,6 +567,7 @@ func (c *Container) initUseCases() error {
 
 
 
+
 		// Klasör oluşturma callback'ini bağla
 		connMgr.SetOnFolderCreate(func(peerID, folderID, folderName, relativePath string) {
 			if err := c.handleIncomingFolderCreate(context.Background(), peerID, folderID, folderName, relativePath); err != nil {
@@ -574,7 +575,14 @@ func (c *Container) initUseCases() error {
 			}
 		})
 
-		log.Println("✓ Dosya silme callback bağlandı (LAN)")
+		// Klasör silme callback'ini bağla
+		connMgr.SetOnFolderDelete(func(peerID, folderID string) {
+			if err := c.handleIncomingFolderDelete(peerID, folderID); err != nil {
+				log.Printf("⚠️ Incoming folder delete handling error (LAN): %v", err)
+			}
+		})
+
+		log.Println("✓ Dosya/Klasör silme callback bağlandı (LAN)")
 	}
 
 	if c.wanTransport != nil {
@@ -672,6 +680,7 @@ func (c *Container) initUseCases() error {
 				}
 			})
 			
+
 			// Klasör oluşturma callback'ini bağla
 			connMgr.SetOnFolderCreate(func(peerID, folderID, folderName, relativePath string) {
 				if err := c.handleIncomingFolderCreate(context.Background(), peerID, folderID, folderName, relativePath); err != nil {
@@ -679,7 +688,14 @@ func (c *Container) initUseCases() error {
 				}
 			})
 
-			log.Println("✓ Dosya silme callback bağlandı (WAN)")
+			// Klasör silme callback'ini bağla
+			connMgr.SetOnFolderDelete(func(peerID, folderID string) {
+				if err := c.handleIncomingFolderDelete(peerID, folderID); err != nil {
+					log.Printf("⚠️ Incoming folder delete handling error (WAN): %v", err)
+				}
+			})
+
+			log.Println("✓ Dosya/Klasör silme callback bağlandı (WAN)")
 		}
 	}
 
