@@ -576,8 +576,8 @@ func (c *Container) initUseCases() error {
 		})
 
 		// Klasör silme callback'ini bağla
-		connMgr.SetOnFolderDelete(func(peerID, folderID string) {
-			if err := c.handleIncomingFolderDelete(peerID, folderID); err != nil {
+		connMgr.SetOnFolderDelete(func(peerID, folderID, relativePath string) {
+			if err := c.handleIncomingFolderDelete(peerID, folderID, relativePath); err != nil {
 				log.Printf("⚠️ Incoming folder delete handling error (LAN): %v", err)
 			}
 		})
@@ -689,8 +689,8 @@ func (c *Container) initUseCases() error {
 			})
 
 			// Klasör silme callback'ini bağla
-			connMgr.SetOnFolderDelete(func(peerID, folderID string) {
-				if err := c.handleIncomingFolderDelete(peerID, folderID); err != nil {
+			connMgr.SetOnFolderDelete(func(peerID, folderID, relativePath string) {
+				if err := c.handleIncomingFolderDelete(peerID, folderID, relativePath); err != nil {
 					log.Printf("⚠️ Incoming folder delete handling error (WAN): %v", err)
 				}
 			})

@@ -62,7 +62,7 @@ type WebRTCConnectionManager struct {
 	onTransferFinish    func(peerID, fileID string)
 	onTransferFinishAck func(peerID, fileID string)
 	onFolderCreate      func(peerID, folderID, folderName, relativePath string)
-	onFolderDelete      func(peerID, folderID string)
+	onFolderDelete      func(peerID, folderID, relativePath string)
 	chunkHandler        func(chunkHash string) ([]byte, error)
 	onPeerIDUpdated     func(oldID, newID, newName string)
 }
@@ -174,11 +174,8 @@ func (m *WebRTCConnectionManager) Connect(ctx context.Context, peer *transport.D
 	if m.onFolderDelete != nil {
 		webrtcConn.SetOnFolderDelete(m.onFolderDelete)
 	}
-		if m.onFolderDelete != nil {
-			webrtcConn.SetOnFileDelete(m.onFolderDelete)
-		}
 
-		// Handshake isteği gönder
+	// Handshake isteği gönder
 		go func() {
 			// Data channel açılana kadar bekle (max 30 saniye)
 			log.Printf("⏳ Data channel bekleniyor (max 30s)...")
@@ -553,7 +550,7 @@ func (m *WebRTCConnectionManager) SetOnFolderCreate(callback func(peerID, folder
 }
 
 // SetOnFolderDelete klasör silme callback'ini ayarlar
-func (m *WebRTCConnectionManager) SetOnFolderDelete(callback func(peerID, folderID string)) {
+func (m *WebRTCConnectionManager) SetOnFolderDelete(callback func(peerID, folderID, relativePath string)) {
 	m.onFolderDelete = callback
 }
 
@@ -891,7 +888,7 @@ func (m *WebRTCConnectionManager) HandleAnswer(deviceID, deviceName, answerSDP s
 			conn.SetOnFolderCreate(m.onFolderCreate)
 		}
 		if m.onFolderDelete != nil {
-			conn.SetOnFileDelete(m.onFolderDelete)
+			conn.SetOnFolderDelete(m.onFolderDelete)
 		}
 
 		// Connection'ı kaydet
@@ -1452,6 +1449,7 @@ func (c *WebRTCConnection) SendFolderDelete(ctx context.Context, folderID, relat
 }
 
 // handleFolderDelete klasör silme mesajını işler
+// handleFolderDelete klasör silme mesajını işler
 func (c *WebRTCConnection) handleFolderDelete(payload []byte) {
 	var req map[string]string
 	if err := json.Unmarshal(payload, &req); err != nil {
@@ -1459,8 +1457,17 @@ func (c *WebRTCConnection) handleFolderDelete(payload []byte) {
 		return
 	}
 
-	if c.onFolderDelete != nil {
-		c.onFolderDelete(c.peerID, req["folder_id"])
+	folderID := req["folder_id"]
+	relativePath := req["relative_path"]
+
+	log.Printf("🗑️ Klasör silme bildirimi alındı (WebRTC): %s (Path: %s)", folderID[:8], relativePath)
+
+	c.mu.RLock()
+	callback := c.onFolderDelete
+	c.mu.RUnlock()
+
+	if callback != nil {
+		callback(c.peerID, folderID, relativePath)
 	}
 }
 

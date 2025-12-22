@@ -1403,32 +1403,14 @@ func (c *TCPConnection) handleFolderDelete(payload []byte) error {
 	}
 
 	folderID := req["folder_id"]
+	relativePath := req["relative_path"]
 
-	log.Printf("🗑️ Klasör silme bildirimi alındı: %s", folderID[:8])
+	log.Printf("🗑️ Klasör silme bildirimi alındı: %s (Path: %s)", folderID[:8], relativePath)
 
 	// Callback çağır
 	if c.manager != nil && c.manager.onFileDelete != nil {
-		// Folder silme callback'i ayrı olmalı ama MVP için file delete callback'ini kullanabiliriz?
-		// HAYIR, user FolderDelete için ayrı callback istedi.
-		// Manager'a SetOnFolderDelete eklemem lazım.
-		// Şu anlık hack: FileDelete çağırıp özel bir flag mi? 
-		// Hayır, temiz yapalım. onFolderDelete callback'i connection_manager'a eklenmeli.
-		// Ama interface'i değiştirmek büyük iş.
-		// Manager struct'ına bakalım.
-		
-		// Manager'da onFolderDelete yok gibi.
-		// O zaman FileDelete'i kullanalım ama "IsFolder" gibi bir parametre yok.
-		// FolderHandler tarafında "Bu ID file mı folder mı?" diye bakılabilir mi?
-		// Evet, fakat FolderID ile FileID çakışmaz (UUID).
-		// Eğer FileDelete callback'ine folderID verirsek, handler bunu file repository'de bulamaz.
-		// Folder repository'de bulur.
-		
-		// O yüzden şimdilik manager'a yeni callback ekleyelim ya da var olanı inceleyelim.
-		// Manager.SetOnFolderDelete yok.
-		// O zaman ekleyelim.
-		
 		if c.manager.onFolderDelete != nil {
-			c.manager.onFolderDelete(c.peerID, folderID)
+			c.manager.onFolderDelete(c.peerID, folderID, relativePath)
 		} else {
 			log.Printf("⚠️ Folder delete callback tanımlı değil")
 		}
