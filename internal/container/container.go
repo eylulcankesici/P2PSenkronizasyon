@@ -1867,6 +1867,8 @@ func (c *Container) syncFileToAllPeers(fileID, folderID string) error {
 	// UNSPECIFIED ise sync atla (henüz senkronizasyon modu belirlenmemiş)
 	// RECEIVE_ONLY ise karşıya gönderme
 	// SEND_ONLY veya BIDIRECTIONAL ise karşıya gönder
+	log.Printf("🔄 SyncCheck: FolderID=%s, SyncMode=%v", folderID[:8], folder.SyncMode)
+
 	if folder.SyncMode == entity.SyncModeUnspecified {
 		log.Printf("  ℹ️  Folder sync mode henüz belirlenmemiş, yeni dosya sync atlanıyor: %s", folderID[:8])
 		return nil
@@ -2647,6 +2649,7 @@ func (c *Container) handleIncomingFolderCreate(ctx context.Context, peerID, fold
 	absPath := filepath.Join(folder.LocalPath, relativePath)
 
 	// File Watcher'ı geçici olarak ignore et (loop'u önlemek için)
+	// File Watcher'ı geçici olarak ignore et (loop'u önlemek için)
 	c.eventHandler.IgnoreFile(folderID, relativePath)
 
 	// Klasörü oluştur (fiziksel)
@@ -2654,10 +2657,21 @@ func (c *Container) handleIncomingFolderCreate(ctx context.Context, peerID, fold
 		return fmt.Errorf("klasör oluşturulamadı: %w", err)
 	}
 
+	// YENİ EKLENEN: Klasörü watch listesine ekle (HER DURUMDA)
+	// DB'de olsa bile watcher'da olmayabilir.
+	if fw := c.FileWatcher(); fw != nil {
+		if err := fw.AddPath(absPath); err != nil {
+			log.Printf("⚠️ Klasör watch listesine eklenemedi (%s): %v", absPath, err)
+		} else {
+			log.Printf("resurrect Klasör watch listesine eklendi: %s", absPath)
+		}
+	}
+
 	// DB'de var mı kontrol et
 	existingFile, err := c.fileRepo.GetByPath(ctx, folderID, relativePath)
 	if err == nil && existingFile != nil {
 		// Zaten var, güncellemeye gerek yok
+		log.Printf("ℹ️ Klasör zaten DB'de var: %s", relativePath)
 		return nil
 	}
 
@@ -2666,16 +2680,6 @@ func (c *Container) handleIncomingFolderCreate(ctx context.Context, peerID, fold
 	newFile := entity.NewFile(folderID, relativePath, 0, time.Now(), true)
 	if err := c.fileRepo.Create(ctx, newFile); err != nil {
 		return fmt.Errorf("klasör DB'ye kaydedilemedi: %w", err)
-	}
-
-	// YENİ EKLENEN: Klasörü watch listesine ekle
-	// (IgnoreFile yapıldığı için fsnotify ile yakalanmayabilir, manuel ekliyoruz)
-	if fw := c.FileWatcher(); fw != nil {
-		if err := fw.AddPath(absPath); err != nil {
-			log.Printf("⚠️ Klasör watch listesine eklenemedi (%s): %v", absPath, err)
-		} else {
-			log.Printf("resurrect Klasör watch listesine eklendi: %s", absPath)
-		}
 	}
 
 	log.Printf("✅ Klasör oluşturuldu ve DB'ye kaydedildi: %s", relativePath)

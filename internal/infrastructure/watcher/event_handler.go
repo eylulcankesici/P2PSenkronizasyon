@@ -155,15 +155,21 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 	// (Kullanıcı tarafından silinen dosyalar file watcher tarafından tekrar eklenmemeli)
 	// (Kullanıcı tarafından silinen dosyalar file watcher tarafından tekrar eklenmemeli)
 	ignoreKey := fmt.Sprintf("%s:%s", event.FolderID, event.Path)
-	if val, ok := h.ignoredFiles.Load(ignoreKey); ok {
+	
+	// Log every event and ignore decision
+	val, ok := h.ignoredFiles.Load(ignoreKey)
+	if ok {
 		expiry := val.(time.Time)
 		if time.Now().Before(expiry) {
 			log.Printf("🚫 CREATE ignored (kullanıcı tarafından silindi, expires in %v): %s", time.Until(expiry), event.Path)
 			return nil // Ignore et, ekleme
 		} else {
 			// Süresi dolmuş, listeden sil
+			log.Printf("✅ CREATE not ignored (expiry passed): %s", event.Path)
 			h.ignoredFiles.Delete(ignoreKey)
 		}
+	} else {
+		log.Printf("✅ CREATE not ignored (not in ignore list): %s", event.Path)
 	}
 
 	log.Printf("📄 CREATE: %s (folder: %s)", event.Path, event.FolderID[:8])
