@@ -2695,10 +2695,10 @@ func (c *Container) handleIncomingFolderCreate(ctx context.Context, peerID, fold
 
 // syncFolderDeleteToAllPeers klasör silme işlemini tüm peer'lara bildirir
 func (c *Container) syncFolderDeleteToAllPeers(folderID string) {
-	connections := c.lanConnManager.GetAllConnections()
-	if c.wanConnManager != nil {
-		connections = append(connections, c.wanConnManager.GetAllConnections()...)
+	if c.transportProvider == nil {
+		return
 	}
+	connections := c.transportProvider.GetAllConnections()
 
 	for _, conn := range connections {
 		// Her peer'a gönder
