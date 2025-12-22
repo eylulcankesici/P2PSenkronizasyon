@@ -375,6 +375,21 @@ func (fw *FileWatcher) notifyError(err error) {
 	}
 }
 
+// AddPath belirli bir yolu (ve alt dizinlerini) watch listesine ekler (Public)
+func (fw *FileWatcher) AddPath(absPath string) error {
+	if fw.watcher == nil {
+		return fmt.Errorf("watcher başlatılmamış")
+	}
+
+	// Ana dizini ekle
+	if err := fw.watcher.Add(absPath); err != nil {
+		return fmt.Errorf("watcher'a eklenemedi: %w", err)
+	}
+
+	// Alt dizinleri de recursive ekle
+	return fw.addSubdirectories(absPath)
+}
+
 // GetWatchedFolders izlenen klasörleri döner
 func (fw *FileWatcher) GetWatchedFolders() []string {
 	fw.mu.RLock()

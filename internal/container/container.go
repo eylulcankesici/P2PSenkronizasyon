@@ -2668,6 +2668,16 @@ func (c *Container) handleIncomingFolderCreate(ctx context.Context, peerID, fold
 		return fmt.Errorf("klasör DB'ye kaydedilemedi: %w", err)
 	}
 
+	// YENİ EKLENEN: Klasörü watch listesine ekle
+	// (IgnoreFile yapıldığı için fsnotify ile yakalanmayabilir, manuel ekliyoruz)
+	if fw := c.FileWatcher(); fw != nil {
+		if err := fw.AddPath(absPath); err != nil {
+			log.Printf("⚠️ Klasör watch listesine eklenemedi (%s): %v", absPath, err)
+		} else {
+			log.Printf("resurrect Klasör watch listesine eklendi: %s", absPath)
+		}
+	}
+
 	log.Printf("✅ Klasör oluşturuldu ve DB'ye kaydedildi: %s", relativePath)
 	return nil
 }
