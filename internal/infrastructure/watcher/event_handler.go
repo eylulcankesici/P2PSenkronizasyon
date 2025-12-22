@@ -272,12 +272,54 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 		return fmt.Errorf("dosya kaydedilemedi: %w", err)
 	}
 
-	// Eğer klasör ise chunking yapma, direkt sync tetikle
+	// Eğer klasör ise, recursive olarak tara ve içindeki dosyalar için create event'i oluştur
+	// (Pasted folder senaryosu için: watcher eklenmeden önce oluşturulan dosyaları yakala)
 	if isDirectory {
+		// Asenkron olarak tara (UI/watcher'ı bloklamamak için)
+		go func() {
+			time.Sleep(100 * time.Millisecond) // Watcher'ın eklenmesi için kısa bir bekleme
+			
+			err := filepath.Walk(event.AbsPath, func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+				if path == event.AbsPath {
+					return nil // Root klasörü atla
+				}
+
+				// Dosya event'i oluştur
+				
+				subRel, err := filepath.Rel(event.AbsPath, path)
+				if err != nil {
+					return nil
+				}
+				fullRel := filepath.Join(event.Path, subRel)
+
+				// Create event tetikle
+				childEvent := &FileEvent{
+					Type:      EventTypeCreate,
+					Path:      fullRel,
+					AbsPath:   path,
+					FolderID:  event.FolderID,
+					Timestamp: time.Now(),
+				}
+
+				log.Printf("🔍 Recursive scan bulundu: %s", fullRel)
+				if err := h.handleCreate(childEvent); err != nil {
+					log.Printf("⚠️ Recursive create hatası (%s): %v", fullRel, err)
+				}
+				return nil
+			})
+			if err != nil {
+				log.Printf("⚠️ Recursive scan hatası: %v", err)
+			}
+		}()
+
 		if h.onFileChanged != nil {
 			return h.onFileChanged(file.ID, event.FolderID)
 		}
 		return nil
+
 	}
 
 	// Chunk'lara ayır (eğer boyut > 0 ise)

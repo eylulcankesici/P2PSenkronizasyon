@@ -249,7 +249,17 @@ func (fw *FileWatcher) handleFsnotifyEvent(event fsnotify.Event) error {
 		eventType = EventTypeCreate
 
 		// Yeni dizin mi? Onu da watch'a ekle
-		// TODO: Check if directory and add to watcher
+
+		// Yeni dizin mi? Onu da watch'a ekle
+		stat, err := os.Stat(absPath)
+		if err == nil && stat.IsDir() {
+			if err := fw.addSubdirectories(absPath); err != nil {
+				log.Printf("⚠️ Yeni dizin watch'a eklenemedi: %v", err)
+			} else {
+				log.Printf("👀 Yeni dizin izleniyor: %s", relPath)
+			}
+		}
+
 
 	case event.Op&fsnotify.Write == fsnotify.Write:
 		eventType = EventTypeModify
