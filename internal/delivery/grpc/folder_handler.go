@@ -138,7 +138,22 @@ func (h *FolderHandler) ListFolders(ctx context.Context, req *pb.ListFoldersRequ
 	// Proto'ya dönüştür
 	protoFolders := make([]*pb.Folder, len(folders))
 	for i, folder := range folders {
-		protoFolders[i] = convertFolderToProto(folder)
+		protoFolder := convertFolderToProto(folder)
+		
+		// Dosya sayısını ve boyutunu hesapla
+		files, err := h.container.FileRepository().GetByFolderID(ctx, folder.ID)
+		if err == nil {
+			var totalSize int64
+			var fileCount int32
+			for _, file := range files {
+				totalSize += file.Size
+				fileCount++
+			}
+			protoFolder.SizeBytes = totalSize
+			protoFolder.FileCount = fileCount
+		}
+		
+		protoFolders[i] = protoFolder
 	}
 
 	return &pb.ListFoldersResponse{
