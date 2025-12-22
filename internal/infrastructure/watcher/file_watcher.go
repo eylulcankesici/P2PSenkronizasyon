@@ -220,6 +220,9 @@ func (fw *FileWatcher) eventLoop() {
 func (fw *FileWatcher) handleFsnotifyEvent(event fsnotify.Event) error {
 	// Event path'ini kontrol et
 	absPath := event.Name
+	
+	// RAW LOG: FSNOTIFY tarafından gelen her eventi gör
+	log.Printf("🔔 FSNOTIFY RAW: Op=%s, Path=%s", event.Op, absPath)
 
 	// Hangi folder'a ait?
 	fw.mu.RLock()
@@ -228,6 +231,7 @@ func (fw *FileWatcher) handleFsnotifyEvent(event fsnotify.Event) error {
 
 	if watched == nil {
 		// İzlenmeyen klasör
+		log.Printf("⚠️ Event izlenmeyen bir klasörde veya eşleşme bulunamadı: %s", absPath)
 		return nil
 	}
 
