@@ -62,6 +62,7 @@ type WebRTCConnectionManager struct {
 	onTransferFinish    func(peerID, fileID string)
 	onTransferFinishAck func(peerID, fileID string)
 	onFolderCreate      func(peerID, folderID, folderName, relativePath string)
+	onFolderDelete      func(peerID, folderID string)
 	chunkHandler        func(chunkHash string) ([]byte, error)
 	onPeerIDUpdated     func(oldID, newID, newName string)
 }
@@ -543,6 +544,11 @@ func (m *WebRTCConnectionManager) SetOnTransferFinishAck(callback func(peerID, f
 
 func (m *WebRTCConnectionManager) SetOnFolderCreate(callback func(peerID, folderID, folderName, relativePath string)) {
 	m.onFolderCreate = callback
+}
+
+// SetOnFolderDelete klasör silme callback'ini ayarlar
+func (m *WebRTCConnectionManager) SetOnFolderDelete(callback func(peerID, folderID string)) {
+	m.onFolderDelete = callback
 }
 
 // GetPendingPeer gets and removes a pending peer
@@ -1126,6 +1132,8 @@ func (c *WebRTCConnection) handleIncomingMessage(data []byte) {
 		c.handleConnectionAccept(payload)
 	case lan.MessageTypeConnectionReject:
 		c.handleConnectionReject(payload)
+	case lan.MessageTypeFolderDelete:
+		c.handleFolderDelete(payload)
 	default:
 		log.Printf("⚠️ Bilinmeyen mesaj tipi: 0x%04x", messageType)
 	}
@@ -1387,6 +1395,59 @@ func (c *WebRTCConnection) SendFileRename(ctx context.Context, fileID, oldPath, 
 
 	log.Printf("📝 Dosya rename bildirimi gönderildi (WebRTC): %s (%s -> %s)", fileID[:8], oldPath, newPath)
 	return nil
+}
+
+// SendFolderDelete klasör silme bildirimini gönderir
+func (c *WebRTCConnection) SendFolderDelete(ctx context.Context, folderID string) error {
+	c.mu.RLock()
+	dc := c.dataChannel
+	connected := c.connected
+	c.mu.RUnlock()
+
+	if !connected || dc == nil {
+		return fmt.Errorf("bağlantı kurulu değil veya data channel yok")
+	}
+
+	if dc.ReadyState() != webrtc.DataChannelStateOpen {
+		return fmt.Errorf("data channel açık değil: %s", dc.ReadyState().String())
+	}
+
+	// Payload hazırla
+	payload := map[string]string{
+		"folder_id": folderID,
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("payload marshal hatası: %w", err)
+	}
+
+	// Frame encode et
+	frame, err := c.protocol.EncodeFrame(lan.MessageTypeFolderDelete, payloadBytes)
+	if err != nil {
+		return fmt.Errorf("folder delete encode edilemedi: %w", err)
+	}
+
+	// Data channel üzerinden gönder
+	if err := dc.Send(frame); err != nil {
+		return fmt.Errorf("folder delete gönderilemedi: %w", err)
+	}
+
+	log.Printf("🗑️ Klasör silme bildirimi gönderildi (WebRTC): %s", folderID[:8])
+	return nil
+}
+
+// handleFolderDelete klasör silme mesajını işler
+func (c *WebRTCConnection) handleFolderDelete(payload []byte) {
+	var req map[string]string
+	if err := json.Unmarshal(payload, &req); err != nil {
+		log.Printf("⚠️ Folder delete decode hatası: %v", err)
+		return
+	}
+
+	if c.onFolderDelete != nil {
+		c.onFolderDelete(c.peerID, req["folder_id"])
+	}
 }
 
 // SendMetadata metadata gönderir

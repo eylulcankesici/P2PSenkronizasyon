@@ -33,6 +33,7 @@ type EventHandler struct {
 	onChunksChanged func(fileID, folderID string, changedChunks []int) error // Sadece değişen chunk'lar için sync (MODIFY)
 	onFileDeleted   func(fileID, folderID string) error                      // Dosya silindi sync (DELETE)
 	onFileRenamed   func(fileID, oldPath, newPath string) error              // Dosya yeniden adlandırıldı sync (RENAME)
+	onFolderDeleted func(folderID string) error                              // Klasör silindi sync (DELETE)
 
 	// Event broadcaster (UI için)
 	eventBroadcaster *EventBroadcaster
@@ -515,19 +516,30 @@ func (h *EventHandler) handleDelete(event *FileEvent) error {
 
 	// Dosya ID'sini sakla (silmeden önce)
 	fileID := file.ID
+	isDir := file.IsDirectory
 
 	// Dosyayı veritabanından sil (CASCADE: chunk'lar da silinir)
 	if err := h.fileRepo.Delete(ctx, fileID); err != nil {
 		return fmt.Errorf("dosya silinemedi: %w", err)
 	}
 
-	log.Printf("✅ DELETE işlendi (veritabanı): %s", event.Path)
+	log.Printf("✅ DELETE işlendi (veritabanı): %s (IsDir: %v)", event.Path, isDir)
 
-	// DELETE için otomatik sync tetikle (karşı taraftan da silinmeli)
-	if h.onFileDeleted != nil {
-		log.Printf("🔄 Dosya silindi - karşı tarafa bildirim gönderiliyor: %s", event.Path)
-		if err := h.onFileDeleted(fileID, event.FolderID); err != nil {
-			log.Printf("⚠️ Silme sync hatası (%s): %v", event.Path, err)
+	if isDir {
+		// Klasör silme bildirimi gönder
+		if h.onFolderDeleted != nil {
+			log.Printf("📂 Klasör silindi - karşı tarafa bildirim gönderiliyor: %s", event.Path)
+			if err := h.onFolderDeleted(fileID); err != nil {
+				log.Printf("⚠️ Klasör silme sync hatası (%s): %v", event.Path, err)
+			}
+		}
+	} else {
+		// Dosya silme bildirimi gönder
+		if h.onFileDeleted != nil {
+			log.Printf("🔄 Dosya silindi - karşı tarafa bildirim gönderiliyor: %s", event.Path)
+			if err := h.onFileDeleted(fileID, event.FolderID); err != nil {
+				log.Printf("⚠️ Silme sync hatası (%s): %v", event.Path, err)
+			}
 		}
 	}
 
@@ -597,6 +609,11 @@ func (h *EventHandler) SetOnFileDeleted(callback func(fileID, folderID string) e
 // SetOnFileRenamed file renamed callback'i ayarlar
 func (h *EventHandler) SetOnFileRenamed(callback func(fileID, oldPath, newPath string) error) {
 	h.onFileRenamed = callback
+}
+
+// SetOnFolderDeleted folder deleted callback'i ayarlar
+func (h *EventHandler) SetOnFolderDeleted(callback func(folderID string) error) {
+	h.onFolderDeleted = callback
 }
 
 // scanDirectory klasör içeriğini tarar ve DB ile karşılaştırarak eksik/yeni dosyaları tespit eder

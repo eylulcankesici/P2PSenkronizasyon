@@ -314,6 +314,11 @@ func (fw *FileWatcher) findWatchedFolder(absPath string) *WatchedFolder {
 func (fw *FileWatcher) shouldIgnore(absPath string, watched *WatchedFolder) bool {
 	baseName := filepath.Base(absPath)
 
+	// Harici/Sistem dosyalarını ignore et (Office temp files, vs.)
+	if strings.HasPrefix(baseName, "~$") || strings.HasSuffix(baseName, ".tmp") {
+		return true
+	}
+
 	for _, pattern := range watched.IgnorePatterns {
 		if strings.Contains(baseName, pattern) {
 			return true

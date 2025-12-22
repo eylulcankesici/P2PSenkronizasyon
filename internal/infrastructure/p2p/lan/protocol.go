@@ -42,6 +42,7 @@ const (
 	MessageTypeTransferFinishAck = 0x000E // Transfer tamamlandı onayı
 	MessageTypeFileRename        = 0x000F // Dosya yeniden adlandırma (peer-to-peer)
 	MessageTypeFolderCreate      = 0x0010 // Klasör oluşturma (peer-to-peer)
+	MessageTypeFolderDelete      = 0x0011 // Klasör silme (peer-to-peer)
 
 	// Frame sizes
 	HeaderSize     = 16               // Magic(4) + Version(2) + Type(2) + Length(4) + CRC(4)

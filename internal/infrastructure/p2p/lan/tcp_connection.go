@@ -468,6 +468,8 @@ func (c *TCPConnection) handleMessage(messageType uint16, payload []byte) error 
 		return c.handleFileDelete(payload)
 	case MessageTypeFolderCreate:
 		return c.handleFolderCreate(payload)
+	case MessageTypeFolderDelete:
+		return c.handleFolderDelete(payload)
 	default:
 		return fmt.Errorf("bilinmeyen mesaj tipi: 0x%04x", messageType)
 	}
@@ -1009,6 +1011,7 @@ type TCPConnectionManager struct {
 	onTransferCancel        func(peerID, fileID string) // Transfer iptal bildirimi callback'i
 	onFileDelete            func(peerID, fileID string) // Dosya silme bildirimi callback'i
 	onFolderCreate          func(peerID, folderID, folderName, relativePath string) // Klasör oluşturma bildirimi callback'i
+	onFolderDelete          func(peerID, folderID string)                           // Klasör silme bildirimi callback'i
 }
 
 // NewTCPConnectionManager yeni TCP connection manager oluşturur
@@ -1282,6 +1285,11 @@ func (m *TCPConnectionManager) SetOnFolderCreate(callback func(peerID, folderID,
 	m.onFolderCreate = callback
 }
 
+// SetOnFolderDelete klasör silme callback'ini ayarlar
+func (m *TCPConnectionManager) SetOnFolderDelete(callback func(peerID, folderID string)) {
+	m.onFolderDelete = callback
+}
+
 // handleConnectionLost bağlantı kaybını işler (internal)
 func (m *TCPConnectionManager) handleConnectionLost(peerID string) {
 	m.mu.Lock()
@@ -1348,4 +1356,82 @@ func (m *TCPConnectionManager) RejectConnection(deviceID string) error {
 	default:
 		return fmt.Errorf("bağlantı isteği zaten işlenmiş")
 	}
+}
+
+// SendFolderDelete klasör silme bildirimi gönderir
+func (c *TCPConnection) SendFolderDelete(folderID string) error {
+	c.sendMu.Lock()
+	defer c.sendMu.Unlock()
+
+	// Payload oluştur
+	payload := map[string]string{
+		"folder_id": folderID,
+	}
+	
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("payload marshal hatası: %w", err)
+	}
+
+	// Frame encode et
+	frame, err := c.protocol.EncodeFrame(MessageTypeFolderDelete, payloadBytes)
+	if err != nil {
+		return fmt.Errorf("folder delete encode hatası: %w", err)
+	}
+
+	// Frame boyutunu gönder
+	frameLen := uint32(len(frame))
+	if err := c.writeUint32(frameLen); err != nil {
+		return fmt.Errorf("frame length yazılamadı: %w", err)
+	}
+
+	// Frame'i gönder
+	if _, err := c.conn.Write(frame); err != nil {
+		return fmt.Errorf("frame yazılamadı: %w", err)
+	}
+
+	log.Printf("🗑️ Klasör silme bildirimi gönderildi: %s (peer: %s)", folderID[:8], c.peerID[:8])
+	return nil
+}
+
+// handleFolderDelete klasör silme bildirimini işler
+func (c *TCPConnection) handleFolderDelete(payload []byte) error {
+	var req map[string]string
+	if err := json.Unmarshal(payload, &req); err != nil {
+		return fmt.Errorf("folder delete decode hatası: %w", err)
+	}
+
+	folderID := req["folder_id"]
+
+	log.Printf("🗑️ Klasör silme bildirimi alındı: %s", folderID[:8])
+
+	// Callback çağır
+	if c.manager != nil && c.manager.onFileDelete != nil {
+		// Folder silme callback'i ayrı olmalı ama MVP için file delete callback'ini kullanabiliriz?
+		// HAYIR, user FolderDelete için ayrı callback istedi.
+		// Manager'a SetOnFolderDelete eklemem lazım.
+		// Şu anlık hack: FileDelete çağırıp özel bir flag mi? 
+		// Hayır, temiz yapalım. onFolderDelete callback'i connection_manager'a eklenmeli.
+		// Ama interface'i değiştirmek büyük iş.
+		// Manager struct'ına bakalım.
+		
+		// Manager'da onFolderDelete yok gibi.
+		// O zaman FileDelete'i kullanalım ama "IsFolder" gibi bir parametre yok.
+		// FolderHandler tarafında "Bu ID file mı folder mı?" diye bakılabilir mi?
+		// Evet, fakat FolderID ile FileID çakışmaz (UUID).
+		// Eğer FileDelete callback'ine folderID verirsek, handler bunu file repository'de bulamaz.
+		// Folder repository'de bulur.
+		
+		// O yüzden şimdilik manager'a yeni callback ekleyelim ya da var olanı inceleyelim.
+		// Manager.SetOnFolderDelete yok.
+		// O zaman ekleyelim.
+		
+		if c.manager.onFolderDelete != nil {
+			c.manager.onFolderDelete(c.peerID, folderID)
+		} else {
+			log.Printf("⚠️ Folder delete callback tanımlı değil")
+		}
+	}
+
+	return nil
 }

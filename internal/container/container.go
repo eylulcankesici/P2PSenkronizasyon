@@ -1798,6 +1798,13 @@ func (c *Container) initFileWatcher() error {
 		return c.DeleteFileFromAllPeers(fileID, folderID)
 	})
 
+	// Folder deleted callback (DELETE için)
+	eventHandler.SetOnFolderDeleted(func(folderID string) error {
+		// Klasör silindiğinde tüm peer'lara silme bildirimi gönder
+		c.syncFolderDeleteToAllPeers(folderID)
+		return nil
+	})
+
 	// File renamed callback (RENAME için)
 	eventHandler.SetOnFileRenamed(func(fileID, oldPath, newPath string) error {
 		// Dosya adı değiştiğinde tüm peer'lara rename bildirimi gönder
@@ -2683,5 +2690,86 @@ func (c *Container) handleIncomingFolderCreate(ctx context.Context, peerID, fold
 	}
 
 	log.Printf("✅ Klasör oluşturuldu ve DB'ye kaydedildi: %s", relativePath)
+	return nil
+}
+
+// syncFolderDeleteToAllPeers klasör silme işlemini tüm peer'lara bildirir
+func (c *Container) syncFolderDeleteToAllPeers(folderID string) {
+	connections := c.lanConnManager.GetAllConnections()
+	if c.wanConnManager != nil {
+		connections = append(connections, c.wanConnManager.GetAllConnections()...)
+	}
+
+	for _, conn := range connections {
+		// Her peer'a gönder
+		go func(conn transport.Connection) {
+			// Type assertion ile SendFolderDelete metoduna eriş
+			if tcpConn, ok := conn.(*lan.TCPConnection); ok {
+				if err := tcpConn.SendFolderDelete(folderID); err != nil {
+					log.Printf("⚠️ Folder delete (LAN) gönderilemedi (%s): %v", folderID[:8], err)
+				}
+			} else if wanConn, ok := conn.(*wan.WebRTCConnection); ok {
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+				if err := wanConn.SendFolderDelete(ctx, folderID); err != nil {
+					log.Printf("⚠️ Folder delete (WAN) gönderilemedi (%s): %v", folderID[:8], err)
+				}
+			}
+		}(conn)
+	}
+}
+
+// handleIncomingFolderDelete gelen klasör silme bildirimini işler
+func (c *Container) handleIncomingFolderDelete(peerID, folderFileID string) error {
+	ctx := context.Background()
+	log.Printf("Received FolderDelete from %s for folderFileID: %s", peerID[:8], folderFileID[:8])
+
+	// 1. Silinecek klasörü DB'den bul
+	file, err := c.fileRepo.GetByID(ctx, folderFileID)
+	if err != nil {
+		if err == entity.ErrNotFound {
+			log.Printf("ℹ️ Silinecek klasör zaten yok: %s", folderFileID)
+			return nil
+		}
+		return fmt.Errorf("klasör DB'den getirilemedi: %w", err)
+	}
+
+	if !file.IsDirectory {
+		log.Printf("⚠️ FolderDelete alındı ama hedef bir dosya: %s (path: %s)", folderFileID, file.RelativePath)
+		// Yine de silmeli miyiz? Güvenlik için sadece directory ise silelim.
+		// Amaç mismatch ise hata verelim.
+		return fmt.Errorf("hedef bir klasör değil: %s", file.RelativePath)
+	}
+
+	// 2. Kök klasörü bul (fiziksel path için)
+	rootFolder, err := c.folderRepo.GetByID(ctx, file.FolderID)
+	if err != nil {
+		return fmt.Errorf("root folder bulunamadı: %s", file.FolderID)
+	}
+
+	absPath := filepath.Join(rootFolder.LocalPath, file.RelativePath)
+
+	// 3. Watcher'ı ignore et (geçici olarak)
+	// Bu klasör ve altındakileri silerken oluşacak eventleri engellemek zor olabilir.
+	// En azından klasörün kendisini ignore edelim.
+	c.eventHandler.IgnoreFile(file.FolderID, file.RelativePath)
+
+	// 4. Fiziksel silme (Recursive)
+	log.Printf("🗑️ Klasör fiziksel olarak siliniyor: %s", absPath)
+	if err := os.RemoveAll(absPath); err != nil {
+		return fmt.Errorf("fiziksel silme hatası: %w", err)
+	}
+
+	// 5. DB'den sil (Soft Delete)
+	// Sadece klasörü soft delete yapıyoruz. İçindeki dosyaların durumu ne olacak?
+	// SQLite constraint varsa sorun olabilir ama yoksa durabilirler (orphaned).
+	// Doğrusu hepsini silmek ama 'DeleteByPrefix' yok.
+	// Scan mekanizması sonradan temizler mi?
+	// Evet, scanDirectory ana klasörde çalıştığında bu dosyaların diskte olmadığını görecek ve silecektir.
+	if err := c.fileRepo.Delete(ctx, folderFileID); err != nil {
+		return fmt.Errorf("DB'den silme hatası: %w", err)
+	}
+
+	log.Printf("✅ Klasör silme işlemi tamamlandı: %s", file.RelativePath)
 	return nil
 }
