@@ -300,7 +300,8 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 				if err != nil {
 					return nil
 				}
-				fullRel := filepath.Join(event.Path, subRel)
+				subRel = filepath.ToSlash(subRel)
+				fullRel := filepath.ToSlash(filepath.Join(event.Path, subRel))
 
 				// Create event tetikle
 				childEvent := &FileEvent{

@@ -245,6 +245,7 @@ func (fw *FileWatcher) handleFsnotifyEvent(event fsnotify.Event) error {
 	if err != nil {
 		return fmt.Errorf("relative path hesaplanamadı: %w", err)
 	}
+	relPath = filepath.ToSlash(relPath)
 
 	// Event tipini belirle
 	var eventType EventType
