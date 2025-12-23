@@ -1408,7 +1408,7 @@ func (c *TCPConnection) handleFolderDelete(payload []byte) error {
 	log.Printf("🗑️ Klasör silme bildirimi alındı: %s (Path: %s)", folderID[:8], relativePath)
 
 	// Callback çağır
-	if c.manager != nil && c.manager.onFileDelete != nil {
+	if c.manager != nil {
 		if c.manager.onFolderDelete != nil {
 			c.manager.onFolderDelete(c.peerID, folderID, relativePath)
 		} else {

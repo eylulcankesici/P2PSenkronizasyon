@@ -470,6 +470,13 @@ func (t *WANTransport) SetOnFolderCreate(callback func(peerID, folderID, folderN
 	}
 }
 
+// SetOnFolderDelete klasör silme callback'ini ayarlar
+func (t *WANTransport) SetOnFolderDelete(callback func(peerID, folderID, relativePath string)) {
+	if t.connMgr != nil {
+		t.connMgr.SetOnFolderDelete(callback)
+	}
+}
+
 // StartSignaling signaling başlatır
 func (t *WANTransport) StartSignaling(serverURL, roomID string) (*signaling.SignalingClient, error) {
 	client := signaling.NewSignalingClient(serverURL)

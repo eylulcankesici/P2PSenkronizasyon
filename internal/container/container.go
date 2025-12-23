@@ -893,6 +893,35 @@ func (c *Container) initP2PTransport() error {
 	}
 	c.lanTransport = lanTransport
 
+	// LAN Callbacks
+	lanMgr := lanTransport.GetTCPConnectionManager()
+	
+	// LAN Chunk received callback
+	lanMgr.SetOnChunkReceived(func(peerID, fileID, chunkHash string, chunkData []byte, chunkIndex, totalChunks int, fileName, folderName string, senderSyncMode, receiverSyncMode pb.SyncMode) error {
+		return c.handleIncomingChunk(context.Background(), peerID, fileID, chunkHash, chunkData, chunkIndex, totalChunks, fileName, folderName, senderSyncMode, receiverSyncMode)
+	})
+
+	// LAN File delete callback
+	lanMgr.SetOnFileDelete(func(peerID, fileID string) {
+		if err := c.handleIncomingFileDelete(context.Background(), peerID, fileID); err != nil {
+			log.Printf("⚠️ LAN File delete callback hatası: %v", err)
+		}
+	})
+
+	// LAN Folder create callback
+	lanMgr.SetOnFolderCreate(func(peerID, folderID, folderName, relativePath string) {
+		if err := c.handleIncomingFolderCreate(context.Background(), peerID, folderID, folderName, relativePath); err != nil {
+			log.Printf("⚠️ LAN Incoming folder create handling error: %v", err)
+		}
+	})
+
+	// LAN Folder delete callback
+	lanMgr.SetOnFolderDelete(func(peerID, folderID, relativePath string) {
+		if err := c.handleIncomingFolderDelete(peerID, folderID, relativePath); err != nil {
+			log.Printf("⚠️ LAN Incoming folder delete handling error: %v", err)
+		}
+	})
+
 	var wanTransport *wan.WANTransport
 	if c.config.Network.EnableWAN {
 		log.Println("🌐 WAN Transport başlatılıyor...")
@@ -947,6 +976,13 @@ func (c *Container) initP2PTransport() error {
 		tempWAN.SetOnFolderCreate(func(peerID, folderID, folderName, relativePath string) {
 			if err := c.handleIncomingFolderCreate(context.Background(), peerID, folderID, folderName, relativePath); err != nil {
 				log.Printf("⚠️ Incoming folder create handling error: %v", err)
+			}
+		})
+
+		// WAN Folder delete callback
+		tempWAN.SetOnFolderDelete(func(peerID, folderID, relativePath string) {
+			if err := c.handleIncomingFolderDelete(peerID, folderID, relativePath); err != nil {
+				log.Printf("⚠️ Incoming folder delete handling error: %v", err)
 			}
 		})
 
@@ -2733,6 +2769,20 @@ func (c *Container) handleIncomingFolderCreate(ctx context.Context, peerID, fold
 // syncFolderDeleteToAllPeers klasör silme işlemini tüm peer'lara bildirir
 func (c *Container) syncFolderDeleteToAllPeers(rootFolderID, relativePath string) {
 	log.Printf("📂 Klasör silme bildirimi gönderiliyor: %s (RootFolderID: %s)", relativePath, rootFolderID[:8])
+	
+	// Sync Mode Kontrolü
+	ctx := context.Background()
+	folder, err := c.folderRepo.GetByID(ctx, rootFolderID)
+	if err != nil {
+		log.Printf("⚠️ Folder bilgisi alınamadı, silme bildirimi gönderilemiyor: %v", err)
+		return
+	}
+
+	if folder.SyncMode == entity.SyncModeReceiveOnly {
+		log.Printf("ℹ️ Folder ReceiveOnly modunda, silme bildirimi gönderilmiyor: %s", rootFolderID[:8])
+		return
+	}
+
 	if c.transportProvider == nil {
 		return
 	}
