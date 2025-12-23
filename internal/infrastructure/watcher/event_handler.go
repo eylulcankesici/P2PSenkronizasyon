@@ -522,12 +522,41 @@ func (h *EventHandler) handleDelete(event *FileEvent) error {
 				file = fileLegacy
 				err = nil
 			} else {
-				log.Printf("❌ Dosya veritabanında bulunamadı (Path: %s, Legacy: %s)", event.Path, legacyPath)
-				return nil
+                // FALLBACK 2: "Ghost Folder" kontrolü (DB'de yok ama içinde dosya var mı?)
+                // Eğer içinde dosya varsa, bu bir klasördür ve silinmelidir.
+                hasChildren, errChild := h.fileRepo.HasChildren(ctx, event.FolderID, event.Path)
+                if errChild == nil && hasChildren {
+                     log.Printf("👻 Ghost Folder tespit edildi (DB'de yok ama çocuğu var): %s", event.Path)
+                     
+                     // Sanal bir dosya entity oluştur
+                     file = &entity.File{
+                         ID:           "", // ID yok
+                         FolderID:     event.FolderID,
+                         RelativePath: event.Path,
+                         IsDirectory:  true,
+                     }
+                     err = nil // Hatayı temizle
+                } else {
+				    log.Printf("❌ Dosya veritabanında bulunamadı (Path: %s, Legacy: %s)", event.Path, legacyPath)
+				    return nil
+                }
 			}
 		} else {
-            log.Printf("❌ Dosya veritabanında bulunamadı: %s", event.Path)
-			return nil
+             // Normal path için de Ghost Folder kontrolü yap
+             hasChildren, errChild := h.fileRepo.HasChildren(ctx, event.FolderID, event.Path)
+             if errChild == nil && hasChildren {
+                  log.Printf("👻 Ghost Folder tespit edildi (DB'de yok ama çocuğu var): %s", event.Path)
+                  file = &entity.File{
+                      ID:           "", 
+                      FolderID:     event.FolderID,
+                      RelativePath: event.Path,
+                      IsDirectory:  true,
+                  }
+                  err = nil
+             } else {
+                 log.Printf("❌ Dosya veritabanında bulunamadı: %s", event.Path)
+                 return nil
+             }
 		}
 	}
 
@@ -536,11 +565,15 @@ func (h *EventHandler) handleDelete(event *FileEvent) error {
 	isDir := file.IsDirectory
 
 	// Dosyayı veritabanından sil (CASCADE: chunk'lar da silinir)
-	if err := h.fileRepo.Delete(ctx, fileID); err != nil {
-		return fmt.Errorf("dosya silinemedi: %w", err)
-	}
-
-	log.Printf("✅ DELETE işlendi (veritabanı): %s (IsDir: %v)", event.Path, isDir)
+    // Eğer ID varsa sil, yoksa (Ghost Folder) zaten DB'de yok.
+    if fileID != "" {
+	    if err := h.fileRepo.Delete(ctx, fileID); err != nil {
+		    return fmt.Errorf("dosya silinemedi: %w", err)
+	    }
+	    log.Printf("✅ DELETE işlendi (veritabanı): %s (IsDir: %v)", event.Path, isDir)
+    } else {
+        log.Printf("✅ GHOST DELETE işlendi (zaten DB'de yoktu): %s", event.Path)
+    }
 
 	if isDir {
 		// Klasör silme bildirimi gönder
