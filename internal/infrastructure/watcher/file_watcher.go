@@ -400,6 +400,40 @@ func (fw *FileWatcher) AddPath(absPath string) error {
 	return fw.addSubdirectories(absPath)
 }
 
+// UnwatchPath belirtilen yolu ve alt dizinlerini watch listesinden çıkarır
+func (fw *FileWatcher) UnwatchPath(absPath string) error {
+	if fw.watcher == nil {
+		return nil
+	}
+
+	// Klasör mevcutsa walk yaparak alt dizinleri de çıkar
+	// Eğer klasör zaten silinmişse (externally), sadece path'i remove etmeyi dene
+	info, err := os.Stat(absPath)
+	if err == nil && info.IsDir() {
+		// Recursive olarak çıkar (tersten gitmek daha iyi olabilir ama fsnotify için fark etmez)
+		err := filepath.Walk(absPath, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return nil // Hata olsa da devam et
+			}
+			if info.IsDir() {
+				if err := fw.watcher.Remove(path); err != nil {
+					// "can't remove non-existent watch" hatası dönebilir, logla ama hata döndürme
+					// log.Printf("Debug: Remove watch failed for %s: %v", path, err)
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			log.Printf("⚠️ UnwatchPath walk hatası: %v", err)
+		}
+	} else {
+		// Direkt olarak path'i remove etmeyi dene
+		fw.watcher.Remove(absPath)
+	}
+	
+	return nil
+}
+
 // GetWatchedFolders izlenen klasörleri döner
 func (fw *FileWatcher) GetWatchedFolders() []string {
 	fw.mu.RLock()

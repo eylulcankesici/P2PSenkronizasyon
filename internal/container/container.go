@@ -2899,6 +2899,13 @@ func (c *Container) handleIncomingFolderDelete(peerID, folderFileID, relativePat
 	// En azından klasörün kendisini ignore edelim.
 	c.eventHandler.IgnoreFile(file.FolderID, file.RelativePath)
 
+	// Watcher'dan çıkar (Windows'ta lock'ları serbest bırakmak için kritik)
+	if c.fileWatcher != nil {
+		if err := c.fileWatcher.UnwatchPath(absPath); err != nil {
+			log.Printf("⚠️ UnwatchPath hatası: %v", err)
+		}
+	}
+
 	// 4. Fiziksel silme (Recursive)
 	log.Printf("🗑️ Klasör fiziksel olarak siliniyor: %s", absPath)
 	if err := os.RemoveAll(absPath); err != nil {
