@@ -27,7 +27,6 @@ type FileRepository interface {
 
 	// HasChildren belirtilen path altında dosya veya klasör olup olmadığını kontrol eder
 	HasChildren(ctx context.Context, folderID, parentPath string) (bool, error)
-	Update(ctx context.Context, file *entity.File) error
 
 	// Delete dosyayı siler (soft delete)
 	Delete(ctx context.Context, id string) error

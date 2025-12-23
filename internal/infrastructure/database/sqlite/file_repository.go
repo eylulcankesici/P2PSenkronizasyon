@@ -365,3 +365,25 @@ func (r *FileRepository) GetModifiedSince(ctx context.Context, folderID string, 
 
 	return files, nil
 }
+
+// HasChildren belirtilen path altında dosya veya klasör olup olmadığını kontrol eder
+func (r *FileRepository) HasChildren(ctx context.Context, folderID, parentPath string) (bool, error) {
+	query := `
+		SELECT 1 FROM files 
+		WHERE folder_id = ? 
+		AND relative_path LIKE ?
+		AND is_deleted = 0
+		LIMIT 1
+	`
+	// Check for children with forward slash prefix
+	prefix := parentPath + "/%"
+	var exists int
+	err := r.conn.DB().QueryRowContext(ctx, query, folderID, prefix).Scan(&exists)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return exists == 1, nil
+}
