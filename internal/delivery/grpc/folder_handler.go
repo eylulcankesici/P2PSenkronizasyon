@@ -468,9 +468,20 @@ func (h *FolderHandler) scanAndSaveFiles(ctx context.Context, folder *entity.Fol
 	// Her dosyayı veritabanına kaydet
 	savedCount := 0
 	for _, result := range scanResults {
+		// Parent ID çözümle
+		parentID := ""
+		parentPath := filepath.Dir(result.Path)
+		if parentPath != "." && parentPath != string(filepath.Separator) {
+			parentPath = filepath.ToSlash(parentPath)
+			if parentFile, err := h.container.FileRepository().GetByPath(ctx, folder.ID, parentPath); err == nil {
+				parentID = parentFile.ID
+			}
+		}
+
 		// File entity oluştur
 		file := entity.NewFile(
 			folder.ID,
+			parentID,
 			result.Path,
 			result.Size,
 			time.Unix(result.ModTime, 0),

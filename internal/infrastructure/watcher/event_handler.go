@@ -175,8 +175,56 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 
 	log.Printf("📄 CREATE: %s (folder: %s)", event.Path, event.FolderID[:8])
 
-	// RENAME KONTROLÜ: Yakın zamanda rename edilmiş bir dosya var mı?
-	// Folder içindeki tüm pending rename'leri kontrol et
+	// PARENT ID ÇÖZÜMLEME
+	// Dosyanın parent folder'ını bulmamız lazım
+	parentID := "" // Root için boş
+	parentPath := filepath.Dir(event.Path)
+	
+	if parentPath != "." && parentPath != string(filepath.Separator) {
+		parentPath = filepath.ToSlash(parentPath)
+		
+		// Parent DB'de var mı?
+		parentFile, err := h.fileRepo.GetByPath(ctx, event.FolderID, parentPath)
+		if err == nil {
+			parentID = parentFile.ID
+		} else {
+			// Parent yok!
+			// Bu durumda parent'ı oluştur (Best Effort Recursive)
+			log.Printf("⚠️ Parent folder DB'de yok, oluşturuluyor: %s", parentPath)
+			
+			// Root local path'i bul
+			rootFolder, err := h.folderRepo.GetByID(ctx, event.FolderID)
+			if err == nil {
+				parentAbsPath := filepath.Join(rootFolder.LocalPath, parentPath)
+				parentInfo, err := os.Stat(parentAbsPath)
+				if err == nil {
+					// Grandparent ID bulmaya çalış
+					grandParentID := ""
+					grandParentPath := filepath.Dir(parentPath)
+					if grandParentPath != "." && grandParentPath != string(filepath.Separator) {
+						if gpFile, err := h.fileRepo.GetByPath(ctx, event.FolderID, filepath.ToSlash(grandParentPath)); err == nil {
+							grandParentID = gpFile.ID
+						}
+					}
+					
+					parentFileEntity := entity.NewFile(
+						event.FolderID,
+						grandParentID,
+						parentPath,
+						0,
+						parentInfo.ModTime(),
+						true,
+					)
+					if err := h.fileRepo.Create(ctx, parentFileEntity); err == nil {
+						parentID = parentFileEntity.ID
+						log.Printf("✅ Parent folder DB'ye eklendi: %s (ID: %s)", parentPath, parentID)
+					}
+				}
+			}
+		}
+	}
+
+	// RENAME KONTROLÜ
 	var renamedFromFileID string
 	var renamedFromPath string
 
@@ -196,9 +244,6 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 			return true // continue
 		}
 		oldPath := parts[1]
-
-		// Eğer dosya boyutları/modtime tutuyorsa veya sadece isim benzerliği varsa eşleştirilebilir
-		// Şimdilik sadece zaman yakınlığına güveniyoruz (kullanıcı rename yaptı)
 
 		// Veritabanında eski dosyayı bul
 		oldFile, err := h.fileRepo.GetByPath(ctx, event.FolderID, oldPath)
@@ -221,6 +266,9 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 		if err == nil {
 			oldFile.RelativePath = event.Path
 			oldFile.UpdatedAt = time.Now()
+			// ParentID'yi de güncelle (Move edilmiş olabilir)
+			oldFile.ParentID = parentID
+
 			// Eğer silinmişse geri getir
 			if oldFile.IsDeleted {
 				oldFile.IsDeleted = false
@@ -240,6 +288,12 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 							if strings.HasPrefix(f.RelativePath, oldPrefix) {
 								f.RelativePath = strings.Replace(f.RelativePath, oldPrefix, newPrefix, 1)
 								f.UpdatedAt = time.Now()
+								// Alt dosyaların ParentID'sini update etmeye gerek yok çünkü ID değişmedi (sadece path değişti)
+								// ANCAK: Eğer ParentID hesaplaması path'e bağlıysa... 
+								// ParentID dosyanın parent'ının ID'si. 
+								// Eğer klasör A -> B olduysa, A/child'ın parent'ı artık B (aynı ID).
+								// Yani ParentID değişmez.
+								
 								if err := h.fileRepo.Update(ctx, f); err != nil {
 									log.Printf("⚠️ Child file rename update hatası (%s): %v", f.ID[:8], err)
 								} else {
@@ -265,9 +319,9 @@ func (h *EventHandler) handleCreate(event *FileEvent) error {
 	}
 
 	// File entity oluştur
-	// İplik: Folder create support
 	file := entity.NewFile(
 		event.FolderID,
+		parentID,
 		event.Path,
 		fileInfo.Size(),
 		fileInfo.ModTime(),

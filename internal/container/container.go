@@ -1415,7 +1415,17 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 					}
 				} else {
 					// Yeni file oluştur
-					newFile := entity.NewFile(folderID, finalFileName, 0, time.Now(), false)
+					// Parent ID çözümleme
+					parentID := ""
+					parentPath := filepath.Dir(finalFileName)
+					if parentPath != "." && parentPath != string(filepath.Separator) {
+						parentPath = filepath.ToSlash(parentPath)
+						if parentFile, err := c.fileRepo.GetByPath(ctx, folderID, parentPath); err == nil {
+							parentID = parentFile.ID
+						}
+					}
+					
+					newFile := entity.NewFile(folderID, parentID, finalFileName, 0, time.Now(), false)
 					newFile.ID = fileID
 					if err := c.fileRepo.Create(ctx, newFile); err != nil {
 						log.Printf("  ⚠️ File entity oluşturulamadı: %v", err)
@@ -2700,8 +2710,18 @@ func (c *Container) handleIncomingFolderCreate(ctx context.Context, peerID, fold
 	}
 
 	// DB'ye kaydet
+	// Parent ID çözümleme
+	parentID := ""
+	parentPath := filepath.Dir(relativePath)
+	if parentPath != "." && parentPath != string(filepath.Separator) {
+		parentPath = filepath.ToSlash(parentPath)
+		if parentFile, err := c.fileRepo.GetByPath(ctx, folderID, parentPath); err == nil {
+			parentID = parentFile.ID
+		}
+	}
+
 	// isDirectory = true
-	newFile := entity.NewFile(folderID, relativePath, 0, time.Now(), true)
+	newFile := entity.NewFile(folderID, parentID, relativePath, 0, time.Now(), true)
 	if err := c.fileRepo.Create(ctx, newFile); err != nil {
 		return fmt.Errorf("klasör DB'ye kaydedilemedi: %w", err)
 	}

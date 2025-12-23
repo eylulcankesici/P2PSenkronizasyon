@@ -8,6 +8,7 @@ import (
 type File struct {
 	ID           string
 	FolderID     string
+	ParentID     string    // Üst klasörün ID'si (Root için boş)
 	RelativePath string    // Klasör içindeki relative path
 	Size         int64     // Dosya boyutu (bytes)
 	ModTime      time.Time // Son değişiklik zamanı
@@ -20,10 +21,11 @@ type File struct {
 }
 
 // NewFile yeni bir File oluşturur
-func NewFile(folderID, relativePath string, size int64, modTime time.Time, isDirectory bool) *File {
+func NewFile(folderID, parentID, relativePath string, size int64, modTime time.Time, isDirectory bool) *File {
 	now := time.Now()
 	return &File{
 		FolderID:     folderID,
+		ParentID:     parentID,
 		RelativePath: relativePath,
 		Size:         size,
 		ModTime:      modTime,

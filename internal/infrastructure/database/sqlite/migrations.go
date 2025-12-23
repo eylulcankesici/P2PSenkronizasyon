@@ -52,6 +52,7 @@ func (m *Migration) RunMigrations() error {
 		{12, "create_file_peer_sync_table", m.createFilePeerSyncTable},
 		{13, "cleanup_duplicate_files_and_add_unique_constraint", m.cleanupDuplicateFilesAndAddUniqueConstraint},
 		{14, "add_is_directory_column", m.addIsDirectoryColumn},
+		{15, "add_parent_id_column", m.addParentIdColumn},
 	}
 
 	for _, migration := range migrations {
@@ -693,5 +694,27 @@ func (m *Migration) addIsDirectoryColumn(db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("is_directory kolonu eklenemedi: %w", err)
 	}
+	return nil
+}
+
+// addParentIdColumn files tablosuna parent_id kolonu ekler (migration 15)
+func (m *Migration) addParentIdColumn(db *sql.DB) error {
+	// parent_id kolonu ekle (default boş string)
+	_, err := db.Exec(`
+		ALTER TABLE files 
+		ADD COLUMN parent_id TEXT NOT NULL DEFAULT ''
+	`)
+	if err != nil {
+		return fmt.Errorf("parent_id kolonu eklenemedi: %w", err)
+	}
+
+	// Index ekle (performans için)
+	_, err = db.Exec(`
+		CREATE INDEX IF NOT EXISTS idx_files_parent_id ON files(parent_id)
+	`)
+	if err != nil {
+		return fmt.Errorf("parent_id index oluşturulamadı: %w", err)
+	}
+
 	return nil
 }
