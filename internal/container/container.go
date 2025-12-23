@@ -1816,9 +1816,9 @@ func (c *Container) initFileWatcher() error {
 
 
 	// Folder deleted callback (DELETE için)
-	eventHandler.SetOnFolderDeleted(func(folderID, folderPath string) error {
+	eventHandler.SetOnFolderDeleted(func(rootFolderID, deletedFileID, relativePath string) error {
 		// Klasör silindiğinde tüm peer'lara silme bildirimi gönder
-		c.syncFolderDeleteToAllPeers(folderID, folderPath)
+		c.syncFolderDeleteToAllPeers(rootFolderID, relativePath)
 		return nil
 	})
 
@@ -2711,7 +2711,8 @@ func (c *Container) handleIncomingFolderCreate(ctx context.Context, peerID, fold
 }
 
 // syncFolderDeleteToAllPeers klasör silme işlemini tüm peer'lara bildirir
-func (c *Container) syncFolderDeleteToAllPeers(folderID, relativePath string) {
+func (c *Container) syncFolderDeleteToAllPeers(rootFolderID, relativePath string) {
+	log.Printf("📂 Klasör silme bildirimi gönderiliyor: %s (RootFolderID: %s)", relativePath, rootFolderID[:8])
 	if c.transportProvider == nil {
 		return
 	}
@@ -2722,14 +2723,14 @@ func (c *Container) syncFolderDeleteToAllPeers(folderID, relativePath string) {
 		go func(conn transport.Connection) {
 			// Type assertion ile SendFolderDelete metoduna eriş
 			if tcpConn, ok := conn.(*lan.TCPConnection); ok {
-				if err := tcpConn.SendFolderDelete(folderID, relativePath); err != nil {
-					log.Printf("⚠️ Folder delete (LAN) gönderilemedi (%s): %v", folderID[:8], err)
+				if err := tcpConn.SendFolderDelete(rootFolderID, relativePath); err != nil {
+					log.Printf("⚠️ Folder delete (LAN) gönderilemedi (%s): %v", rootFolderID[:8], err)
 				}
 			} else if wanConn, ok := conn.(*wan.WebRTCConnection); ok {
 				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 				defer cancel()
-				if err := wanConn.SendFolderDelete(ctx, folderID, relativePath); err != nil {
-					log.Printf("⚠️ Folder delete (WAN) gönderilemedi (%s): %v", folderID[:8], err)
+				if err := wanConn.SendFolderDelete(ctx, rootFolderID, relativePath); err != nil {
+					log.Printf("⚠️ Folder delete (WAN) gönderilemedi (%s): %v", rootFolderID[:8], err)
 				}
 			}
 		}(conn)
