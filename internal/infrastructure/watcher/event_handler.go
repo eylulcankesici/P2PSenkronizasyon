@@ -511,8 +511,24 @@ func (h *EventHandler) handleDelete(event *FileEvent) error {
 	// Veritabanında dosyayı bul
 	file, err := h.fileRepo.GetByPath(ctx, event.FolderID, event.Path)
 	if err != nil {
-		// Dosya veritabanında yoksa atla
-		return nil
+		// FALLBACK: Windows için ters bölü çizgisi ile dene (Legacy DB kayıtları için)
+		// Event path artık hep "/" normalizasyonu ile geliyor, ama DB'de "\" olabilir.
+		legacyPath := strings.ReplaceAll(event.Path, "/", "\\")
+		if legacyPath != event.Path {
+			log.Printf("⚠️ İlk aramada bulunamadı, legacy path ile deneniyor: %s", legacyPath)
+			fileLegacy, errLegacy := h.fileRepo.GetByPath(ctx, event.FolderID, legacyPath)
+			if errLegacy == nil {
+				log.Printf("✅ Legacy path ile bulundu: %s", legacyPath)
+				file = fileLegacy
+				err = nil
+			} else {
+				log.Printf("❌ Dosya veritabanında bulunamadı (Path: %s, Legacy: %s)", event.Path, legacyPath)
+				return nil
+			}
+		} else {
+            log.Printf("❌ Dosya veritabanında bulunamadı: %s", event.Path)
+			return nil
+		}
 	}
 
 	// Dosya ID'sini sakla (silmeden önce)
