@@ -258,10 +258,16 @@ func (fw *FileWatcher) handleFsnotifyEvent(event fsnotify.Event) error {
 		// Yeni dizin mi? Onu da watch'a ekle
 		stat, err := os.Stat(absPath)
 		if err == nil && stat.IsDir() {
-			if err := fw.addSubdirectories(absPath); err != nil {
+			// Önce dizinin kendisini ekle
+			if err := fw.watcher.Add(absPath); err != nil {
 				log.Printf("⚠️ Yeni dizin watch'a eklenemedi: %v", err)
 			} else {
 				log.Printf("👀 Yeni dizin izleniyor: %s", relPath)
+			}
+
+			// Sonra alt dizinleri ekle (Recursive paste gibi durumlar için)
+			if err := fw.addSubdirectories(absPath); err != nil {
+				log.Printf("⚠️ Alt dizinler eklenirken hata: %v", err)
 			}
 		}
 
