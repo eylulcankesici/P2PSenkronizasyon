@@ -42,6 +42,7 @@ func (s *FileScanner) ScanDirectory(rootPath string) ([]*ScanResult, error) {
 			return err
 		}
 
+
 		// Görmezden gelinecek dosyaları atla
 		if s.shouldIgnore(path) {
 			if info.IsDir() {
@@ -50,22 +51,24 @@ func (s *FileScanner) ScanDirectory(rootPath string) ([]*ScanResult, error) {
 			return nil
 		}
 
-		// Sadece dosyaları ekle (dizinleri değil)
-		if !info.IsDir() {
-			relativePath, err := filepath.Rel(rootPath, path)
-			if err != nil {
-				return err
-			}
-
-			result := &ScanResult{
-				Path:    relativePath,
-				Size:    info.Size(),
-				ModTime: info.ModTime().Unix(),
-				IsDir:   false,
-			}
-
-			results = append(results, result)
+		// Kök dizinin kendisini atla
+		if path == rootPath {
+			return nil
 		}
+
+		relativePath, err := filepath.Rel(rootPath, path)
+		if err != nil {
+			return err
+		}
+
+		result := &ScanResult{
+			Path:    relativePath,
+			Size:    info.Size(),
+			ModTime: info.ModTime().Unix(),
+			IsDir:   info.IsDir(),
+		}
+
+		results = append(results, result)
 
 		return nil
 	})
