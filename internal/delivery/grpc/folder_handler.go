@@ -494,6 +494,14 @@ func (h *FolderHandler) scanAndSaveFiles(ctx context.Context, folder *entity.Fol
 			continue
 		}
 		savedCount++
+
+		// 🔍 Dosyayı/Klasörü bağlı peer'lara senkronize et (Async)
+		// Bunu arka planda yapıyoruz ki klasör oluşturma işlemi peer bağlantısından bağımsız hızlı bitsin
+		go func(fID, folID string) {
+			if err := h.container.SyncFileToAllPeers(fID, folID); err != nil {
+				log.Printf("⚠️ Initial sync hatası (file: %s): %v", fID, err)
+			}
+		}(file.ID, folder.ID)
 	}
 
 	// Folder'ın LastScanTime'ını güncelle

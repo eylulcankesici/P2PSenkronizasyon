@@ -1845,7 +1845,7 @@ func (c *Container) initFileWatcher() error {
 	// File changed callback (yeni dosya için - tüm chunk'lar)
 	eventHandler.SetOnFileChanged(func(fileID, folderID string) error {
 		// Yeni dosya oluşturulduğunda tüm peer'lara sync et
-		return c.syncFileToAllPeers(fileID, folderID)
+		return c.SyncFileToAllPeers(fileID, folderID)
 	})
 
 	// Chunks changed callback (MODIFY için - sadece değişen chunk'lar)
@@ -1923,7 +1923,7 @@ func (c *Container) SymlinkManager() *filesystem.SymlinkManager {
 	return c.symlinkManager
 }
 
-func (c *Container) syncFileToAllPeers(fileID, folderID string) error {
+func (c *Container) SyncFileToAllPeers(fileID, folderID string) error {
 	ctx := context.Background()
 
 	// Folder bilgisini al (sync mode kontrolü için)
