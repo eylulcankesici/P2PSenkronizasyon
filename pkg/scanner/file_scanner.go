@@ -21,6 +21,9 @@ func NewFileScanner() *FileScanner {
 			".DS_Store",
 			"Thumbs.db",
 			"desktop.ini",
+			"node_modules",
+			".idea",
+			".vscode",
 		},
 	}
 }
@@ -83,6 +86,11 @@ func (s *FileScanner) ScanDirectory(rootPath string) ([]*ScanResult, error) {
 // shouldIgnore dosyanın görmezden gelinip gelinmeyeceğini kontrol eder
 func (s *FileScanner) shouldIgnore(path string) bool {
 	baseName := filepath.Base(path)
+
+	// Harici/Sistem dosyalarını ignore et (Watcher ile uyumlu)
+	if strings.HasPrefix(baseName, "~$") || strings.HasSuffix(baseName, ".tmp") {
+		return true
+	}
 
 	for _, pattern := range s.ignorePatterns {
 		if strings.Contains(baseName, pattern) {
