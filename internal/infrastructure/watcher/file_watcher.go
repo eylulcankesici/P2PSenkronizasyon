@@ -237,7 +237,19 @@ func (fw *FileWatcher) handleFsnotifyEvent(event fsnotify.Event) error {
 
 	// Ignore pattern kontrolü
 	if fw.shouldIgnore(absPath, watched) {
-		return nil
+		// EXCEPTION: Temp dosyalar (Word lock files vb.) için istisna
+		// Eğer dosya silindiyse (DELETE) ve DB'de kalmışsa temizlenmesi için izin ver.
+		// Amaç: Scanner tarafından yanlışlıkla eklenen temp dosyaların silinebilmesi.
+		baseName := filepath.Base(absPath)
+		isTempFile := strings.HasPrefix(baseName, "~$") || strings.HasSuffix(baseName, ".tmp")
+		isDelete := event.Op&fsnotify.Remove == fsnotify.Remove
+
+		if isTempFile && isDelete {
+			log.Printf("🗑️ Ignored temp dosya silindi, cleanup için izin veriliyor: %s", absPath)
+			// Proceed
+		} else {
+			return nil
+		}
 	}
 
 	// Relative path hesapla
