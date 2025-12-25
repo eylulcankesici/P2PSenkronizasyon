@@ -84,10 +84,6 @@ type Container struct {
 
 	// Transfer completion ack channels
 	transferAckChans sync.Map // fileID -> chan struct{}
-
-	// Callbacks
-	onUnifiedLog        func(level, msg string)
-	onConnectionRequest func(deviceID, deviceName string)
 }
 
 // NewContainer yeni bir container oluşturur
@@ -990,20 +986,6 @@ func (c *Container) initP2PTransport() error {
 			}
 		})
 
-		// WAN Connection Requested callback (UI için)
-		tempWAN.SetOnConnectionRequested(func(deviceID, deviceName string) {
-			log.Printf("🔔 UI'a bildirim gönderiliyor: Connection Request from %s (%s)", deviceName, deviceID[:8])
-			// Not: handleIncomingConnectionRequest henüz implement edilmemiş olabilir
-			// Ama main.go/App içinde stream ile dinleniyor.
-			// Biz burada Event Bus'a veya Callback'e yönlendirmeliyiz.
-			// Container struct'ında onConnectionRequested callback'i var mı?
-			// Evet, app layer bu callback'i set etmeli.
-			// Şimdilik loglayalım ve varsa callback çağıralım.
-			if c.onConnectionRequest != nil {
-				c.onConnectionRequest(deviceID, deviceName)
-			}
-		})
-
 		if err := tempWAN.Start(ctx); err != nil {
 			log.Printf("⚠️ WAN transport başlatılamadı: %v (yalnızca LAN ile devam ediliyor)", err)
 		} else {
@@ -1584,7 +1566,6 @@ func (c *Container) handleIncomingChunk(ctx context.Context, peerID, fileID, chu
 	return nil
 }
 
-// getChunkRetryCount chunk retry sayısını döner
 // getChunkRetryCount chunk retry sayısını döner
 func (c *Container) getChunkRetryCount(retryKey string) int {
 	c.retryMu.RLock()
@@ -2943,12 +2924,4 @@ func (c *Container) handleIncomingFolderDelete(peerID, folderFileID, relativePat
 
 	log.Printf("✅ Klasör silme işlemi tamamlandı: %s", file.RelativePath)
 	return nil
-}
-
-func (c *Container) SetUnifiedLogger(logger func(level, msg string)) {
-	c.onUnifiedLog = logger
-}
-
-func (c *Container) SetOnConnectionRequest(callback func(deviceID, deviceName string)) {
-	c.onConnectionRequest = callback
 }
