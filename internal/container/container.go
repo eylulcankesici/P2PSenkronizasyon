@@ -992,6 +992,13 @@ func (c *Container) initP2PTransport() error {
 			wanTransport = tempWAN
 			log.Printf("✓ WAN Transport başlatıldı (device: %s)", deviceName)
 		}
+		
+		// Bağlantı isteği callback'ini bağla
+		tempWAN.SetOnConnectionRequested(func(deviceID, deviceName string) {
+			if err := c.handleIncomingConnectionRequest(context.Background(), deviceID, deviceName); err != nil {
+				log.Printf("⚠️ Incoming connection request handling error (WAN): %v", err)
+			}
+		})
 	}
 	c.wanTransport = wanTransport
 

@@ -163,6 +163,12 @@ func (t *WANTransport) Start(ctx context.Context) error {
 		}
 	})
 
+	t.connMgr.SetOnConnectionRequested(func(deviceID, deviceName string) {
+		if t.onConnectionRequested != nil {
+			t.onConnectionRequested(deviceID, deviceName)
+		}
+	})
+
 	t.started = true
 	log.Printf("✅ WAN Transport hazır (device: %s, port: %d)", t.deviceName, t.port)
 
@@ -474,6 +480,14 @@ func (t *WANTransport) SetOnFolderCreate(callback func(peerID, folderID, folderN
 func (t *WANTransport) SetOnFolderDelete(callback func(peerID, folderID, relativePath string)) {
 	if t.connMgr != nil {
 		t.connMgr.SetOnFolderDelete(callback)
+	}
+}
+
+// SetOnConnectionRequested bağlantı isteği callback'ini ayarlar
+func (t *WANTransport) SetOnConnectionRequested(callback func(deviceID, deviceName string)) {
+	t.onConnectionRequested = callback
+	if t.connMgr != nil {
+		t.connMgr.SetOnConnectionRequested(callback)
 	}
 }
 
