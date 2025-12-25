@@ -157,6 +157,21 @@ func (t *WANTransport) Start(ctx context.Context) error {
 		}
 	})
 
+	// AddPendingConnection zaten varsayılan olarak wired (NewWebRTCConnectionManager içinde)
+	// Ancak UI notification için extra callback lazım
+	t.connMgr.SetOnConnectionRequested(func(deviceID, deviceName string) {
+		// Önce Pending Connection ekle (manager kendi ekliyor ama emin olalım)
+		// Manager'daki SetOnConnectionRequested aslında AddPendingConnection'ı çağırıyor.
+		// Bizim burada UI'a haber vermemiz lazım.
+		// WebRTCConnectionManager.SetOnConnectionRequested implementation sadece AddPendingConnection yapıyor.
+		// Bizim UI callback'i çağırmamız için Manager'ın onConnectionRequested'ını override etmemeliyiz,
+		// Manager içinde onConnectionRequested callback'i var, onu set etmeliyiz.
+		
+		if t.onConnectionRequested != nil {
+			t.onConnectionRequested(deviceID, deviceName)
+		}
+	})
+
 	t.connMgr.SetOnPeerIDUpdated(func(oldID, newID, newName string) {
 		if t.onPeerIDUpdated != nil {
 			t.onPeerIDUpdated(oldID, newID, newName)
@@ -361,6 +376,12 @@ func (t *WANTransport) OnConnectionLost(callback func(string)) {
 	if t.connMgr != nil {
 		t.connMgr.SetOnConnectionLost(callback)
 	}
+}
+
+// SetOnConnectionRequested bağlantı isteği geldiğinde çağrılacak callback'i ayarlar
+func (t *WANTransport) SetOnConnectionRequested(callback func(deviceID, deviceName string)) {
+	t.onConnectionRequested = callback
+	// Not: Connection manager'a start içinde bağlanır, burada sakla
 }
 
 // SetChunkHandler chunk handler'ı set eder

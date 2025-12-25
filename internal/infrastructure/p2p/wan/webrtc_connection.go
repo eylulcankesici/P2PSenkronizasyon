@@ -554,6 +554,11 @@ func (m *WebRTCConnectionManager) SetOnFolderDelete(callback func(peerID, folder
 	m.onFolderDelete = callback
 }
 
+// SetOnConnectionRequested connection requested callback'ini ayarlar
+func (m *WebRTCConnectionManager) SetOnConnectionRequested(callback func(deviceID, deviceName string)) {
+	m.onConnectionRequested = callback
+}
+
 // GetPendingPeer gets and removes a pending peer
 func (m *WebRTCConnectionManager) GetPendingPeer(deviceID string) *WebRTCPeer {
 	m.mu.Lock()

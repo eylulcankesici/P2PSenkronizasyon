@@ -24,6 +24,10 @@ type WebRTCPeer struct {
 	connected   bool
 	connectedAt time.Time
 
+	// Signaling State
+	remoteDescriptionSet bool
+	pendingCandidates    []webrtc.ICECandidateInit
+
 	// Callbacks
 	onConnectionStateChange func(webrtc.PeerConnectionState)
 	onDataChannel           func(*webrtc.DataChannel)
@@ -63,9 +67,10 @@ func NewWebRTCPeer(config webrtc.Configuration) (*WebRTCPeer, error) {
 	}
 
 	peer := &WebRTCPeer{
-		peerConnection: peerConnection,
-		config:         config,
-		connected:      false,
+		peerConnection:    peerConnection,
+		config:            config,
+		connected:         false,
+		pendingCandidates: make([]webrtc.ICECandidateInit, 0),
 	}
 
 	// Connection state change callback
@@ -238,11 +243,39 @@ func (p *WebRTCPeer) CreateAnswer(ctx context.Context) (webrtc.SessionDescriptio
 
 // SetRemoteDescription remote SDP description set eder
 func (p *WebRTCPeer) SetRemoteDescription(desc webrtc.SessionDescription) error {
-	return p.peerConnection.SetRemoteDescription(desc)
+	if err := p.peerConnection.SetRemoteDescription(desc); err != nil {
+		return err
+	}
+
+	p.mu.Lock()
+	p.remoteDescriptionSet = true
+	candidates := p.pendingCandidates
+	p.pendingCandidates = nil // Clear buffer
+	p.mu.Unlock()
+
+	// Pending candidate'ları ekle
+	for _, c := range candidates {
+		if err := p.peerConnection.AddICECandidate(c); err != nil {
+			log.Printf("⚠️ Pending candidate eklenemedi: %v", err)
+		} else {
+			log.Printf("✅ Pending candidate eklendi: %s", c.Candidate)
+		}
+	}
+
+	return nil
 }
 
 // AddICECandidate ICE candidate ekler
 func (p *WebRTCPeer) AddICECandidate(candidate webrtc.ICECandidateInit) error {
+	p.mu.Lock()
+	if !p.remoteDescriptionSet {
+		p.pendingCandidates = append(p.pendingCandidates, candidate)
+		p.mu.Unlock()
+		log.Printf("⏳ Candidate buffer'a alındı (RemoteDescription bekleniyor): %s", candidate.Candidate)
+		return nil
+	}
+	p.mu.Unlock()
+
 	return p.peerConnection.AddICECandidate(candidate)
 }
 
