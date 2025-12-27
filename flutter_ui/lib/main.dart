@@ -8,6 +8,7 @@ import 'package:aether_desktop/data/providers/user_provider.dart';
 import 'package:aether_desktop/data/providers/theme_provider.dart';
 
 import 'package:window_manager/window_manager.dart';
+import 'package:aether_desktop/core/utils/backend_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +27,10 @@ void main() async {
     await windowManager.show();
     await windowManager.focus();
   });
+
+  // Start Backend
+  final backendManager = BackendProcessManager();
+  await backendManager.startBackend();
 
   final prefs = await SharedPreferences.getInstance();
 
