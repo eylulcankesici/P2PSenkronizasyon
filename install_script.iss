@@ -27,6 +27,7 @@ OutputDir=Output
 OutputBaseFilename=AetherSetup_v1.0
 Compression=lzma
 SolidCompression=yes
+SetupIconFile=C:\Aether\flutter_ui\windows\runner\resources\app_icon.ico
 WizardStyle=modern
 
 [Languages]
