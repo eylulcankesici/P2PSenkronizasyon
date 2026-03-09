@@ -30,7 +30,7 @@ func main() {
 	log.Printf("Aether v%s (%s mode)", cfg.App.Version, cfg.App.Environment)
 	log.Printf("Data dizini: %s", cfg.App.DataDir)
 	
-	// Dependency injection container'ı oluştur
+	// Dependency injection container'ı oluştur.
 	cont, err := container.NewContainer(cfg)
 	if err != nil {
 		log.Fatalf("Container oluşturulamadı: %v", err)
